@@ -15,6 +15,50 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "tridentCoverage.show-coverage",
+        "title": "Show Code Coverage"
+      },
+      {
+        "command": "tridentCoverage.close-coverage",
+        "title": "Close Code Coverage"
+      }
+    ],
+    "configuration": {
+      "title": "Coverage Display",
+      "properties": {
+        "tridentCoverage.showExecutionCount": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show execution count numbers next to covered statements"
+        },
+        "tridentCoverage.executionCountColor": {
+          "type": "string",
+          "enum": [
+            "CYAN",
+            "DEEP_PINK",
+            "MAGENTA",
+            "DODGER_BLUE",
+            "WHITE",
+            "BLACK",
+            "ELECTRIC_PURPLE",
+            "NEON_ORANGE",
+            "LIME_GREEN",
+            "GOLDEN_YELLOW",
+            "VIVID_RED"
+          ],
+          "default": "CYAN",
+          "description": "Color of the execution count display",
+          "format": "color"
+        },
+        "tridentCoverage.dynamicUpdateInterval": {
+          "type": "number",
+          "default": 3000,
+          "description": "Update interval in milliseconds for dynamic coverage"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

@@ -260,14 +260,14 @@ class CoverageManager {
     const workspaceRoot = getWorkspaceRoot();
     const fuzzerConstants = getFuzzerConstants(this.fuzzerType);
     const targetPath = await getTargetDirPath(this.fuzzerType);
-
+    const releaseFlag = this.fuzzerType === FuzzerType.Honggfuzz ? "--release" : "";
     const profrawFilePath = path.join(targetPath, fuzzerConstants.PROFRAW_FILE);
     const liveReportFilePath = path.join(
       targetPath,
       fuzzerConstants.LIVE_REPORT_FILE
     );
 
-    return `cd ${workspaceRoot} && LLVM_PROFILE_FILE="${profrawFilePath}" CARGO_LLVM_COV_TARGET_DIR="${targetPath}" cargo llvm-cov report --json --skip-functions --release --output-path ${liveReportFilePath} --ignore-filename-regex ${IGNORE_FILE_NAME_REGEX}`;
+    return `cd ${workspaceRoot} && LLVM_PROFILE_FILE="${profrawFilePath}" CARGO_LLVM_COV_TARGET_DIR="${targetPath}" cargo llvm-cov report --json --skip-functions ${releaseFlag} --output-path ${liveReportFilePath} --ignore-filename-regex ${IGNORE_FILE_NAME_REGEX}`;
   }
 }
 

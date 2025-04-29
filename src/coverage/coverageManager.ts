@@ -97,8 +97,9 @@ class CoverageManager {
     );
 
     if (!coverageType) {
-      coverageErrorLog("No coverage type selected.");
-      throw new Error("No coverage type selected.");
+      const errorMessage = "No coverage type selected.";
+      coverageErrorLog(errorMessage);
+      throw new Error(errorMessage);
     }
 
     this.coverageType = coverageType as CoverageType;
@@ -114,8 +115,9 @@ class CoverageManager {
     );
 
     if (!fuzzerType) {
-      coverageErrorLog("No fuzzer type selected.");
-      throw new Error("No fuzzer type selected.");
+      const errorMessage = "No fuzzer type selected.";
+      coverageErrorLog(errorMessage);
+      throw new Error(errorMessage);
     }
 
     this.fuzzerType = fuzzerType as FuzzerType;
@@ -128,12 +130,10 @@ class CoverageManager {
       const tridentTestsPath = path.join(workspaceRoot, "trident-tests");
       await vscode.workspace.fs.stat(vscode.Uri.file(tridentTestsPath));
     } catch (error) {
-      coverageErrorLog(
-        "Trident tests directory not found in the current workspace. Please navigate to the project's root directory."
-      );
-      throw new Error(
-        "Trident tests directory not found in the current workspace. Please navigate to the project's root directory."
-      );
+      const errorMessage =
+        "Trident tests directory not found in the current workspace. Please navigate to the project's root directory.";
+      coverageErrorLog(errorMessage);
+      throw new Error(errorMessage);
     }
 
     try {

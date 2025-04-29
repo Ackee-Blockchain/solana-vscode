@@ -40,8 +40,9 @@ class CoverageReportLoader {
       const data = await vscode.workspace.fs.readFile(filePath);
       this.parseCoverageReport(data);
     } catch {
-      coverageErrorLog("Failed to read coverage report file.");
-      throw new Error("Failed to read coverage report file.");
+      const errorMessage = "Failed to read coverage report file.";
+      coverageErrorLog(errorMessage);
+      throw new Error(errorMessage);
     }
   }
 
@@ -81,8 +82,9 @@ class CoverageReportLoader {
     if (filePath !== undefined) {
       await this.loadCoverageReport(filePath[0]);
     } else {
-      coverageErrorLog("No coverage report file selected.");
-      throw new Error("No coverage report file selected.");
+      const errorMessage = "No coverage report file selected.";
+      coverageErrorLog(errorMessage);
+      throw new Error(errorMessage);
     }
   }
 
@@ -99,8 +101,9 @@ class CoverageReportLoader {
     if (selectedFile) {
       await this.loadCoverageReport(selectedFile.uri);
     } else {
-      coverageErrorLog("No coverage report file selected.");
-      throw new Error("No coverage report file selected.");
+      const errorMessage = "No coverage report file selected.";
+      coverageErrorLog(errorMessage);
+      throw new Error(errorMessage);
     }
   }
 

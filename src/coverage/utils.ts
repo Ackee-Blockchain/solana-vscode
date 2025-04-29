@@ -11,8 +11,9 @@ function coverageErrorLog(errorMessage: string) {
 function getWorkspaceRoot(): string {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
   if (!workspaceRoot) {
-    console.error("No workspace folder found.");
-    throw new Error("No workspace folder found.");
+    const errorMessage = "No workspace folder found.";
+    coverageErrorLog(errorMessage);
+    throw new Error(errorMessage);
   }
   return workspaceRoot;
 }

@@ -55,7 +55,7 @@
         "tridentCoverage.dynamicUpdateInterval": {
           "type": "number",
           "default": 3000,
-          "description": "Update interval in milliseconds for dynamic coverage"
+          "description": "Minimum time (in milliseconds) between coverage report generations. Actual update time may be longer depending on system performance"
         }
       }
     }

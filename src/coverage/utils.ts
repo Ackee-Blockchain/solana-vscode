@@ -42,9 +42,10 @@ async function getTargetDirPath(type?: FuzzerType): Promise<string> {
     const targetDirPathParts = fuzzerConstants.TARGET_PATH.split("/");
 
     switch (type) {
-      case FuzzerType.Afl:
+      case FuzzerType.Afl: {
         return path.join(workspaceRoot, ...targetDirPathParts);
-      case FuzzerType.Honggfuzz:
+      }
+      case FuzzerType.Honggfuzz: {
         let targetDirPath = path.join(workspaceRoot, ...targetDirPathParts);
         const targetContents = await getDirContents(targetDirPath);
         const osDir = getOsDir(targetContents);
@@ -53,6 +54,7 @@ async function getTargetDirPath(type?: FuzzerType): Promise<string> {
           targetDirPath = path.join(targetDirPath, osDir);
         }
         return targetDirPath;
+      }
     }
   } catch (error) {
     console.error(`Error getting target directory: ${error}`);
@@ -91,6 +93,35 @@ function getOsDir(targetDirContents: [string, vscode.FileType][]) {
   return osDir[0];
 }
 
+function extractCorruptedFiles(stderr: string): string[] {
+  const corruptedFiles: string[] = [];
+  const lines = stderr.split("\n");
+
+  for (const line of lines) {
+    if (line.includes(".profraw: invalid instrumentation profile data")) {
+      // Extract the file path from warning messages like:
+      // "warning: /path/to/file.profraw: invalid instrumentation profile data"
+      const [, filePath] = line.match(/warning: ([^:]+\.profraw)/) || [];
+      if (filePath) {
+        corruptedFiles.push(filePath);
+      }
+    }
+  }
+
+  return corruptedFiles;
+}
+
+async function removeFiles(files: string[]) {
+  if (files.length === 0) return;
+
+  try {
+    await executeCommand(`rm -f ${files.join(" ")}`);
+  } catch (error) {
+    console.error(`Failed to delete files: ${error}`);
+    throw error;
+  }
+}
+
 async function executeCommand(command: string) {
   await new Promise<void>((resolve, reject) => {
     const exec = require("child_process").exec;
@@ -104,6 +135,22 @@ async function executeCommand(command: string) {
   });
 }
 
+async function readProfrawList(listFilePath: string): Promise<string[]> {
+  try {
+    const content = await vscode.workspace.fs.readFile(
+      vscode.Uri.file(listFilePath)
+    );
+    const fileList = content
+      .toString()
+      .split("\n")
+      .filter((line) => line.trim().length > 0);
+    return fileList;
+  } catch (error) {
+    console.error(`Failed to read profraw list file: ${error}`);
+    return [];
+  }
+}
+
 export {
   coverageErrorLog,
   getWorkspaceRoot,
@@ -112,4 +159,7 @@ export {
   getOsDir,
   getDirContents,
   executeCommand,
+  extractCorruptedFiles,
+  removeFiles,
+  readProfrawList,
 };

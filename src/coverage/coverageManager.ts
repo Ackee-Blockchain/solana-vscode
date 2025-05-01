@@ -13,6 +13,9 @@ import {
   getFuzzerConstants,
   getTargetDirPath,
   getWorkspaceRoot,
+  extractCorruptedFiles,
+  removeFiles,
+  readProfrawList,
 } from "./utils";
 import * as path from "path";
 import { CoverageType, FuzzerType } from "./types";
@@ -51,16 +54,22 @@ class CoverageManager {
   }
 
   public async showCoverage() {
-    this.coverageDecorations.clearCoverage(this.coverageTestController);
-    await this.setupCoverage();
+    try {
+      this.coverageDecorations.clearCoverage(this.coverageTestController);
+      await this.setupCoverage();
 
-    switch (this.coverageType) {
-      case CoverageType.Static:
-        this.showStaticCoverage();
-        break;
-      case CoverageType.Dynamic:
-        this.startDynamicCoverage();
-        break;
+      switch (this.coverageType) {
+        case CoverageType.Static: {
+          this.showStaticCoverage();
+          break;
+        }
+        case CoverageType.Dynamic: {
+          this.startDynamicCoverage();
+          break;
+        }
+      }
+    } catch (error) {
+      return;
     }
   }
 
@@ -136,13 +145,12 @@ class CoverageManager {
       throw new Error(errorMessage);
     }
 
-    try {
-      await this.checkProfrawFiles();
-    } catch (error) {
-      coverageErrorLog(
-        "No profraw files found in the target directory. Is the fuzzer running?"
-      );
-      throw error;
+    const hasProfrawFiles = await this.checkProfrawFiles();
+    if (!hasProfrawFiles) {
+      const errorMessage =
+        "No profraw files found in the target directory. Is the chosen fuzzer running?";
+      coverageErrorLog(errorMessage);
+      throw new Error(errorMessage);
     }
 
     if (this.fileSystemWatcher) {
@@ -160,6 +168,9 @@ class CoverageManager {
       .get("dynamicUpdateInterval", DEFAULT_UPDATE_INTERVAL);
 
     try {
+      vscode.window.showInformationMessage(
+        "Starting dynamic coverage generation. This could take a while..."
+      );
       this.updateCoverage(updateInterval);
     } catch (error) {
       coverageErrorLog(`Coverage update failed: ${error}`);
@@ -168,41 +179,37 @@ class CoverageManager {
   }
 
   private async updateCoverage(updateInterval: number) {
-    try {
-      const hasProfrawFiles = await this.checkProfrawFiles();
-      if (!hasProfrawFiles) {
-        vscode.window.showInformationMessage(
-          "No profraw files found - fuzzing has stopped."
-        );
-        return;
-      }
-
-      const generateReportCommand = await this.getGenerateReportCommand();
-      await executeCommand(generateReportCommand);
-
-      // Load and display the coverage report
-      const liveReportFilePath = getFuzzerConstants(
-        this.fuzzerType
-      ).LIVE_REPORT_FILE;
-      const targetPath = await getTargetDirPath(this.fuzzerType);
-      const reportUri = vscode.Uri.file(
-        path.join(targetPath, liveReportFilePath)
+    const hasProfrawFiles = await this.checkProfrawFiles();
+    if (!hasProfrawFiles) {
+      vscode.window.showInformationMessage(
+        "No profraw files found - fuzzing has stopped."
       );
-      await this.coverageReportLoader.loadCoverageReport(reportUri);
-
-      if (this.coverageReportLoader.coverageReport) {
-        this.coverageDecorations.displayCoverage(
-          this.coverageReportLoader.coverageReport,
-          this.coverageTestController
-        );
-      }
-
-      // Wait before next update
-      await new Promise((resolve) => setTimeout(resolve, updateInterval));
-      this.updateCoverage(updateInterval);
-    } catch (error) {
-      throw error;
+      await this.removeLeftOverProfrawFiles();
+      return;
     }
+
+    await this.generateReport();
+
+    // Load and display the coverage report
+    const liveReportFilePath = getFuzzerConstants(
+      this.fuzzerType
+    ).LIVE_REPORT_FILE;
+    const targetPath = await getTargetDirPath(this.fuzzerType);
+    const reportUri = vscode.Uri.file(
+      path.join(targetPath, liveReportFilePath)
+    );
+    await this.coverageReportLoader.loadCoverageReport(reportUri);
+
+    if (this.coverageReportLoader.coverageReport) {
+      this.coverageDecorations.displayCoverage(
+        this.coverageReportLoader.coverageReport,
+        this.coverageTestController
+      );
+    }
+
+    // Wait before next update
+    await new Promise((resolve) => setTimeout(resolve, updateInterval));
+    this.updateCoverage(updateInterval);
   }
 
   private async checkProfrawFiles(): Promise<boolean> {
@@ -256,11 +263,59 @@ class CoverageManager {
     this.disposables.push(this.windowChangeListener);
   }
 
+  private async handleProfdata(): Promise<void> {
+    const targetPath = await getTargetDirPath(this.fuzzerType);
+    const workspaceName = path.basename(getWorkspaceRoot());
+    const profDataPath = path.join(targetPath, `${workspaceName}.profdata`);
+    const oldProfrawPath = path.join(
+      targetPath,
+      `${workspaceName}-old.profraw`
+    );
+
+    try {
+      await executeCommand(`mv ${profDataPath} ${oldProfrawPath}`);
+    } catch (error) {
+      console.log("No existing profdata file to convert.");
+    }
+  }
+
+  private async generateReport(): Promise<void> {
+    const generateReportCommand = await this.getGenerateReportCommand();
+
+    try {
+      await executeCommand(generateReportCommand);
+    } catch (error: any) {
+      const errorMessage = error.toString();
+      const corruptedFiles = extractCorruptedFiles(errorMessage);
+      if (corruptedFiles.length > 0) {
+        await removeFiles(corruptedFiles);
+        await executeCommand(generateReportCommand);
+      } else {
+        await this.removeLeftOverProfrawFiles();
+        throw error;
+      }
+    }
+
+    // Remove used profraw files because all the data
+    // is combined and stored in a .profdata file
+    const workspaceRoot = getWorkspaceRoot();
+    const targetDirPath = await getTargetDirPath(this.fuzzerType);
+    const workspaceName = path.basename(workspaceRoot);
+    const profrawListPath = path.join(
+      targetDirPath,
+      `${workspaceName}-profraw-list`
+    );
+    const profrawFiles = await readProfrawList(profrawListPath);
+    await removeFiles(profrawFiles);
+    await this.handleProfdata();
+  }
+
   private async getGenerateReportCommand(): Promise<string> {
     const workspaceRoot = getWorkspaceRoot();
     const fuzzerConstants = getFuzzerConstants(this.fuzzerType);
     const targetPath = await getTargetDirPath(this.fuzzerType);
-    const releaseFlag = this.fuzzerType === FuzzerType.Honggfuzz ? "--release" : "";
+    const releaseFlag =
+      this.fuzzerType === FuzzerType.Honggfuzz ? "--release" : "";
     const profrawFilePath = path.join(targetPath, fuzzerConstants.PROFRAW_FILE);
     const liveReportFilePath = path.join(
       targetPath,
@@ -268,6 +323,19 @@ class CoverageManager {
     );
 
     return `cd ${workspaceRoot} && LLVM_PROFILE_FILE="${profrawFilePath}" CARGO_LLVM_COV_TARGET_DIR="${targetPath}" cargo llvm-cov report --json --skip-functions ${releaseFlag} --output-path ${liveReportFilePath} --ignore-filename-regex ${IGNORE_FILE_NAME_REGEX}`;
+  }
+
+  private async removeLeftOverProfrawFiles(): Promise<void> {
+    const workspaceRoot = getWorkspaceRoot();
+    const workspaceName = path.basename(workspaceRoot);
+    const targetDirPath = await getTargetDirPath(this.fuzzerType);
+    const profrawListPath = path.join(
+      targetDirPath,
+      `${workspaceName}-profraw-list`
+    );
+    const profDataPath = path.join(targetDirPath, `${workspaceName}.profdata`);
+
+    await removeFiles([profrawListPath, profDataPath]);
   }
 }
 

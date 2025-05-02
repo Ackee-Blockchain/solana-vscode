@@ -24,14 +24,27 @@ const { COVERAGE_ID, COVERAGE_LABEL } = TestApiConstants;
 const { IGNORE_FILE_NAME_REGEX } = TridentConstants;
 const { DEFAULT_UPDATE_INTERVAL } = CoverageConstants;
 
+/**
+ * Manages code coverage visualization and updates in VS Code
+ * Handles both static and dynamic coverage reporting for AFL and Honggfuzz fuzzers.
+ * Coordinates between coverage decorations, report loading, and test controller components.
+ */
 class CoverageManager {
+  /** Manages the visual representation of coverage in editors */
   private coverageDecorations: CoverageDecorations;
+  /** Handles loading and parsing of coverage report files */
   private coverageReportLoader: CoverageReportLoader;
+  /** Controls the test UI integration in VS Code */
   private coverageTestController: vscode.TestController;
+  /** List of disposable resources to clean up */
   private disposables: { dispose(): any }[];
+  /** Watches for changes in coverage files */
   private fileSystemWatcher: vscode.FileSystemWatcher | undefined;
+  /** Listens for active editor changes */
   private windowChangeListener: vscode.Disposable | undefined;
+  /** Type of coverage analysis being performed */
   private coverageType: CoverageType | undefined;
+  /** Type of fuzzer being used */
   private fuzzerType: FuzzerType | undefined;
 
   constructor() {
@@ -48,11 +61,19 @@ class CoverageManager {
     this.disposables.push(this.coverageDecorations);
   }
 
+  /**
+   * Cleans up all resources used by the coverage manager
+   */
   dispose() {
     this.disposables.forEach((disposable) => disposable.dispose());
     this.disposables = [];
   }
 
+  /**
+   * Initiates coverage visualization based on selected coverage type
+   * Handles both static coverage from files and dynamic coverage from running fuzzers
+   * @throws {Error} If setup fails or required selections are not made
+   */
   public async showCoverage() {
     try {
       this.coverageDecorations.clearCoverage(this.coverageTestController);
@@ -73,6 +94,10 @@ class CoverageManager {
     }
   }
 
+  /**
+   * Displays static coverage from a selected coverage report file
+   * @private
+   */
   private async showStaticCoverage() {
     await this.coverageReportLoader.selectCoverageFile();
 
@@ -84,6 +109,11 @@ class CoverageManager {
     }
   }
 
+  /**
+   * Sets up coverage visualization by configuring listeners and selecting coverage options
+   * @private
+   * @throws {Error} If required selections are not made
+   */
   private async setupCoverage() {
     this.setupWindowChangeListener();
 
@@ -96,6 +126,11 @@ class CoverageManager {
     await this.setupDynamicCoverage();
   }
 
+  /**
+   * Prompts user to select coverage type (Static or Dynamic)
+   * @private
+   * @throws {Error} If no coverage type is selected
+   */
   private async selectCoverageType() {
     const coverageType = await vscode.window.showQuickPick(
       [CoverageType.Static, CoverageType.Dynamic],
@@ -114,6 +149,11 @@ class CoverageManager {
     this.coverageType = coverageType as CoverageType;
   }
 
+  /**
+   * Prompts user to select fuzzer type (AFL or Honggfuzz)
+   * @private
+   * @throws {Error} If no fuzzer type is selected
+   */
   private async selectFuzzerType() {
     const fuzzerType = await vscode.window.showQuickPick(
       [FuzzerType.Afl, FuzzerType.Honggfuzz],
@@ -132,6 +172,11 @@ class CoverageManager {
     this.fuzzerType = fuzzerType as FuzzerType;
   }
 
+  /**
+   * Sets up dynamic coverage monitoring by verifying directory structure and watching for file changes
+   * @private
+   * @throws {Error} If trident-tests directory is not found or no profraw files exist
+   */
   private async setupDynamicCoverage() {
     const workspaceRoot = getWorkspaceRoot();
     try {
@@ -162,6 +207,11 @@ class CoverageManager {
       vscode.workspace.createFileSystemWatcher(profilesToWatch);
   }
 
+  /**
+   * Initiates dynamic coverage monitoring with periodic updates
+   * @private
+   * @throws {Error} If coverage update fails
+   */
   private async startDynamicCoverage() {
     const updateInterval = vscode.workspace
       .getConfiguration("tridentCoverage")
@@ -178,6 +228,11 @@ class CoverageManager {
     }
   }
 
+  /**
+   * Updates coverage information periodically for dynamic coverage
+   * @private
+   * @param {number} updateInterval - Time in milliseconds between updates
+   */
   private async updateCoverage(updateInterval: number) {
     const hasProfrawFiles = await this.checkProfrawFiles();
     if (!hasProfrawFiles) {
@@ -212,6 +267,12 @@ class CoverageManager {
     this.updateCoverage(updateInterval);
   }
 
+  /**
+   * Checks if profraw files exist in the target directory
+   * @private
+   * @returns {Promise<boolean>} True if profraw files exist
+   * @throws {Error} If checking for files fails
+   */
   private async checkProfrawFiles(): Promise<boolean> {
     try {
       const targetPath = await getTargetDirPath(this.fuzzerType);
@@ -228,6 +289,10 @@ class CoverageManager {
     }
   }
 
+  /**
+   * Closes coverage visualization and cleans up resources
+   * Disposes of listeners and watchers, and clears coverage display
+   */
   public async closeCoverage() {
     if (this.windowChangeListener) {
       this.windowChangeListener.dispose();
@@ -245,6 +310,10 @@ class CoverageManager {
     this.coverageDecorations.clearCoverage(this.coverageTestController);
   }
 
+  /**
+   * Sets up a listener for active editor changes to update coverage decorations
+   * @private
+   */
   private setupWindowChangeListener() {
     if (this.windowChangeListener) {
       this.windowChangeListener.dispose();
@@ -263,6 +332,11 @@ class CoverageManager {
     this.disposables.push(this.windowChangeListener);
   }
 
+  /**
+   * Handles profdata file management by converting old profdata to profraw
+   * @private
+   * @throws {Error} If file operations fail
+   */
   private async handleProfdata(): Promise<void> {
     const targetPath = await getTargetDirPath(this.fuzzerType);
     const workspaceName = path.basename(getWorkspaceRoot());
@@ -279,6 +353,11 @@ class CoverageManager {
     }
   }
 
+  /**
+   * Generates a coverage report from profraw files
+   * @private
+   * @throws {Error} If report generation fails
+   */
   private async generateReport(): Promise<void> {
     const generateReportCommand = await this.getGenerateReportCommand();
 
@@ -310,6 +389,11 @@ class CoverageManager {
     await this.handleProfdata();
   }
 
+  /**
+   * Constructs the command for generating a coverage report
+   * @private
+   * @returns {Promise<string>} The complete command string
+   */
   private async getGenerateReportCommand(): Promise<string> {
     const workspaceRoot = getWorkspaceRoot();
     const fuzzerConstants = getFuzzerConstants(this.fuzzerType);
@@ -322,9 +406,19 @@ class CoverageManager {
       fuzzerConstants.LIVE_REPORT_FILE
     );
 
-    return `cd ${workspaceRoot} && LLVM_PROFILE_FILE="${profrawFilePath}" CARGO_LLVM_COV_TARGET_DIR="${targetPath}" cargo llvm-cov report --json --skip-functions ${releaseFlag} --output-path ${liveReportFilePath} --ignore-filename-regex ${IGNORE_FILE_NAME_REGEX}`;
+    return (
+      `cd ${workspaceRoot} && LLVM_PROFILE_FILE="${profrawFilePath}"` +
+      `CARGO_LLVM_COV_TARGET_DIR="${targetPath}"` +
+      `cargo llvm-cov report --json --skip-functions ${releaseFlag}` +
+      `--output-path ${liveReportFilePath}` +
+      `--ignore-filename-regex ${IGNORE_FILE_NAME_REGEX}`
+    );
   }
 
+  /**
+   * Removes leftover profraw files and related artifacts
+   * @private
+   */
   private async removeLeftOverProfrawFiles(): Promise<void> {
     const workspaceRoot = getWorkspaceRoot();
     const workspaceName = path.basename(workspaceRoot);

@@ -1,4 +1,4 @@
-export const DecorationConstants = {
+const DecorationConstants = {
   configColorOptions: {
     CYAN: "rgb(0, 255, 255)",
     DEEP_PINK: "rgb(255, 20, 147)",
@@ -31,13 +31,13 @@ export const DecorationConstants = {
   },
 };
 
-export const TestApiConstants = {
+const TestApiConstants = {
   COVERAGE_LABEL: "Trident Coverage",
   COVERAGE_ID: "trident-coverage",
   COVERAGE_TEST_RUN_NAME: "Trident Coverage Test Run",
 };
 
-export const TridentConstants = {
+const TridentConstants = {
   IGNORE_FILE_NAME_REGEX: "trident",
   afl: {
     TARGET_PATH: "trident-tests/fuzzing/afl/afl_target",
@@ -55,6 +55,13 @@ export const TridentConstants = {
   },
 };
 
-export const CoverageConstants = {
+const CoverageConstants = {
   DEFAULT_UPDATE_INTERVAL: 3000,
+};
+
+export {
+  DecorationConstants,
+  TestApiConstants,
+  TridentConstants,
+  CoverageConstants,
 };

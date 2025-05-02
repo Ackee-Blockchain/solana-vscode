@@ -5,7 +5,14 @@ import { CoverageFileData, CoverageReport, CoverageSegment } from "./types";
 const { COVERAGE_LABEL, COVERAGE_TEST_RUN_NAME } = TestApiConstants;
 const { executionCountProperties } = DecorationConstants;
 
+/**
+ * Manages code coverage decorations in the editor, including line coverage highlighting
+ * and execution count display.
+ */
 class CoverageDecorations {
+  /**
+   * Array of text editor decoration types used for different coverage levels
+   */
   public lineCoverageDecorations: vscode.TextEditorDecorationType[];
 
   constructor() {
@@ -13,11 +20,18 @@ class CoverageDecorations {
     this.initLineCoverageDecorations();
   }
 
+  /**
+   * Disposes all line coverage decorations
+   */
   dispose() {
     this.lineCoverageDecorations.forEach((decoration) => decoration.dispose());
     this.lineCoverageDecorations = [];
   }
 
+  /**
+   * Initializes line coverage decorations based on predefined color levels
+   * @private
+   */
   private initLineCoverageDecorations() {
     for (const color of Object.values(DecorationConstants.levelColors)) {
       let decorationOption = { backgroundColor: color };
@@ -28,6 +42,11 @@ class CoverageDecorations {
     }
   }
 
+  /**
+   * Displays code coverage information in the editor
+   * @param {CoverageReport} coverageReport - The coverage report to display
+   * @param {vscode.TestController} coverageTestController - The test controller instance
+   */
   displayCoverage(
     coverageReport: CoverageReport,
     coverageTestController: vscode.TestController
@@ -36,11 +55,19 @@ class CoverageDecorations {
     this.displayCoverageStatusBars(coverageReport, coverageTestController);
   }
 
+  /**
+   * Clears all coverage information from the editor
+   * @param {vscode.TestController} coverageTestController - The test controller instance
+   */
   clearCoverage(coverageTestController: vscode.TestController) {
     this.clearLineCoverageDecorations();
     this.clearCoverageStatusBars(coverageTestController);
   }
 
+  /**
+   * Clears all line coverage decorations from visible editors
+   * @private
+   */
   private clearLineCoverageDecorations() {
     let visibleEditors = vscode.window.visibleTextEditors;
     for (const editor of visibleEditors) {
@@ -50,6 +77,10 @@ class CoverageDecorations {
     }
   }
 
+  /**
+   * Displays line coverage decorations in all visible editors
+   * @param {CoverageReport} coverageReport - The coverage report to display
+   */
   displayLineCoverageDecorations(coverageReport: CoverageReport) {
     let visibleEditors = vscode.window.visibleTextEditors;
     for (const editor of visibleEditors) {
@@ -62,6 +93,12 @@ class CoverageDecorations {
     }
   }
 
+  /**
+   * Displays coverage information in the status bars next to the file names in the sidebar
+   * @param {CoverageReport} coverageReport - The coverage report to display
+   * @param {vscode.TestController} coverageTestController - The test controller instance
+   * @private
+   */
   private displayCoverageStatusBars(
     coverageReport: CoverageReport,
     coverageTestController: vscode.TestController
@@ -102,6 +139,11 @@ class CoverageDecorations {
     coverageProfile.dispose();
   }
 
+  /**
+   * Removes the status bars next to the file names in the sidebar
+   * @param {vscode.TestController} coverageTestController - The test controller instance
+   * @private
+   */
   private clearCoverageStatusBars(
     coverageTestController: vscode.TestController
   ) {
@@ -111,6 +153,12 @@ class CoverageDecorations {
     run.end();
   }
 
+  /**
+   * Prepares and displays coverage segments for a specific file
+   * @param {CoverageFileData} coverageFileData - Coverage data for a specific file
+   * @param {vscode.TextEditor} editor - The text editor instance
+   * @private
+   */
   private prepareAndDisplaySegments(
     coverageFileData: CoverageFileData,
     editor: vscode.TextEditor
@@ -144,6 +192,12 @@ class CoverageDecorations {
     );
   }
 
+  /**
+   * Calculates the coverage level based on execution count
+   * @param {number} count - The execution count
+   * @returns {number} The calculated coverage level
+   * @private
+   */
   private calculateCoverageLevel(count: number) {
     let coverageLevel = 0;
     for (const levelThreshold of Object.values(
@@ -158,6 +212,14 @@ class CoverageDecorations {
     return coverageLevel;
   }
 
+  /**
+   * Creates a decoration for a specific code segment
+   * @param {CoverageSegment} segment - The coverage segment
+   * @param {CoverageFileData} coverageFileData - Coverage data for the file
+   * @param {vscode.TextEditor} editor - The text editor instance
+   * @returns {vscode.DecorationOptions} The created decoration options
+   * @private
+   */
   private createSegmentDecoration(
     segment: CoverageSegment,
     coverageFileData: CoverageFileData,

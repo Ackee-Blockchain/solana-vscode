@@ -158,7 +158,9 @@ function extractCorruptedFiles(stderr: string): string[] {
  * @throws {Error} If there's an error deleting the files
  */
 async function removeFiles(files: string[]) {
-  if (files.length === 0) return;
+  if (files.length === 0) {
+    return;
+  }
 
   try {
     await executeCommand(`rm -f ${files.join(" ")}`);

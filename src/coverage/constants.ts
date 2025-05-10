@@ -41,22 +41,20 @@ const TridentConstants = {
   IGNORE_FILE_NAME_REGEX: "trident",
   afl: {
     TARGET_PATH: "trident-tests/fuzzing/afl/afl_target",
-    PROFRAW_FILE:
-      "afl-fuzz-cov-%p-%30m.profraw",
-    LIVE_REPORT_FILE:
-      "afl-live-report.json",
+    PROFRAW_FILE: "afl-fuzz-cov-%p-%30m.profraw",
+    LIVE_REPORT_FILE: "afl-live-report.json",
   },
   hfuzz: {
     TARGET_PATH: "trident-tests/fuzzing/honggfuzz/hfuzz_target",
-    PROFRAW_FILE:
-      "hfuzz-fuzz-cov-%p-%30m.profraw",
-    LIVE_REPORT_FILE:
-      "hfuzz-live-report.json",
+    PROFRAW_FILE: "hfuzz-fuzz-cov-%p-%30m.profraw",
+    LIVE_REPORT_FILE: "hfuzz-live-report.json",
   },
 };
 
 const CoverageConstants = {
   DEFAULT_UPDATE_INTERVAL: 3000,
+  NOTIFICATION_FILE:
+    "trident-tests/fuzzing/coverage-extension-notification.json",
 };
 
 export {

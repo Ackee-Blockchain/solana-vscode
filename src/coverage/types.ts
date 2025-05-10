@@ -118,8 +118,8 @@ type CoverageSummary = {
  * @enum {string}
  */
 enum CoverageType {
-  Static = "Static",
-  Dynamic = "Dynamic",
+  Static = "Load generated JSON report",
+  Dynamic = "Attach to active fuzzing session",
 }
 
 /**

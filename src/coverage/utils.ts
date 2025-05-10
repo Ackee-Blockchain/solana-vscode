@@ -126,12 +126,9 @@ function getOsDir(targetDirContents: [string, vscode.FileType][]) {
 }
 
 /**
- * Extracts paths of corrupted profraw files from stderr output
- * @param {string} stderr - The stderr output containing warning messages
+ * Extracts paths of corrupted profraw files from error output
+ * @param {string} stderr - Error output containing file corruption messages
  * @returns {string[]} Array of paths to corrupted profraw files
- * @example
- * // For stderr containing: "warning: /path/to/file.profraw: invalid instrumentation profile data"
- * // Returns: ["/path/to/file.profraw"]
  */
 function extractCorruptedFiles(stderr: string): string[] {
   const corruptedFiles: string[] = [];
@@ -190,14 +187,15 @@ async function executeCommand(command: string) {
 }
 
 /**
- * Reads a list of profraw files from a file
- * @param {string} listFilePath - Path to the file containing the list
+ * Reads the list of profraw files from a list file
+ * @param {string} profrawListPath - Path to the file containing the list of profraw files
  * @returns {Promise<string[]>} Array of profraw file paths
+ * @throws {Error} If reading the file fails
  */
-async function readProfrawList(listFilePath: string): Promise<string[]> {
+async function readProfrawList(profrawListPath: string): Promise<string[]> {
   try {
     const content = await vscode.workspace.fs.readFile(
-      vscode.Uri.file(listFilePath)
+      vscode.Uri.file(profrawListPath)
     );
     const fileList = content
       .toString()
@@ -205,7 +203,7 @@ async function readProfrawList(listFilePath: string): Promise<string[]> {
       .filter((line) => line.trim().length > 0);
     return fileList;
   } catch (error) {
-    console.error(`Failed to read profraw list file: ${error}`);
+    console.error(`Failed to read profraw list: ${error}`);
     return [];
   }
 }

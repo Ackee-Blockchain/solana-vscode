@@ -12,7 +12,9 @@
     "Other"
   ],
   "icon": "assets/icon.png",
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:trident-tests"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [

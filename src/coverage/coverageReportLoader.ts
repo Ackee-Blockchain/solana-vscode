@@ -167,6 +167,7 @@ class CoverageReportLoader {
    * Parses raw coverage report data and updates the current coverage report
    * @private
    * @param {Uint8Array} data - Raw binary data from the coverage report file
+   * @throws {Error} When the data cannot be parsed as valid JSON or does not match the expected coverage report format
    */
   private parseCoverageReport(data: Uint8Array) {
     try {
@@ -182,7 +183,9 @@ class CoverageReportLoader {
 
       this.coverageReport = parsedData as CoverageReport;
     } catch {
-      coverageErrorLog("Failed to parse coverage report");
+      const errorMessage = "Failed to parse coverage report";
+      coverageErrorLog(errorMessage);
+      throw new Error(errorMessage);
     }
   }
 

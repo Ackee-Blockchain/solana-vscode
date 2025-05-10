@@ -440,11 +440,10 @@ suite("Coverage Report Loader Test Suite", () => {
 
     test("should handle invalid JSON data", () => {
       const invalidData = Buffer.from("invalid json");
-      coverageReportLoader.testParseCoverageReport(invalidData);
-      assert.strictEqual(
-        coverageReportLoader.coverageReport,
-        undefined,
-        "Should not set coverage report on parse failure"
+      assert.throws(
+        () => coverageReportLoader.testParseCoverageReport(invalidData),
+        Error,
+        "Failed to parse coverage report"
       );
     });
   });

@@ -22,7 +22,7 @@ import { CoverageType, FuzzerType } from "./types";
 
 const { COVERAGE_ID, COVERAGE_LABEL } = TestApiConstants;
 const { IGNORE_FILE_NAME_REGEX } = TridentConstants;
-const { DEFAULT_UPDATE_INTERVAL } = CoverageConstants;
+const { DEFAULT_UPDATE_INTERVAL, NOTIFICATION_FILE } = CoverageConstants;
 
 /**
  * Manages code coverage visualization and updates in VS Code
@@ -38,14 +38,14 @@ class CoverageManager {
   private coverageTestController: vscode.TestController;
   /** List of disposable resources to clean up */
   private disposables: { dispose(): any }[];
-  /** Watches for changes in coverage files */
-  private fileSystemWatcher: vscode.FileSystemWatcher | undefined;
   /** Listens for active editor changes */
   private windowChangeListener: vscode.Disposable | undefined;
   /** Type of coverage analysis being performed */
   private coverageType: CoverageType | undefined;
   /** Type of fuzzer being used */
   private fuzzerType: FuzzerType | undefined;
+  /** File watcher for notification file */
+  private notificationWatcher: vscode.FileSystemWatcher;
 
   constructor() {
     this.coverageDecorations = new CoverageDecorations();
@@ -54,11 +54,13 @@ class CoverageManager {
       COVERAGE_ID,
       COVERAGE_LABEL
     );
+    this.notificationWatcher = this.setupNotificationWatcher();
     this.disposables = [];
 
     this.disposables.push(this.coverageTestController);
     this.disposables.push(this.coverageReportLoader);
     this.disposables.push(this.coverageDecorations);
+    this.disposables.push(this.notificationWatcher);
   }
 
   /**
@@ -173,11 +175,15 @@ class CoverageManager {
   }
 
   /**
-   * Sets up dynamic coverage monitoring by verifying directory structure and watching for file changes
+   * Sets up dynamic coverage monitoring by verifying directory structure and checking for profraw files
    * @private
-   * @throws {Error} If trident-tests directory is not found or no profraw files exist
+   * @param {boolean} waitForFiles - If true, waits for profraw files to be created when none exist.
+   *                                 If false, throws an error when no files exist.
+   * @throws {Error} If:
+   *  - trident-tests directory is not found in the workspace
+   *  - no profraw files exist and waitForFiles is false
    */
-  private async setupDynamicCoverage() {
+  private async setupDynamicCoverage(waitForFiles: boolean = false) {
     const workspaceRoot = getWorkspaceRoot();
     try {
       // Check if trident-tests directory exists
@@ -191,20 +197,60 @@ class CoverageManager {
     }
 
     const hasProfrawFiles = await this.checkProfrawFiles();
-    if (!hasProfrawFiles) {
+    if (!hasProfrawFiles && !waitForFiles) {
       const errorMessage =
         "No profraw files found in the target directory. Is the chosen fuzzer running?";
       coverageErrorLog(errorMessage);
       throw new Error(errorMessage);
     }
 
-    if (this.fileSystemWatcher) {
-      this.fileSystemWatcher.dispose();
+    if (!hasProfrawFiles && waitForFiles) {
+      await this.waitForProfrawFiles();
     }
+  }
 
-    const profilesToWatch = await getTargetDirPath(this.fuzzerType);
-    this.fileSystemWatcher =
-      vscode.workspace.createFileSystemWatcher(profilesToWatch);
+  /**
+   * Creates a file system watcher to wait for profraw files to be created
+   * @private
+   * @returns {Promise<void>} Resolves when:
+   *  - profraw files are detected in the target directory
+   *  - rejects after 30 seconds timeout if no files are created
+   *  - rejects if there's an error checking for files
+   * @throws {Error} If:
+   *  - timeout occurs before files are created
+   *  - error occurs while checking for files
+   *  - error occurs while setting up the file watcher
+   */
+  private async waitForProfrawFiles() {
+    return new Promise<void>(async (resolve, reject) => {
+      try {
+        const targetPath = await getTargetDirPath(this.fuzzerType);
+        const watcher = vscode.workspace.createFileSystemWatcher(
+          new vscode.RelativePattern(targetPath, "*.profraw")
+        );
+
+        const timeout = setTimeout(() => {
+          watcher.dispose();
+          reject(new Error("Timeout waiting for profraw files"));
+        }, 30000); // 30 second timeout
+
+        watcher.onDidCreate(async () => {
+          try {
+            if (await this.checkProfrawFiles()) {
+              clearTimeout(timeout);
+              watcher.dispose();
+              resolve();
+            }
+          } catch (error) {
+            clearTimeout(timeout);
+            watcher.dispose();
+            reject(error);
+          }
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   /**
@@ -299,11 +345,6 @@ class CoverageManager {
       this.windowChangeListener = undefined;
     }
 
-    if (this.fileSystemWatcher) {
-      this.fileSystemWatcher.dispose();
-      this.fileSystemWatcher = undefined;
-    }
-
     this.coverageType = undefined;
     this.fuzzerType = undefined;
 
@@ -328,8 +369,6 @@ class CoverageManager {
         }
       }
     );
-
-    this.disposables.push(this.windowChangeListener);
   }
 
   /**
@@ -408,9 +447,13 @@ class CoverageManager {
 
     return (
       `cd ${workspaceRoot} && LLVM_PROFILE_FILE="${profrawFilePath}"` +
+      " " +
       `CARGO_LLVM_COV_TARGET_DIR="${targetPath}"` +
+      " " +
       `cargo llvm-cov report --json --skip-functions ${releaseFlag}` +
+      " " +
       `--output-path ${liveReportFilePath}` +
+      " " +
       `--ignore-filename-regex ${IGNORE_FILE_NAME_REGEX}`
     );
   }
@@ -430,6 +473,54 @@ class CoverageManager {
     const profDataPath = path.join(targetDirPath, `${workspaceName}.profdata`);
 
     await removeFiles([profrawListPath, profDataPath]);
+  }
+
+  /**
+   * Sets up a file system watcher for the notification file
+   * Watches for file creation events to trigger dynamic coverage setup
+   * @private
+   * @returns {vscode.FileSystemWatcher} The configured file watcher
+   */
+  private setupNotificationWatcher(): vscode.FileSystemWatcher {
+    const notificationPath = NOTIFICATION_FILE.split("/");
+    const completePath = path.join(getWorkspaceRoot(), ...notificationPath);
+
+    const watcher = vscode.workspace.createFileSystemWatcher(completePath);
+
+    watcher.onDidCreate(this.handleNotificationFile.bind(this));
+
+    return watcher;
+  }
+
+  /**
+   * Handles the creation of the notification file
+   * Parses the file contents to determine fuzzer type and sets up dynamic coverage
+   * @private
+   * @throws {Error} If the notification file cannot be read or parsed
+   */
+  private async handleNotificationFile() {
+    const notificationPath = NOTIFICATION_FILE.split("/");
+    const completePath = path.join(getWorkspaceRoot(), ...notificationPath);
+
+    try {
+      const jsonContent = await vscode.workspace.fs.readFile(
+        vscode.Uri.file(completePath)
+      );
+      const notification = JSON.parse(jsonContent.toString());
+
+      this.coverageType = CoverageType.Dynamic;
+      if (notification.fuzzer.toUpperCase() === "AFL") {
+        this.fuzzerType = FuzzerType.Afl;
+      } else {
+        this.fuzzerType = FuzzerType.Honggfuzz;
+      }
+
+      this.setupWindowChangeListener();
+      await this.setupDynamicCoverage(true);
+      await this.startDynamicCoverage();
+    } catch (error) {
+      coverageErrorLog(`Error handling notification file: ${error}`);
+    }
   }
 }
 

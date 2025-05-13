@@ -509,7 +509,7 @@ class CoverageManager {
       const notification = JSON.parse(jsonContent.toString());
 
       this.coverageType = CoverageType.Dynamic;
-      if (notification.fuzzer.toUpperCase() === "AFL") {
+      if (notification.fuzzer === "AFL") {
         this.fuzzerType = FuzzerType.Afl;
       } else {
         this.fuzzerType = FuzzerType.Honggfuzz;

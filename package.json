@@ -12,9 +12,55 @@
     "Other"
   ],
   "icon": "assets/icon.png",
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:trident-tests"
+  ],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "tridentCoverage.show-coverage",
+        "title": "Show Code Coverage"
+      },
+      {
+        "command": "tridentCoverage.close-coverage",
+        "title": "Close Code Coverage"
+      }
+    ],
+    "configuration": {
+      "title": "Coverage Display",
+      "properties": {
+        "tridentCoverage.showExecutionCount": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show execution count numbers next to covered statements"
+        },
+        "tridentCoverage.executionCountColor": {
+          "type": "string",
+          "enum": [
+            "CYAN",
+            "DEEP_PINK",
+            "MAGENTA",
+            "DODGER_BLUE",
+            "WHITE",
+            "BLACK",
+            "ELECTRIC_PURPLE",
+            "NEON_ORANGE",
+            "LIME_GREEN",
+            "GOLDEN_YELLOW",
+            "VIVID_RED"
+          ],
+          "default": "CYAN",
+          "description": "Color of the execution count display",
+          "format": "color"
+        },
+        "tridentCoverage.dynamicUpdateInterval": {
+          "type": "number",
+          "default": 3000,
+          "description": "Minimum time (in milliseconds) between coverage report generations. Actual update time may be longer depending on system performance"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -25,14 +71,14 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.96.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "20.x",
+    "@types/node": "^20.17.32",
+    "@types/vscode": "^1.96.0",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
-    "eslint": "^9.16.0",
-    "typescript": "^5.7.2",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1"
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.16.0",
+    "typescript": "^5.7.2"
   }
 }

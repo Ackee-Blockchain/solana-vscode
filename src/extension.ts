@@ -1,14 +1,14 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
+import registerCommands from "./commands";
+import { initExtensionFeatureManagers } from "./extensionFeatureManagers";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-    // vscode.window.showInformationMessage(
-    //     "The extension is currently under development"
-    // );
+  let extensionFeatureManagers = initExtensionFeatureManagers();
+  Object.values(extensionFeatureManagers).forEach((manager) => {
+    context.subscriptions.push(manager);
+  });
+
+  registerCommands(context, extensionFeatureManagers);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}

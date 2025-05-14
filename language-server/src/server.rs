@@ -4,9 +4,7 @@ use tower_lsp::{ClientSocket, LspService, Server};
 use crate::backend::Backend;
 
 pub fn create_service() -> (LspService<Backend>, ClientSocket) {
-    let (service, socket) = LspService::new(|client|
-        Backend::new(client)
-    );
+    let (service, socket) = LspService::new(Backend::new);
     (service, socket)
 }
 

@@ -1,8 +1,12 @@
 use tower_lsp::{
+    Client, LanguageServer,
     lsp_types::{
-        DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams, InitializeResult, PositionEncodingKind, ServerCapabilities, ServerInfo, TextDocumentItem, TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions
-    }, Client, LanguageServer
+        DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams, InitializeResult,
+        PositionEncodingKind, ServerCapabilities, ServerInfo, TextDocumentItem,
+        TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
+    },
 };
+
 #[derive(Debug, Clone)]
 pub struct Backend {
     _client: Client,
@@ -54,7 +58,7 @@ impl LanguageServer for Backend {
 
 impl Backend {
     pub fn new(_client: Client) -> Backend {
-        Backend{ _client }
+        Backend { _client }
     }
 
     async fn on_change(&self, _params: TextDocumentItem) {

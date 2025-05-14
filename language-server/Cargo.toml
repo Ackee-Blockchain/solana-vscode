@@ -8,4 +8,12 @@ tower-lsp = "0.20.0"
 tokio = { version = "1.0", features = ["full"] }
 log = "0.4"
 env_logger = "0.11.8"
-syn = { version = "2.0.101", features = ["full", "extra-traits", "visit", "parsing"] }
+syn = { version = "2.0.101", features = [
+    "full",
+    "extra-traits",
+    "visit",
+    "parsing",
+] }
+
+[dev-dependencies]
+tokio-test = "0.4"

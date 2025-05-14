@@ -189,7 +189,7 @@ class CoverageManager {
       // Check if trident-tests directory exists
       const tridentTestsPath = path.join(workspaceRoot, "trident-tests");
       await vscode.workspace.fs.stat(vscode.Uri.file(tridentTestsPath));
-    } catch (error) {
+    } catch {
       const errorMessage =
         "Trident tests directory not found in the current workspace. Please navigate to the project's root directory.";
       coverageErrorLog(errorMessage);

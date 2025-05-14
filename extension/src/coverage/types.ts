@@ -117,7 +117,7 @@ type CoverageSummary = {
  * Type of coverage analysis being performed
  * @enum {string}
  */
-enum CoverageType {
+const enum CoverageType {
   Static = "Load generated JSON report",
   Dynamic = "Attach to active fuzzing session",
 }
@@ -126,7 +126,7 @@ enum CoverageType {
  * Type of fuzzer being used for testing
  * @enum {string}
  */
-enum FuzzerType {
+const enum FuzzerType {
   Afl = "AFL",
   Honggfuzz = "Honggfuzz",
 }

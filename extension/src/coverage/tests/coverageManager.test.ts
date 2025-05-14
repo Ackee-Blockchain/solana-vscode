@@ -499,8 +499,6 @@ suite("Coverage Manager Test Suite", () => {
       Object.defineProperty(vscode.window, "showQuickPick", {
         value: (
           items: readonly string[] | Thenable<readonly string[]>,
-          options?: vscode.QuickPickOptions,
-          token?: vscode.CancellationToken
         ): Thenable<string | undefined> => {
           quickPickShown = true;
           assert.deepStrictEqual(
@@ -553,11 +551,7 @@ suite("Coverage Manager Test Suite", () => {
       );
 
       Object.defineProperty(vscode.window, "showQuickPick", {
-        value: (
-          items: readonly string[] | Thenable<readonly string[]>,
-          options?: vscode.QuickPickOptions,
-          token?: vscode.CancellationToken
-        ): Thenable<string | undefined> => {
+        value: (items: readonly string[] | Thenable<readonly string[]>): Thenable<string | undefined> => {
           quickPickCallCount++;
           if (quickPickCallCount === 1) {
             return Promise.resolve(CoverageType.Dynamic);
@@ -844,7 +838,7 @@ suite("Coverage Manager Test Suite", () => {
 
       require("../utils").getWorkspaceRoot = () => "/test/workspace";
       require("../utils").getTargetDirPath = async () => "/test/target/dir";
-      require("../utils").getFuzzerConstants = (fuzzerType: FuzzerType) => ({
+      require("../utils").getFuzzerConstants = () => ({
         PROFRAW_FILE: "test.profraw",
         LIVE_REPORT_FILE: "coverage.json",
       });
@@ -879,7 +873,7 @@ suite("Coverage Manager Test Suite", () => {
 
       require("../utils").getWorkspaceRoot = () => "/test/workspace";
       require("../utils").getTargetDirPath = async () => "/test/target/dir";
-      require("../utils").getFuzzerConstants = (fuzzerType: FuzzerType) => ({
+      require("../utils").getFuzzerConstants = () => ({
         PROFRAW_FILE: "test.profraw",
         LIVE_REPORT_FILE: "coverage.json",
       });

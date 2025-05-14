@@ -3,6 +3,9 @@ import registerCommands from "./commands";
 import { initExtensionFeatureManagers } from "./extensionFeatureManagers";
 
 export function activate(context: vscode.ExtensionContext) {
+  console.log("Trident Coverage extension activated");
+
+
   let extensionFeatureManagers = initExtensionFeatureManagers();
   Object.values(extensionFeatureManagers).forEach((manager) => {
     context.subscriptions.push(manager);

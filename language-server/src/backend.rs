@@ -5,7 +5,7 @@ use tower_lsp::{
 };
 #[derive(Debug, Clone)]
 pub struct Backend {
-    client: Client,
+    _client: Client,
 }
 
 #[tower_lsp::async_trait]
@@ -53,11 +53,11 @@ impl LanguageServer for Backend {
 }
 
 impl Backend {
-    pub fn new(client: Client) -> Backend {
-        Backend{ client }
+    pub fn new(_client: Client) -> Backend {
+        Backend{ _client }
     }
 
-    async fn on_change(&self, params: TextDocumentItem) {
+    async fn on_change(&self, _params: TextDocumentItem) {
         todo!()
     }
 }

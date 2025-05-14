@@ -16,5 +16,4 @@ pub async fn start_server(service: LspService<Backend>, socket: ClientSocket) {
 
     let server = Server::new(stdin, stdout, socket);
     server.serve(service).await;
-    ;
 }

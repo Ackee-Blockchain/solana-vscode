@@ -2,7 +2,6 @@ mod backend;
 mod server;
 
 use log::debug;
-use tokio::io::{Stdin, Stdout};
 
 #[tokio::main]
 async fn main() {

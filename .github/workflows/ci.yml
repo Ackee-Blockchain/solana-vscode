@@ -13,6 +13,24 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+
+    - name: Build language server
+      run: |
+        cd language-server
+        cargo build --verbose
+
+    - name: Run language server tests
+      run: |
+        cd language-server
+        cargo test --verbose
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -34,21 +52,3 @@ jobs:
       run: |
         cd extension
         npm run test
-
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: rustfmt, clippy
-
-    - name: Cache Rust dependencies
-      uses: Swatinem/rust-cache@v2
-
-    - name: Build language server
-      run: |
-        cd language-server
-        cargo build --verbose
-
-    - name: Run language server tests
-      run: |
-        cd language-server
-        cargo test --verbose

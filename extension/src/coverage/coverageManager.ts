@@ -77,22 +77,18 @@ class CoverageManager {
    * @throws {Error} If setup fails or required selections are not made
    */
   public async showCoverage() {
-    try {
-      this.coverageDecorations.clearCoverage(this.coverageTestController);
-      await this.setupCoverage();
+    this.coverageDecorations.clearCoverage(this.coverageTestController);
+    await this.setupCoverage();
 
-      switch (this.coverageType) {
-        case CoverageType.Static: {
-          this.showStaticCoverage();
-          break;
-        }
-        case CoverageType.Dynamic: {
-          this.startDynamicCoverage();
-          break;
-        }
+    switch (this.coverageType) {
+      case CoverageType.Static: {
+        this.showStaticCoverage();
+        break;
       }
-    } catch (error) {
-      return;
+      case CoverageType.Dynamic: {
+        this.startDynamicCoverage();
+        break;
+      }
     }
   }
 
@@ -387,7 +383,7 @@ class CoverageManager {
 
     try {
       await executeCommand(`mv ${profDataPath} ${oldProfrawPath}`);
-    } catch (error) {
+    } catch {
       console.log("No existing profdata file to convert.");
     }
   }

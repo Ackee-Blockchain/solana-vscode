@@ -43,6 +43,11 @@ jobs:
         cd extension
         npm ci
 
+    - name: Run linting
+      run: |
+        cd extension
+        npm run lint
+
     - name: Build extension
       run: |
         cd extension

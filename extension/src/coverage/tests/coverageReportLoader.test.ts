@@ -2,7 +2,6 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import { CoverageReportLoader } from "../coverageReportLoader";
 import { FuzzerType } from "../types";
-import * as path from "path";
 
 // Test-only subclass to access private methods
 class TestCoverageReportLoader extends CoverageReportLoader {

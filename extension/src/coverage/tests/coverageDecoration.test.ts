@@ -2,7 +2,7 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import { CoverageDecorations } from "../coverageDecoration";
 import { CoverageReport, CoverageFileData, CoverageSegment } from "../types";
-import { DecorationConstants, TestApiConstants } from "../constants";
+import { DecorationConstants } from "../constants";
 
 // Test-only subclass to access private methods
 class TestCoverageDecorations extends CoverageDecorations {

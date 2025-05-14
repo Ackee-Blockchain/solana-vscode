@@ -3,11 +3,9 @@ import * as vscode from "vscode";
 import { CoverageManager } from "../coverageManager";
 import { CoverageType, FuzzerType } from "../types";
 import {
-  TestApiConstants,
   TridentConstants,
   CoverageConstants,
 } from "../constants";
-import * as path from "path";
 
 const { DEFAULT_UPDATE_INTERVAL } = CoverageConstants;
 

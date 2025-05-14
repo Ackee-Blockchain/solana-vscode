@@ -51,4 +51,4 @@ jobs:
     - name: Run extension tests
       run: |
         cd extension
-        npm run test
+        xvfb-run -a npm test

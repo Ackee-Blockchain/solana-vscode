@@ -29,7 +29,7 @@ class CoverageReportLoader {
   /**
    * Finds all coverage report files in the fuzzer target directories
    * Searches in both AFL and Honggfuzz target directories for coverage files
-   * @returns {Promise<vscode.Uri[]>} Array of URIs to coverage report files
+   * @returns {Promise<vscode.Uri[]>} Array of URIs to coverage report files, or empty array if no workspace folders found
    */
   public async findCoverageFiles(): Promise<vscode.Uri[]> {
     let coverageFiles: vscode.Uri[] = [];

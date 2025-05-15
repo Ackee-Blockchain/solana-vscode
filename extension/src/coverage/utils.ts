@@ -86,7 +86,7 @@ async function getTargetDirPath(type?: FuzzerType): Promise<string> {
 /**
  * Gets the contents of a directory
  * @param {string} dirPath - The path to the directory
- * @returns {Promise<[string, vscode.FileType][]>} Array of tuples containing file names and their types
+ * @returns {Promise<[string, vscode.FileType][]>} Array of tuples containing file names and their types, or empty array if reading fails
  */
 async function getDirContents(
   dirPath: string
@@ -189,8 +189,7 @@ async function executeCommand(command: string) {
 /**
  * Reads the list of profraw files from a list file
  * @param {string} profrawListPath - Path to the file containing the list of profraw files
- * @returns {Promise<string[]>} Array of profraw file paths
- * @throws {Error} If reading the file fails
+ * @returns {Promise<string[]>} Array of profraw file paths, or empty array if reading fails
  */
 async function readProfrawList(profrawListPath: string): Promise<string[]> {
   try {

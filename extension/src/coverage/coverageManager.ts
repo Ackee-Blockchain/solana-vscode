@@ -312,7 +312,7 @@ class CoverageManager {
   /**
    * Checks if profraw files exist in the target directory
    * @private
-   * @returns {Promise<boolean>} True if profraw files exist
+   * @returns {Promise<boolean>} True if profraw files exist, false otherwise
    * @throws {Error} If checking for files fails
    */
   private async checkProfrawFiles(): Promise<boolean> {
@@ -427,7 +427,7 @@ class CoverageManager {
   /**
    * Constructs the command for generating a coverage report
    * @private
-   * @returns {Promise<string>} The complete command string
+   * @returns {Promise<string>} The complete shell command string for generating the coverage report
    */
   private async getGenerateReportCommand(): Promise<string> {
     const workspaceRoot = getWorkspaceRoot();
@@ -475,7 +475,7 @@ class CoverageManager {
    * Sets up a file system watcher for the notification file
    * Watches for file creation events to trigger dynamic coverage setup
    * @private
-   * @returns {vscode.FileSystemWatcher} The configured file watcher
+   * @returns {vscode.FileSystemWatcher} A file watcher configured to monitor the notification file for creation events
    */
   private setupNotificationWatcher(): vscode.FileSystemWatcher {
     const notificationPath = NOTIFICATION_FILE.split("/");
@@ -492,7 +492,10 @@ class CoverageManager {
    * Handles the creation of the notification file
    * Parses the file contents to determine fuzzer type and sets up dynamic coverage
    * @private
-   * @throws {Error} If the notification file cannot be read or parsed
+   * @throws {Error} If:
+   *  - The notification file cannot be read
+   *  - The file contents cannot be parsed as valid JSON
+   *  - Dynamic coverage setup fails
    */
   private async handleNotificationFile() {
     const notificationPath = NOTIFICATION_FILE.split("/");

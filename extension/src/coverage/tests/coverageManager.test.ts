@@ -6,7 +6,7 @@ import {
   TridentConstants,
   CoverageConstants,
 } from "../constants";
-
+import * as path from "path";
 const { DEFAULT_UPDATE_INTERVAL } = CoverageConstants;
 
 // Test-only subclass to access private methods
@@ -105,11 +105,11 @@ suite("Coverage Manager Test Suite", () => {
       configurable: true,
     });
   });
-
+  
   test("should initialize with required components", () => {
     assert.ok(coverageManager, "Coverage manager should be created");
   });
-
+  
   test("should dispose all components", () => {
     coverageManager.dispose();
     assert.ok(
@@ -117,17 +117,17 @@ suite("Coverage Manager Test Suite", () => {
       "Should dispose test controller and other components"
     );
   });
-
+  
   suite("showCoverage", () => {
     test("should handle static coverage", async () => {
       let coverageDisplayed = false;
       let coverageCleared = false;
-
+      
       const originalSetupCoverage = (coverageManager as any).setupCoverage;
       (coverageManager as any).setupCoverage = async () => {
         (coverageManager as any).coverageType = CoverageType.Static;
       };
-
+      
       (coverageManager as any).coverageDecorations = {
         clearCoverage: () => {
           coverageCleared = true;
@@ -136,7 +136,7 @@ suite("Coverage Manager Test Suite", () => {
           coverageDisplayed = true;
         },
       };
-
+      
       (coverageManager as any).coverageReportLoader = {
         selectCoverageFile: async () => {},
         coverageReport: {
@@ -149,7 +149,7 @@ suite("Coverage Manager Test Suite", () => {
           },
         },
       };
-
+      
       try {
         await coverageManager.showCoverage();
         assert.ok(coverageCleared, "Should clear existing coverage");
@@ -158,29 +158,29 @@ suite("Coverage Manager Test Suite", () => {
         (coverageManager as any).setupCoverage = originalSetupCoverage;
       }
     });
-
+    
     test("should handle dynamic coverage", async () => {
       let dynamicCoverageStarted = false;
       let coverageCleared = false;
-
+      
       const originalSetupCoverage = (coverageManager as any).setupCoverage;
       const originalStartDynamicCoverage = (coverageManager as any)
-        .startDynamicCoverage;
-
+      .startDynamicCoverage;
+      
       (coverageManager as any).setupCoverage = async () => {
         (coverageManager as any).coverageType = CoverageType.Dynamic;
       };
-
+      
       (coverageManager as any).startDynamicCoverage = async () => {
         dynamicCoverageStarted = true;
       };
-
+      
       (coverageManager as any).coverageDecorations = {
         clearCoverage: () => {
           coverageCleared = true;
         },
       };
-
+      
       try {
         await coverageManager.showCoverage();
         assert.ok(coverageCleared, "Should clear existing coverage");
@@ -188,24 +188,58 @@ suite("Coverage Manager Test Suite", () => {
       } finally {
         (coverageManager as any).setupCoverage = originalSetupCoverage;
         (coverageManager as any).startDynamicCoverage =
-          originalStartDynamicCoverage;
+        originalStartDynamicCoverage;
       }
     });
+    test("test static coverage", async function () {
+      this.timeout(60000);
+  
+      Object.defineProperty(vscode.window, "showQuickPick", {
+        value: () => Promise.resolve(CoverageType.Static as string),
+        configurable: true,
+      });
+  
+      const testProgramPath = path.join(__dirname, "../../../src/coverage/tests/test-program");
+      const mockWorkspaceFolder = {
+        uri: vscode.Uri.file(testProgramPath),
+        name: "test-program",
+        index: 0,
+      };
+      Object.defineProperty(vscode.workspace, "workspaceFolders", {
+        get: () => [mockWorkspaceFolder],
+        configurable: true,
+      });
+        
+      const coverageManager = new CoverageManager();
+      await coverageManager.showCoverage();
+  
+      // @ts-ignore - accessing private field for testing
+      const decorations = coverageManager.coverageDecorations.lineCoverageDecorations;
+      assert.ok(decorations.length > 0, "Should have created coverage decorations");
+  
+      // @ts-ignore - accessing private field for testing
+      const report = coverageManager.coverageReportLoader.coverageReport;
+      assert.ok(report, "Should have loaded coverage report");
+      
+      const segments = report.data[0].files[0].segments;
+      const hasExecutionCounts = segments.some(segment => segment.execution_count > 0);
+      assert.ok(hasExecutionCounts, "Should have some segments with execution counts");
+    });
   });
-
+  
   suite("Window Change Listener", () => {
     test("should setup window change listener and handle editor changes", () => {
       let listenerCallback:
-        | ((editor: vscode.TextEditor | undefined) => void)
-        | undefined;
+      | ((editor: vscode.TextEditor | undefined) => void)
+      | undefined;
       let coverageUpdated = false;
-
+      
       const originalOnDidChangeActiveTextEditor =
-        Object.getOwnPropertyDescriptor(
-          vscode.window,
-          "onDidChangeActiveTextEditor"
-        );
-
+      Object.getOwnPropertyDescriptor(
+        vscode.window,
+        "onDidChangeActiveTextEditor"
+      );
+      
       Object.defineProperty(vscode.window, "onDidChangeActiveTextEditor", {
         get:
           () => (callback: (editor: vscode.TextEditor | undefined) => void) => {
@@ -541,6 +575,15 @@ suite("Coverage Manager Test Suite", () => {
         getTargetDirPath: require("../utils").getTargetDirPath,
         getDirContents: require("../utils").getDirContents,
       };
+      const originalFs = Object.getOwnPropertyDescriptor(
+        vscode.workspace,
+        "fs"
+      );
+      const mockFs = {};
+      Object.defineProperty(vscode.workspace, "fs", {
+        value: mockFs,
+        configurable: true,
+      });
       const originalStat = Object.getOwnPropertyDescriptor(
         vscode.workspace.fs,
         "stat"
@@ -610,6 +653,9 @@ suite("Coverage Manager Test Suite", () => {
         if (originalStat) {
           Object.defineProperty(vscode.workspace.fs, "stat", originalStat);
         }
+        if (originalFs) {
+          Object.defineProperty(vscode.workspace, "fs", originalFs);
+        }
         if (originalCreateFileSystemWatcher) {
           Object.defineProperty(
             vscode.workspace,
@@ -654,6 +700,15 @@ suite("Coverage Manager Test Suite", () => {
         vscode.window,
         "showQuickPick"
       );
+      const originalFs = Object.getOwnPropertyDescriptor(
+        vscode.workspace,
+        "fs"
+      );
+      const mockFs = {};
+      Object.defineProperty(vscode.workspace, "fs", {
+        value: mockFs,
+        configurable: true,
+      });
       const originalStat = Object.getOwnPropertyDescriptor(
         vscode.workspace.fs,
         "stat"
@@ -693,6 +748,9 @@ suite("Coverage Manager Test Suite", () => {
         if (originalStat) {
           Object.defineProperty(vscode.workspace.fs, "stat", originalStat);
         }
+        if (originalFs) {
+          Object.defineProperty(vscode.workspace, "fs", originalFs);
+        }
         Object.assign(require("../utils"), originalUtils);
       }
     });
@@ -702,6 +760,15 @@ suite("Coverage Manager Test Suite", () => {
         vscode.window,
         "showQuickPick"
       );
+      const originalFs = Object.getOwnPropertyDescriptor(
+        vscode.workspace,
+        "fs"
+      );
+      const mockFs = {};
+      Object.defineProperty(vscode.workspace, "fs", {
+        value: mockFs,
+        configurable: true,
+      });
       const originalStat = Object.getOwnPropertyDescriptor(
         vscode.workspace.fs,
         "stat"
@@ -744,6 +811,9 @@ suite("Coverage Manager Test Suite", () => {
         }
         if (originalStat) {
           Object.defineProperty(vscode.workspace.fs, "stat", originalStat);
+        }
+        if (originalFs) {
+          Object.defineProperty(vscode.workspace, "fs", originalFs);
         }
         Object.assign(require("../utils"), originalUtils);
       }

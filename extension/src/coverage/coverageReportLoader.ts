@@ -37,8 +37,21 @@ class CoverageReportLoader {
       return coverageFiles;
     }
 
-    const hfuzzTargetPath = await getTargetDirPath(FuzzerType.Honggfuzz);
-    const aflTargetPath = await getTargetDirPath(FuzzerType.Afl);
+    let hfuzzTargetPath = "";
+    let aflTargetPath = "";
+
+    try {
+      hfuzzTargetPath = await getTargetDirPath(FuzzerType.Honggfuzz);
+    } catch (error) {
+      console.error("Failed to get Honggfuzz target path:", error);
+    }
+
+    try {
+      aflTargetPath = await getTargetDirPath(FuzzerType.Afl);
+    } catch (error) {
+      console.error("Failed to get AFL target path:", error);
+    }
+
     const getHfuzzTargetContents = await getDirContents(hfuzzTargetPath);
     const getAflTargetContents = await getDirContents(aflTargetPath);
 

@@ -82,11 +82,11 @@ class CoverageManager {
 
     switch (this.coverageType) {
       case CoverageType.Static: {
-        this.showStaticCoverage();
+        await this.showStaticCoverage();
         break;
       }
       case CoverageType.Dynamic: {
-        this.startDynamicCoverage();
+        await this.startDynamicCoverage();
         break;
       }
     }

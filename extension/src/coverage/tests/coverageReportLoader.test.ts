@@ -174,6 +174,11 @@ suite("Coverage Report Loader Test Suite", () => {
         },
       };
 
+      const originalFs = Object.getOwnPropertyDescriptor(
+        vscode.workspace,
+        "fs"
+      );
+
       const mockFs = {
         readFile: async () => Buffer.from(JSON.stringify(mockData)),
       };
@@ -201,9 +206,18 @@ suite("Coverage Report Loader Test Suite", () => {
         1,
         "Should transform segments"
       );
+
+      if (originalFs) {
+        Object.defineProperty(vscode.workspace, "fs", originalFs);
+      }
     });
 
     test("should throw error on file read failure", async () => {
+      const originalFs = Object.getOwnPropertyDescriptor(
+        vscode.workspace,
+        "fs"
+      );
+
       const mockFs = {
         readFile: async () => {
           throw new Error("File read error");
@@ -223,6 +237,10 @@ suite("Coverage Report Loader Test Suite", () => {
         Error,
         "Should throw error on file read failure"
       );
+
+      if (originalFs) {
+        Object.defineProperty(vscode.workspace, "fs", originalFs);
+      }
     });
   });
 

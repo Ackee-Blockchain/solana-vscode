@@ -1,21 +1,33 @@
 use super::detector::Detector;
-use syn::{parse_str, visit, visit::Visit, BinOp, Expr, ExprBinary};
-use syn::spanned::Spanned;
-use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 use crate::core::utilities::DiagnosticBuilder;
+use syn::spanned::Spanned;
+use syn::{BinOp, Expr, ExprBinary, parse_str, visit::Visit};
+use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
 pub struct UnsafeMathDetector {
     diagnostics: Vec<Diagnostic>,
 }
 
 impl Detector for UnsafeMathDetector {
-    const ID: &'static str = "UNSAFE_ARITHMETIC";
-    const NAME: &'static str = "Unsafe Math Operations";
-    const DESCRIPTION: &'static str =
-        "Detects unchecked arithmetic operations that could lead to overflow/underflow vulnerabilities";
-    const MESSAGE: &'static str =
-        "Unchecked arithmetic operation detected. Consider using checked_add(), checked_sub(), checked_mul(), or checked_div() to prevent overflow/underflow.";
-    const DEFAULT_SEVERITY: DiagnosticSeverity = DiagnosticSeverity::ERROR;
+    fn id(&self) -> &'static str {
+        "UNSAFE_ARITHMETIC"
+    }
+
+    fn name(&self) -> &'static str {
+        "Unsafe Math Operations"
+    }
+
+    fn description(&self) -> &'static str {
+        "Detects unchecked arithmetic operations that could lead to overflow/underflow vulnerabilities"
+    }
+
+    fn message(&self) -> &'static str {
+        "Unchecked arithmetic operation detected. Consider using checked_add(), checked_sub(), checked_mul(), or checked_div() to prevent overflow/underflow."
+    }
+
+    fn default_severity(&self) -> DiagnosticSeverity {
+        DiagnosticSeverity::ERROR
+    }
 
     fn analyze(&mut self, content: &str) -> Vec<Diagnostic> {
         if let Ok(syntax_tree) = parse_str::<syn::File>(content) {
@@ -29,9 +41,9 @@ impl Detector for UnsafeMathDetector {
         // Run on Rust files that contain arithmetic operations and anchor imports
         (content.contains("anchor_lang") || content.contains("anchor_spl"))
             && (content.contains('+')
-            || content.contains('-')
-            || content.contains('*')
-            || content.contains('/'))
+                || content.contains('-')
+                || content.contains('*')
+                || content.contains('/'))
     }
 }
 
@@ -40,14 +52,14 @@ impl<'ast> Visit<'ast> for UnsafeMathDetector {
         if let BinOp::Add(_) = node.op {
             self.diagnostics.push(DiagnosticBuilder::create(
                 DiagnosticBuilder::create_range_from_span(node.span()),
-                Self::MESSAGE.to_string(),
-                Self::DEFAULT_SEVERITY,
-                Self::ID.to_string(),
+                self.message().to_string(),
+                self.default_severity(),
+                self.id().to_string(),
                 None,
             ));
         }
 
         // Continue visiting children
-        visit::visit_expr_binary(self, node);
+        syn::visit::visit_expr_binary(self, node);
     }
 }

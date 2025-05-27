@@ -65,12 +65,21 @@ impl Backend {
     pub fn new(client: Client) -> Backend {
         Backend {
             client,
-            detector_registry: Arc::new(Mutex::new(create_default_registry())),
+            detector_registry: Arc::new(Mutex::new(create_default_registry()))
         }
     }
 
-    async fn on_change(&self, _params: TextDocumentItem) {
-        todo!()
+    async fn on_change(&self, params: TextDocumentItem) {
+        // Run security analysis
+        let diagnostics = {
+            let mut registry = self.detector_registry.lock().await;
+            registry.analyze(&params.text)
+        };
+
+        // Publish diagnostics to the client
+        self.client
+            .publish_diagnostics(params.uri.clone(), diagnostics, Some(params.version))
+            .await;
     }
 
     /// Get information about all registered detectors

@@ -168,3 +168,10 @@ impl Default for DetectorRegistryBuilder {
         Self::new()
     }
 }
+
+/// Statistics about the detector system
+#[derive(Debug, Clone)]
+pub struct DetectorStats {
+    pub total_detectors: usize,
+    pub enabled_detectors: usize,
+}

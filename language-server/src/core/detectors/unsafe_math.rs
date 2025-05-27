@@ -8,6 +8,14 @@ pub struct UnsafeMathDetector {
     diagnostics: Vec<Diagnostic>,
 }
 
+impl UnsafeMathDetector {
+    pub fn new() -> Self {
+        Self {
+            diagnostics: Vec::new(),
+        }
+    }
+}
+
 impl Detector for UnsafeMathDetector {
     fn id(&self) -> &'static str {
         "UNSAFE_ARITHMETIC"

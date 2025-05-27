@@ -13,7 +13,8 @@
   ],
   "icon": "assets/icon.png",
   "activationEvents": [
-    "workspaceContains:trident-tests"
+    "workspaceContains:trident-tests",
+    "workspaceContains:Anchor.toml"
   ],
   "main": "./out/extension.js",
   "contributes": {

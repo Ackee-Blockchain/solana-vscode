@@ -15,7 +15,7 @@
 			"outFiles": [
 				"${workspaceFolder}/extension/out/**/*.js"
 			],
-			"preLaunchTask": "${defaultBuildTask}"
+			"preLaunchTask": "npm: build"
 		}
 	]
 }

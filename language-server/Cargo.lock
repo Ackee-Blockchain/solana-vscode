@@ -472,6 +472,7 @@ dependencies = [
  "env_logger",
  "log",
  "proc-macro2",
+ "serde",
  "syn",
  "tokio",
  "tokio-test",

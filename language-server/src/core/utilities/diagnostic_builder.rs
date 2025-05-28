@@ -1,7 +1,7 @@
+use crate::core::utilities::ast_analyzer::AstAnalyzer;
 use proc_macro2::Span;
 use syn::spanned::Spanned;
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity, NumberOrString, Position, Range};
-use crate::core::utilities::ast_analyzer::AstAnalyzer;
 
 /// Enhanced diagnostic builder with span-aware functionality
 pub struct DiagnosticBuilder;
@@ -72,7 +72,7 @@ impl DiagnosticBuilder {
             end: Position {
                 line: (span.end().line as u32) - 1,
                 character: span.end().column as u32,
-            }
+            },
         }
     }
 

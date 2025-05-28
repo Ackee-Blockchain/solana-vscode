@@ -11,7 +11,7 @@ pub trait Detector: Send + Sync {
     fn description(&self) -> &'static str;
     /// Message for detection
     fn message(&self) -> &'static str;
-    
+
     /// Severity level for diagnostics produced by this detector
     fn default_severity(&self) -> DiagnosticSeverity;
 

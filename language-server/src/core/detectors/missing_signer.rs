@@ -59,7 +59,10 @@ impl MissingSignerDetector {
 
                 // Calculate line and column for the match
                 let lines_before = content[..actual_pos].matches('\n').count();
-                let line_start = content[..actual_pos].rfind('\n').map(|p| p + 1).unwrap_or(0);
+                let line_start = content[..actual_pos]
+                    .rfind('\n')
+                    .map(|p| p + 1)
+                    .unwrap_or(0);
                 let column = actual_pos - line_start;
 
                 // Create diagnostic for custom pattern
@@ -75,7 +78,9 @@ impl MissingSignerDetector {
                         },
                     },
                     format!("Custom pattern '{}' detected. {}", pattern, self.message()),
-                    self.config.severity_override.unwrap_or(self.default_severity()),
+                    self.config
+                        .severity_override
+                        .unwrap_or(self.default_severity()),
                     format!("{}_CUSTOM", self.id()),
                     None,
                 );
@@ -155,7 +160,10 @@ impl<'ast> Visit<'ast> for MissingSignerDetector {
 
         // If no signer found, create a diagnostic
         if !has_signer {
-            let severity = self.config.severity_override.unwrap_or(self.default_severity());
+            let severity = self
+                .config
+                .severity_override
+                .unwrap_or(self.default_severity());
             self.diagnostics.push(DiagnosticBuilder::create(
                 DiagnosticBuilder::create_range_from_span(node.span()),
                 self.message().to_string(),

@@ -1,5 +1,5 @@
-use tower_lsp::lsp_types::DiagnosticSeverity;
 use serde::{Deserialize, Serialize};
+use tower_lsp::lsp_types::DiagnosticSeverity;
 
 /// Configuration for detectors
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,4 +1,6 @@
-use language_server::core::detectors::{detector::Detector, manual_lamports_zeroing::ManualLamportsZeroingDetector};
+use language_server::core::detectors::{
+    detector::Detector, manual_lamports_zeroing::ManualLamportsZeroingDetector,
+};
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]
@@ -7,7 +9,10 @@ fn test_detector_metadata() {
 
     assert_eq!(detector.id(), "MANUAL_LAMPORTS_ZEROING");
     assert_eq!(detector.name(), "Manual Lamports Zeroing");
-    assert_eq!(detector.description(), "Detects manual lamports zeroing which can lead to incomplete account closure and potential security vulnerabilities");
+    assert_eq!(
+        detector.description(),
+        "Detects manual lamports zeroing which can lead to incomplete account closure and potential security vulnerabilities"
+    );
     assert_eq!(detector.default_severity(), DiagnosticSeverity::ERROR);
 }
 
@@ -97,7 +102,11 @@ fn test_detects_direct_lamports_assignment() {
 
     let diagnostic = &diagnostics[0];
     assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
-    assert!(diagnostic.message.contains("Manual lamports zeroing detected"));
+    assert!(
+        diagnostic
+            .message
+            .contains("Manual lamports zeroing detected")
+    );
     assert!(diagnostic.message.contains("close"));
 }
 
@@ -124,7 +133,11 @@ fn test_detects_set_lamports_method() {
 
     let diagnostic = &diagnostics[0];
     assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
-    assert!(diagnostic.message.contains("Manual lamports zeroing detected"));
+    assert!(
+        diagnostic
+            .message
+            .contains("Manual lamports zeroing detected")
+    );
 }
 
 #[test]
@@ -191,7 +204,11 @@ fn test_detects_multiple_violations() {
 
     for diagnostic in &diagnostics {
         assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
-        assert!(diagnostic.message.contains("Manual lamports zeroing detected"));
+        assert!(
+            diagnostic
+                .message
+                .contains("Manual lamports zeroing detected")
+        );
     }
 }
 
@@ -383,6 +400,10 @@ fn test_real_world_vulnerability_patterns() {
 
     for diagnostic in &diagnostics {
         assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
-        assert!(diagnostic.message.contains("Manual lamports zeroing detected"));
+        assert!(
+            diagnostic
+                .message
+                .contains("Manual lamports zeroing detected")
+        );
     }
 }

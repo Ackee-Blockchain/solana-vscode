@@ -1,4 +1,6 @@
-use language_server::core::detectors::{detector::Detector, detector_config::DetectorConfig, unsafe_math::UnsafeMathDetector};
+use language_server::core::detectors::{
+    detector::Detector, detector_config::DetectorConfig, unsafe_math::UnsafeMathDetector,
+};
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]
@@ -7,7 +9,10 @@ fn test_detector_metadata() {
 
     assert_eq!(detector.id(), "UNSAFE_ARITHMETIC");
     assert_eq!(detector.name(), "Unsafe Math Operations");
-    assert_eq!(detector.description(), "Detects unchecked arithmetic operations that could lead to overflow/underflow vulnerabilities");
+    assert_eq!(
+        detector.description(),
+        "Detects unchecked arithmetic operations that could lead to overflow/underflow vulnerabilities"
+    );
     assert_eq!(detector.default_severity(), DiagnosticSeverity::ERROR);
 }
 
@@ -119,7 +124,11 @@ fn test_detects_addition_in_instruction() {
 
     let diagnostic = &diagnostics[0];
     assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
-    assert!(diagnostic.message.contains("Unchecked arithmetic operation detected"));
+    assert!(
+        diagnostic
+            .message
+            .contains("Unchecked arithmetic operation detected")
+    );
     assert!(diagnostic.message.contains("checked_add()"));
 }
 
@@ -169,7 +178,11 @@ fn test_detects_multiple_arithmetic_operations() {
 
     for diagnostic in &diagnostics {
         assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
-        assert!(diagnostic.message.contains("Unchecked arithmetic operation detected"));
+        assert!(
+            diagnostic
+                .message
+                .contains("Unchecked arithmetic operation detected")
+        );
     }
 }
 
@@ -411,10 +424,8 @@ fn test_detector_state_isolation() {
 
 #[test]
 fn test_custom_patterns_basic() {
-    let config = DetectorConfig::with_patterns(vec![
-        "todo!()".to_string(),
-        "unimplemented!()".to_string(),
-    ]);
+    let config =
+        DetectorConfig::with_patterns(vec!["todo!()".to_string(), "unimplemented!()".to_string()]);
     let mut detector = UnsafeMathDetector::with_config(config);
 
     let code_with_custom_patterns = r#"
@@ -439,7 +450,8 @@ fn test_custom_patterns_basic() {
     let diagnostics = detector.analyze(code_with_custom_patterns);
 
     // Should detect 2 custom patterns
-    let custom_diagnostics: Vec<_> = diagnostics.iter()
+    let custom_diagnostics: Vec<_> = diagnostics
+        .iter()
         .filter(|d| {
             if let Some(code) = &d.code {
                 match code {
@@ -457,16 +469,16 @@ fn test_custom_patterns_basic() {
     // Check that custom pattern diagnostics have correct format
     for diagnostic in custom_diagnostics {
         assert!(diagnostic.message.contains("Custom pattern"));
-        assert!(
-            if let Some(code) = &diagnostic.code {
-                match code {
-                    tower_lsp::lsp_types::NumberOrString::String(s) => s.contains("UNSAFE_ARITHMETIC_CUSTOM"),
-                    _ => false,
+        assert!(if let Some(code) = &diagnostic.code {
+            match code {
+                tower_lsp::lsp_types::NumberOrString::String(s) => {
+                    s.contains("UNSAFE_ARITHMETIC_CUSTOM")
                 }
-            } else {
-                false
+                _ => false,
             }
-        );
+        } else {
+            false
+        });
     }
 }
 
@@ -560,16 +572,14 @@ fn test_custom_patterns_empty_list() {
 
     // Should only detect the arithmetic operation, not the todo!()
     assert_eq!(diagnostics.len(), 1);
-    assert!(
-        if let Some(code) = &diagnostics[0].code {
-            match code {
-                tower_lsp::lsp_types::NumberOrString::String(s) => !s.contains("CUSTOM"),
-                _ => true,
-            }
-        } else {
-            true
+    assert!(if let Some(code) = &diagnostics[0].code {
+        match code {
+            tower_lsp::lsp_types::NumberOrString::String(s) => !s.contains("CUSTOM"),
+            _ => true,
         }
-    );
+    } else {
+        true
+    });
 }
 
 #[test]
@@ -600,7 +610,8 @@ fn test_custom_patterns_solana_specific() {
     let diagnostics = detector.analyze(code_with_solana_patterns);
 
     // Should detect only the patterns in actual code, not in imports
-    let custom_diagnostics: Vec<_> = diagnostics.iter()
+    let custom_diagnostics: Vec<_> = diagnostics
+        .iter()
         .filter(|d| {
             if let Some(code) = &d.code {
                 match code {
@@ -635,7 +646,8 @@ fn test_custom_patterns_position_accuracy() {
 
     let diagnostics = detector.analyze(code);
 
-    let custom_diagnostic = diagnostics.iter()
+    let custom_diagnostic = diagnostics
+        .iter()
         .find(|d| {
             if let Some(code) = &d.code {
                 match code {
@@ -685,7 +697,8 @@ fn test_custom_patterns_with_default_detection() {
     // Should have 3 diagnostics total: 2 custom + 1 arithmetic
     assert_eq!(diagnostics.len(), 3);
 
-    let custom_count = diagnostics.iter()
+    let custom_count = diagnostics
+        .iter()
         .filter(|d| {
             if let Some(code) = &d.code {
                 match code {
@@ -698,7 +711,8 @@ fn test_custom_patterns_with_default_detection() {
         })
         .count();
 
-    let arithmetic_count = diagnostics.iter()
+    let arithmetic_count = diagnostics
+        .iter()
         .filter(|d| {
             if let Some(code) = &d.code {
                 match code {
@@ -738,7 +752,8 @@ fn test_custom_patterns_ignore_imports() {
     let diagnostics = detector.analyze(code_with_pattern_in_import);
 
     // Should detect only the pattern in actual code, not in import
-    let custom_diagnostics: Vec<_> = diagnostics.iter()
+    let custom_diagnostics: Vec<_> = diagnostics
+        .iter()
         .filter(|d| {
             if let Some(code) = &d.code {
                 match code {
@@ -782,7 +797,8 @@ fn test_custom_patterns_ignore_comments() {
     let diagnostics = detector.analyze(code_with_pattern_in_comments);
 
     // Should detect only the pattern in actual code, not in comments
-    let custom_diagnostics: Vec<_> = diagnostics.iter()
+    let custom_diagnostics: Vec<_> = diagnostics
+        .iter()
         .filter(|d| {
             if let Some(code) = &d.code {
                 match code {

@@ -7,7 +7,10 @@ fn test_detector_metadata() {
 
     assert_eq!(detector.id(), "MISSING_SIGNER");
     assert_eq!(detector.name(), "Missing Signer Check");
-    assert_eq!(detector.description(), "Detects Anchor accounts structs that have no signer accounts, which could allow unauthorized access");
+    assert_eq!(
+        detector.description(),
+        "Detects Anchor accounts structs that have no signer accounts, which could allow unauthorized access"
+    );
     assert_eq!(detector.default_severity(), DiagnosticSeverity::WARNING);
 }
 

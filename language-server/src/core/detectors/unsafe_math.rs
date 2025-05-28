@@ -34,8 +34,14 @@ impl UnsafeMathDetector {
 
                 // Calculate line and column for the match
                 let lines_before = content[..actual_pos].matches('\n').count();
-                let line_start = content[..actual_pos].rfind('\n').map(|p| p + 1).unwrap_or(0);
-                let line_end = content[actual_pos..].find('\n').map(|p| actual_pos + p).unwrap_or(content.len());
+                let line_start = content[..actual_pos]
+                    .rfind('\n')
+                    .map(|p| p + 1)
+                    .unwrap_or(0);
+                let line_end = content[actual_pos..]
+                    .find('\n')
+                    .map(|p| actual_pos + p)
+                    .unwrap_or(content.len());
                 let current_line = &content[line_start..line_end];
                 let column = actual_pos - line_start;
 
@@ -99,7 +105,9 @@ impl UnsafeMathDetector {
                         },
                     },
                     format!("Custom pattern '{}' detected. {}", pattern, self.message()),
-                    self.config.severity_override.unwrap_or(self.default_severity()),
+                    self.config
+                        .severity_override
+                        .unwrap_or(self.default_severity()),
                     format!("{}_CUSTOM", self.id()),
                     None,
                 );
@@ -163,15 +171,21 @@ impl Detector for UnsafeMathDetector {
         for line in lines {
             let trimmed = line.trim();
             // Skip import lines and comments
-            if trimmed.starts_with("use ") || trimmed.starts_with("//") || trimmed.starts_with("/*") {
+            if trimmed.starts_with("use ") || trimmed.starts_with("//") || trimmed.starts_with("/*")
+            {
                 continue;
             }
 
             // Look for arithmetic operators in actual code
-            if trimmed.contains(" + ") || trimmed.contains(" - ") ||
-               trimmed.contains(" * ") || trimmed.contains(" / ") ||
-               trimmed.contains("+=") || trimmed.contains("-=") ||
-               trimmed.contains("*=") || trimmed.contains("/=") {
+            if trimmed.contains(" + ")
+                || trimmed.contains(" - ")
+                || trimmed.contains(" * ")
+                || trimmed.contains(" / ")
+                || trimmed.contains("+=")
+                || trimmed.contains("-=")
+                || trimmed.contains("*=")
+                || trimmed.contains("/=")
+            {
                 return true;
             }
         }
@@ -183,7 +197,10 @@ impl Detector for UnsafeMathDetector {
 impl<'ast> Visit<'ast> for UnsafeMathDetector {
     fn visit_expr_binary(&mut self, node: &'ast syn::ExprBinary) {
         if let BinOp::Add(_) = node.op {
-            let severity = self.config.severity_override.unwrap_or(self.default_severity());
+            let severity = self
+                .config
+                .severity_override
+                .unwrap_or(self.default_severity());
             self.diagnostics.push(DiagnosticBuilder::create(
                 DiagnosticBuilder::create_range_from_span(node.span()),
                 self.message().to_string(),

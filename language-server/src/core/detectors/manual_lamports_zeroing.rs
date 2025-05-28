@@ -35,9 +35,7 @@ impl ManualLamportsZeroingDetector {
                     false
                 }
             }
-            Expr::MethodCall(ExprMethodCall { method, .. }) => {
-                method == "lamports"
-            }
+            Expr::MethodCall(ExprMethodCall { method, .. }) => method == "lamports",
             _ => false,
         }
     }
@@ -45,9 +43,10 @@ impl ManualLamportsZeroingDetector {
     /// Check if an expression is zero (literal 0)
     fn is_zero_literal(&self, expr: &Expr) -> bool {
         match expr {
-            Expr::Lit(ExprLit { lit: Lit::Int(lit_int), .. }) => {
-                lit_int.base10_digits() == "0"
-            }
+            Expr::Lit(ExprLit {
+                lit: Lit::Int(lit_int),
+                ..
+            }) => lit_int.base10_digits() == "0",
             _ => false,
         }
     }
@@ -86,7 +85,10 @@ impl ManualLamportsZeroingDetector {
 
                 // Calculate line and column for the match
                 let lines_before = content[..actual_pos].matches('\n').count();
-                let line_start = content[..actual_pos].rfind('\n').map(|p| p + 1).unwrap_or(0);
+                let line_start = content[..actual_pos]
+                    .rfind('\n')
+                    .map(|p| p + 1)
+                    .unwrap_or(0);
                 let column = actual_pos - line_start;
 
                 // Create diagnostic for custom pattern
@@ -102,7 +104,9 @@ impl ManualLamportsZeroingDetector {
                         },
                     },
                     format!("Custom pattern '{}' detected. {}", pattern, self.message()),
-                    self.config.severity_override.unwrap_or(self.default_severity()),
+                    self.config
+                        .severity_override
+                        .unwrap_or(self.default_severity()),
                     format!("{}_CUSTOM", self.id()),
                     None,
                 );
@@ -152,11 +156,15 @@ impl Detector for ManualLamportsZeroingDetector {
     fn should_run(&self, content: &str) -> bool {
         // Always run if custom patterns are configured
         if !self.config.custom_patterns.is_empty() {
-            return content.contains("anchor_lang") || content.contains("solana_program") || content.contains("anchor_spl");
+            return content.contains("anchor_lang")
+                || content.contains("solana_program")
+                || content.contains("anchor_spl");
         }
 
         // Run on Anchor/Solana files that contain lamports references
-        (content.contains("anchor_lang") || content.contains("solana_program") || content.contains("anchor_spl"))
+        (content.contains("anchor_lang")
+            || content.contains("solana_program")
+            || content.contains("anchor_spl"))
             && (content.contains("lamports") || content.contains("set_lamports"))
     }
 }
@@ -165,7 +173,10 @@ impl<'ast> Visit<'ast> for ManualLamportsZeroingDetector {
     fn visit_expr(&mut self, node: &'ast Expr) {
         // Check if this expression is a manual lamports zeroing pattern
         if self.is_manual_lamports_pattern(node) {
-            let severity = self.config.severity_override.unwrap_or(self.default_severity());
+            let severity = self
+                .config
+                .severity_override
+                .unwrap_or(self.default_severity());
             self.diagnostics.push(DiagnosticBuilder::create(
                 DiagnosticBuilder::create_range_from_span(node.span()),
                 self.message().to_string(),

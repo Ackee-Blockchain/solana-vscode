@@ -1,6 +1,6 @@
 mod backend;
-mod server;
 mod core;
+mod server;
 
 use log::debug;
 

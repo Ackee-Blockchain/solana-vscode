@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use tower_lsp::lsp_types::Diagnostic;
 use crate::core::detector::Detector;
 use crate::core::detector_config::DetectorConfig;
+use std::collections::HashMap;
+use tower_lsp::lsp_types::Diagnostic;
 
 /// Registry that manages all security detectors
 pub struct DetectorRegistry {

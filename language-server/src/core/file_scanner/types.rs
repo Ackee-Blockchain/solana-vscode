@@ -43,6 +43,7 @@ pub struct RustFileInfo {
 
 /// Information about an Anchor configuration file
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct AnchorConfigInfo {
     pub path: PathBuf,
     pub content: String,
@@ -50,6 +51,7 @@ pub struct AnchorConfigInfo {
 
 /// Information about a Cargo.toml file
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct CargoFileInfo {
     pub path: PathBuf,
     pub content: String,

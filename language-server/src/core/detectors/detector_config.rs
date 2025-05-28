@@ -21,6 +21,7 @@ impl Default for DetectorConfig {
 
 impl DetectorConfig {
     /// Create a config that disables the detector
+    #[allow(dead_code)]
     pub fn disabled() -> Self {
         Self {
             enabled: false,
@@ -29,6 +30,7 @@ impl DetectorConfig {
     }
 
     /// Create a config with custom severity
+    #[allow(dead_code)]
     pub fn with_severity(severity: DiagnosticSeverity) -> Self {
         Self {
             severity_override: Some(severity),
@@ -37,6 +39,7 @@ impl DetectorConfig {
     }
 
     /// Create a config with custom patterns
+    #[allow(dead_code)]
     pub fn with_patterns(patterns: Vec<String>) -> Self {
         Self {
             custom_patterns: patterns,

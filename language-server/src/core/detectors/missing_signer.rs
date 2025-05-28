@@ -18,6 +18,7 @@ impl MissingSignerDetector {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_config(config: DetectorConfig) -> Self {
         Self {
             diagnostics: Vec::new(),

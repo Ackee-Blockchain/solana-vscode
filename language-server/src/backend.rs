@@ -253,12 +253,14 @@ impl Backend {
     }
 
     /// Get information about all registered detectors
+    #[allow(dead_code)]
     pub async fn list_detectors(&self) -> Vec<DetectorInfo> {
         let registry = self.detector_registry.lock().await;
         registry.list_detectors()
     }
 
     /// Enable or disable a specific detector
+    #[allow(dead_code)]
     pub async fn set_detector_enabled(&self, detector_id: &str, enabled: bool) {
         let mut registry = self.detector_registry.lock().await;
         if enabled {
@@ -269,6 +271,7 @@ impl Backend {
     }
 
     /// Get detector statistics
+    #[allow(dead_code)]
     pub async fn get_detector_stats(&self) -> DetectorStats {
         let registry = self.detector_registry.lock().await;
         DetectorStats {
@@ -278,6 +281,7 @@ impl Backend {
     }
 
     /// Trigger a manual workspace scan
+    #[allow(dead_code)]
     pub async fn scan_workspace(&self) -> Option<ScanResult> {
         let scanner = self.file_scanner.lock().await;
         let mut registry = self.detector_registry.lock().await;
@@ -286,6 +290,7 @@ impl Backend {
 }
 
 /// Statistics about the detector system
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct DetectorStats {
     pub total_detectors: usize,

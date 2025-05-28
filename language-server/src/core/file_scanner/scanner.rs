@@ -65,6 +65,7 @@ impl FileScanner {
     }
 
     /// Scan for Rust files and analyze them
+    #[allow(dead_code)]
     async fn scan_rust_files(
         &self,
         root: &Path,

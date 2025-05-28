@@ -35,11 +35,13 @@ impl DetectorRegistry {
     }
 
     /// Configure a specific detector
+    #[allow(dead_code)]
     pub fn configure(&mut self, detector_id: &str, config: DetectorConfig) {
         self.configs.insert(detector_id.to_string(), config);
     }
 
     /// Disable a specific detector
+    #[allow(dead_code)]
     pub fn disable(&mut self, detector_id: &str) {
         if let Some(config) = self.configs.get_mut(detector_id) {
             config.enabled = false;
@@ -47,6 +49,7 @@ impl DetectorRegistry {
     }
 
     /// Enable a specific detector
+    #[allow(dead_code)]
     pub fn enable(&mut self, detector_id: &str) {
         if let Some(config) = self.configs.get_mut(detector_id) {
             config.enabled = true;
@@ -80,6 +83,7 @@ impl DetectorRegistry {
     }
 
     /// Get information about all registered detectors
+    #[allow(dead_code)]
     pub fn list_detectors(&self) -> Vec<DetectorInfo> {
         self.detectors
             .iter()
@@ -98,11 +102,13 @@ impl DetectorRegistry {
     }
 
     /// Get the number of registered detectors
+    #[allow(dead_code)]
     pub fn count(&self) -> usize {
         self.detectors.len()
     }
 
     /// Get the number of enabled detectors
+    #[allow(dead_code)]
     pub fn enabled_count(&self) -> usize {
         self.detectors
             .iter()
@@ -124,6 +130,7 @@ impl Default for DetectorRegistry {
 
 /// Information about a detector
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DetectorInfo {
     pub id: String,
     pub name: String,
@@ -152,6 +159,7 @@ impl DetectorRegistryBuilder {
     }
 
     /// Configure a detector
+    #[allow(dead_code)]
     pub fn with_config(mut self, detector_id: &str, config: DetectorConfig) -> Self {
         self.registry.configure(detector_id, config);
         self
@@ -170,6 +178,7 @@ impl Default for DetectorRegistryBuilder {
 }
 
 /// Statistics about the detector system
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct DetectorStats {
     pub total_detectors: usize,

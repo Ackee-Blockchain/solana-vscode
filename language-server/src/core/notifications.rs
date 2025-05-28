@@ -12,6 +12,7 @@ impl tower_lsp::lsp_types::notification::Notification for ScanCompleteNotificati
 
 /// Custom notification for sending scan progress updates
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum ScanProgressNotification {}
 
 impl tower_lsp::lsp_types::notification::Notification for ScanProgressNotification {
@@ -21,6 +22,7 @@ impl tower_lsp::lsp_types::notification::Notification for ScanProgressNotificati
 
 /// Custom notification for sending file analysis results
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum FileAnalysisNotification {}
 
 impl tower_lsp::lsp_types::notification::Notification for FileAnalysisNotification {

@@ -1,5 +1,4 @@
-use crate::core::detector::Detector;
-use crate::core::{DetectorInfo, DetectorRegistry};
+use crate::core::{DetectorInfo, DetectorRegistry, MissingSignerDetector, ManualLamportsZeroingDetector};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tower_lsp::{
@@ -121,5 +120,7 @@ fn create_default_registry() -> DetectorRegistry {
 
     DetectorRegistryBuilder::new()
         .with_detector(UnsafeMathDetector::new())
+        .with_detector(MissingSignerDetector::new())
+        .with_detector(ManualLamportsZeroingDetector::new())
         .build()
 }

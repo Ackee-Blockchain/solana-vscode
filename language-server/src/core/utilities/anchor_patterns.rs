@@ -38,7 +38,7 @@ impl AnchorPatterns {
     }
 
     /// Check if a method call is a potential state modification
-    pub fn is_state_modifying_call(method_call: &syn::ExprMethodCall) -> bool {
+    pub fn is_state_modifying_call(_method_call: &syn::ExprMethodCall) -> bool {
         // TODO: Add implementation
         false
     }

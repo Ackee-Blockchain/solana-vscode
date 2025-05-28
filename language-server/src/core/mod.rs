@@ -1,6 +1,6 @@
 pub mod detectors;
-mod utilities;
-mod registry;
+pub mod utilities;
+pub mod registry;
 
 pub use detectors::*;
 pub use utilities::*;

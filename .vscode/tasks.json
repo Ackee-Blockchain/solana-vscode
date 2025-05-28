@@ -15,6 +15,17 @@
 				"kind": "build",
 				"isDefault": true
 			}
-		}
+		},
+		{
+            "type": "npm",
+            "script": "compile",
+            "group": "build",
+            "problemMatcher": "$tsc",
+            "label": "npm: build",
+            "detail": "tsc -p ./",
+            "options": {
+                "cwd": "${workspaceFolder}/extension"
+            }
+        }
 	]
 }

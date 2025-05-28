@@ -47,11 +47,30 @@ impl Detector for UnsafeMathDetector {
 
     fn should_run(&self, content: &str) -> bool {
         // Run on Rust files that contain arithmetic operations and anchor imports
-        (content.contains("anchor_lang") || content.contains("anchor_spl"))
-            && (content.contains('+')
-                || content.contains('-')
-                || content.contains('*')
-                || content.contains('/'))
+        if !(content.contains("anchor_lang") || content.contains("anchor_spl")) {
+            return false;
+        }
+
+        // Look for arithmetic operations in more specific contexts to avoid false positives
+        // from import statements like "use anchor_lang::prelude::*;"
+        let lines: Vec<&str> = content.lines().collect();
+        for line in lines {
+            let trimmed = line.trim();
+            // Skip import lines and comments
+            if trimmed.starts_with("use ") || trimmed.starts_with("//") || trimmed.starts_with("/*") {
+                continue;
+            }
+
+            // Look for arithmetic operators in actual code
+            if trimmed.contains(" + ") || trimmed.contains(" - ") ||
+               trimmed.contains(" * ") || trimmed.contains(" / ") ||
+               trimmed.contains("+=") || trimmed.contains("-=") ||
+               trimmed.contains("*=") || trimmed.contains("/=") {
+                return true;
+            }
+        }
+
+        false
     }
 }
 

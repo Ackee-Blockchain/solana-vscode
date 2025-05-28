@@ -3,12 +3,12 @@ use crate::core::{DetectorInfo, DetectorRegistry};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tower_lsp::{
-    Client, LanguageServer,
     lsp_types::{
         DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams, InitializeResult,
         PositionEncodingKind, ServerCapabilities, ServerInfo, TextDocumentItem,
         TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
-    },
+    }, Client,
+    LanguageServer,
 };
 
 #[derive(Debug, Clone)]

@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { ExtensionFeatureManagers } from "./extensionFeatureManagers";
 import { CLOSE_COVERAGE, SHOW_COVERAGE } from "./coverage/commands";
+import { SCAN_WORKSPACE, SHOW_SCAN_OUTPUT } from "./detectors/commands";
 
 function registerCommands(
   context: vscode.ExtensionContext,
@@ -14,6 +15,17 @@ function registerCommands(
   context.subscriptions.push(
     vscode.commands.registerCommand(CLOSE_COVERAGE, async () => {
       await extensionFeatureManagers.coverageManager.closeCoverage();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SCAN_WORKSPACE, async () => {
+      await extensionFeatureManagers.detectorsManager.triggerWorkspaceScan();
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SHOW_SCAN_OUTPUT, async () => {
+      extensionFeatureManagers.detectorsManager.showOutput();
     })
   );
 }

@@ -7,6 +7,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tower_lsp::{
     Client, LanguageServer,
+    jsonrpc::Result as JsonRpcResult,
     lsp_types::{
         DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams, InitializeResult,
         PositionEncodingKind, ServerCapabilities, ServerInfo, TextDocumentItem,
@@ -145,6 +146,10 @@ impl LanguageServer for Backend {
                         ..Default::default()
                     },
                 )),
+                execute_command_provider: Some(tower_lsp::lsp_types::ExecuteCommandOptions {
+                    commands: vec!["workspace.scan".to_string()],
+                    work_done_progress_options: Default::default(),
+                }),
                 ..Default::default()
             },
         };
@@ -166,6 +171,62 @@ impl LanguageServer for Backend {
             text: params.content_changes[0].text.clone(),
         };
         self.on_change(text_document).await;
+    }
+
+    async fn execute_command(
+        &self,
+        params: tower_lsp::lsp_types::ExecuteCommandParams,
+    ) -> JsonRpcResult<Option<serde_json::Value>> {
+        match params.command.as_str() {
+            "workspace.scan" => {
+                info!("Manual workspace scan requested");
+
+                // Perform workspace scan
+                let scan_result = {
+                    let scanner = self.file_scanner.lock().await;
+                    let mut registry = self.detector_registry.lock().await;
+                    scanner.scan_workspace(&mut *registry).await
+                };
+
+                // Log scan results
+                info!("Manual scan completed:");
+                info!("  - {} Rust files found", scan_result.rust_files.len());
+                info!(
+                    "  - {} Anchor programs found",
+                    scan_result.anchor_program_files().len()
+                );
+                info!(
+                    "  - {} files with security issues",
+                    scan_result.files_with_issues().len()
+                );
+                info!(
+                    "  - {} total security issues found",
+                    scan_result.total_issues()
+                );
+
+                // Publish diagnostics for files with issues
+                for file_info in scan_result.files_with_issues() {
+                    if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path) {
+                        self.client
+                            .publish_diagnostics(uri, file_info.diagnostics.clone(), None)
+                            .await;
+                    }
+                }
+
+                // Send scan results to extension
+                let scan_summary = ScanSummary::from_scan_result(&scan_result);
+                self.client
+                    .send_notification::<ScanCompleteNotification>(scan_summary)
+                    .await;
+
+                Ok(Some(serde_json::json!({
+                    "success": true,
+                    "total_files": scan_result.rust_files.len(),
+                    "total_issues": scan_result.total_issues()
+                })))
+            }
+            _ => Ok(None),
+        }
     }
 }
 

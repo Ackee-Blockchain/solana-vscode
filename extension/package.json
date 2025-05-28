@@ -31,6 +31,11 @@
     "configuration": {
       "title": "Coverage Display",
       "properties": {
+        "server.path": {
+          "type": "string",
+          "default": "/Users/maxkup/Documents/Ackee/extension/solana-vscode/language-server/target/debug/language-server",
+          "description": "Path to the Solana language server binary (leave empty to use bundled version)"
+        },
         "tridentCoverage.showExecutionCount": {
           "type": "boolean",
           "default": true,
@@ -70,6 +75,9 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

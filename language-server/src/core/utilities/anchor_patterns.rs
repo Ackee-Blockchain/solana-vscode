@@ -24,8 +24,6 @@ impl AnchorPatterns {
             .any(|attr| attr.path().is_ident("access_control"))
     }
 
-
-
     /// Extract account constraints from field attributes
     #[allow(dead_code)]
     pub fn extract_account_constraints(field: &syn::Field) -> Vec<String> {

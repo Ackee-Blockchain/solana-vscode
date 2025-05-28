@@ -1,7 +1,7 @@
 use crate::core::utilities::ast_analyzer::AstAnalyzer;
 use proc_macro2::Span;
 use syn::spanned::Spanned;
-use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity, NumberOrString, Position, Range};
+use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range};
 
 /// Enhanced diagnostic builder with span-aware functionality
 pub struct DiagnosticBuilder;
@@ -26,6 +26,7 @@ impl DiagnosticBuilder {
     }
 
     /// Create a diagnostic from a span
+    #[allow(dead_code)]
     pub fn from_span(
         content: &str,
         span: Span,
@@ -38,6 +39,7 @@ impl DiagnosticBuilder {
     }
 
     /// Create a diagnostic from a spanned AST node
+    #[allow(dead_code)]
     pub fn from_spanned<T: Spanned>(
         content: &str,
         node: &T,
@@ -50,6 +52,7 @@ impl DiagnosticBuilder {
     }
 
     /// Create a range from line and character positions
+    #[allow(dead_code)]
     pub fn create_range(start_line: u32, start_char: u32, end_line: u32, end_char: u32) -> Range {
         Range {
             start: Position {
@@ -77,6 +80,7 @@ impl DiagnosticBuilder {
     }
 
     /// Create a simple diagnostic for a single line
+    #[allow(dead_code)]
     pub fn create_line_diagnostic(
         line: u32,
         message: String,

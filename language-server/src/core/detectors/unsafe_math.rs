@@ -2,7 +2,7 @@ use super::detector::Detector;
 use super::detector_config::DetectorConfig;
 use crate::core::utilities::DiagnosticBuilder;
 use syn::spanned::Spanned;
-use syn::{BinOp, Expr, ExprBinary, parse_str, visit::Visit};
+use syn::{BinOp, parse_str, visit::Visit};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
 pub struct UnsafeMathDetector {

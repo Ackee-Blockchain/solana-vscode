@@ -3,7 +3,7 @@ import registerCommands from "./commands";
 import { initExtensionFeatureManagers } from "./extensionFeatureManagers";
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("Trident Coverage extension activated");
+  console.log("Solana Security extension activated");
 
 
   let extensionFeatureManagers = initExtensionFeatureManagers();

@@ -1,27 +1,136 @@
-use crate::core::{DetectorInfo, DetectorRegistry, MissingSignerDetector, ManualLamportsZeroingDetector};
+use crate::core::{
+    DetectorInfo, DetectorRegistry, FileScanner, ManualLamportsZeroingDetector,
+    MissingSignerDetector, ScanCompleteNotification, ScanResult, ScanSummary,
+};
+use log::info;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tower_lsp::{
+    Client, LanguageServer,
     lsp_types::{
         DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams, InitializeResult,
         PositionEncodingKind, ServerCapabilities, ServerInfo, TextDocumentItem,
         TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
-    }, Client,
-    LanguageServer,
+    },
 };
 
 #[derive(Debug, Clone)]
 pub struct Backend {
     client: Client,
     detector_registry: Arc<Mutex<DetectorRegistry>>,
+    file_scanner: Arc<Mutex<FileScanner>>,
 }
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(
         &self,
-        _: InitializeParams,
+        params: InitializeParams,
     ) -> Result<InitializeResult, tower_lsp::jsonrpc::Error> {
+        // Set up workspace root if provided
+        if let Some(workspace_folders) = params.workspace_folders {
+            if let Some(folder) = workspace_folders.first() {
+                if let Ok(path) = folder.uri.to_file_path() {
+                    let mut scanner = self.file_scanner.lock().await;
+                    scanner.set_workspace_root(path);
+
+                    // Perform initial workspace scan
+                    info!("Performing initial workspace scan...");
+                    let mut registry = self.detector_registry.lock().await;
+                    let scan_result = scanner.scan_workspace(&mut *registry).await;
+
+                    // Log scan results
+                    info!("Initial scan completed:");
+                    info!("  - {} Rust files found", scan_result.rust_files.len());
+                    info!(
+                        "  - {} Anchor programs found",
+                        scan_result.anchor_program_files().len()
+                    );
+                    info!(
+                        "  - {} files with security issues",
+                        scan_result.files_with_issues().len()
+                    );
+                    info!(
+                        "  - {} total security issues found",
+                        scan_result.total_issues()
+                    );
+                    info!(
+                        "  - {} Anchor.toml files found",
+                        scan_result.anchor_configs.len()
+                    );
+                    info!(
+                        "  - {} Cargo.toml files found",
+                        scan_result.cargo_files.len()
+                    );
+
+                    // Optionally publish diagnostics for files with issues
+                    for file_info in scan_result.files_with_issues() {
+                        if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path)
+                        {
+                            self.client
+                                .publish_diagnostics(uri, file_info.diagnostics.clone(), None)
+                                .await;
+                        }
+                    }
+
+                    // Send scan results to extension
+                    let scan_summary = ScanSummary::from_scan_result(&scan_result);
+                    self.client
+                        .send_notification::<ScanCompleteNotification>(scan_summary)
+                        .await;
+                }
+            }
+        } else if let Some(root_uri) = params.root_uri {
+            if let Ok(path) = root_uri.to_file_path() {
+                let mut scanner = self.file_scanner.lock().await;
+                scanner.set_workspace_root(path);
+
+                // Perform initial workspace scan
+                info!("Performing initial workspace scan...");
+                let mut registry = self.detector_registry.lock().await;
+                let scan_result = scanner.scan_workspace(&mut *registry).await;
+
+                // Log scan results
+                info!("Initial scan completed:");
+                info!("  - {} Rust files found", scan_result.rust_files.len());
+                info!(
+                    "  - {} Anchor programs found",
+                    scan_result.anchor_program_files().len()
+                );
+                info!(
+                    "  - {} files with security issues",
+                    scan_result.files_with_issues().len()
+                );
+                info!(
+                    "  - {} total security issues found",
+                    scan_result.total_issues()
+                );
+                info!(
+                    "  - {} Anchor.toml files found",
+                    scan_result.anchor_configs.len()
+                );
+                info!(
+                    "  - {} Cargo.toml files found",
+                    scan_result.cargo_files.len()
+                );
+
+                // Optionally publish diagnostics for files with issues
+                for file_info in scan_result.files_with_issues() {
+                    if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path) {
+                        self.client
+                            .publish_diagnostics(uri, file_info.diagnostics.clone(), None)
+                            .await;
+                    }
+                }
+
+                // Send scan results to extension
+                let scan_summary = ScanSummary::from_scan_result(&scan_result);
+                self.client
+                    .send_notification::<ScanCompleteNotification>(scan_summary)
+                    .await;
+            }
+        }
+
         let result = InitializeResult {
             server_info: Some(ServerInfo {
                 name: env!("CARGO_PKG_NAME").to_string(),
@@ -64,7 +173,8 @@ impl Backend {
     pub fn new(client: Client) -> Backend {
         Backend {
             client,
-            detector_registry: Arc::new(Mutex::new(create_default_registry()))
+            detector_registry: Arc::new(Mutex::new(create_default_registry())),
+            file_scanner: Arc::new(Mutex::new(FileScanner::new())),
         }
     }
 
@@ -104,6 +214,13 @@ impl Backend {
             total_detectors: registry.count(),
             enabled_detectors: registry.enabled_count(),
         }
+    }
+
+    /// Trigger a manual workspace scan
+    pub async fn scan_workspace(&self) -> Option<ScanResult> {
+        let scanner = self.file_scanner.lock().await;
+        let mut registry = self.detector_registry.lock().await;
+        Some(scanner.scan_workspace(&mut *registry).await)
     }
 }
 

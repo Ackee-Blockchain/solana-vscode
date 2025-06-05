@@ -83,12 +83,6 @@ impl Detector for MissingSignerDetector {
 
         self.diagnostics.clone()
     }
-
-    fn should_run(&self, content: &str) -> bool {
-        // Run on Anchor files that contain #[derive(Accounts)]
-        (content.contains("anchor_lang") || content.contains("anchor_spl"))
-            && content.contains("#[derive(Accounts)]")
-    }
 }
 
 impl<'ast> Visit<'ast> for MissingSignerDetector {

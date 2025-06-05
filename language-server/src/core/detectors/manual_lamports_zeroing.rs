@@ -109,14 +109,6 @@ impl Detector for ManualLamportsZeroingDetector {
 
         self.diagnostics.clone()
     }
-
-    fn should_run(&self, content: &str) -> bool {
-        // Run on Anchor/Solana files that contain lamports references
-        (content.contains("anchor_lang")
-            || content.contains("solana_program")
-            || content.contains("anchor_spl"))
-            && (content.contains("lamports") || content.contains("set_lamports"))
-    }
 }
 
 impl<'ast> Visit<'ast> for ManualLamportsZeroingDetector {

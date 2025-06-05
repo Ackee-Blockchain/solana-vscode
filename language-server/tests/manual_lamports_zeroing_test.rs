@@ -17,62 +17,6 @@ fn test_detector_metadata() {
 }
 
 #[test]
-fn test_should_run_with_lamports_reference() {
-    let detector = ManualLamportsZeroingDetector::new();
-
-    let anchor_with_lamports = r#"
-        use anchor_lang::prelude::*;
-
-        pub fn close_account(ctx: Context<CloseAccount>) -> Result<()> {
-            ctx.accounts.account.lamports = 0;
-            Ok(())
-        }
-    "#;
-    assert!(detector.should_run(anchor_with_lamports));
-}
-
-#[test]
-fn test_should_run_with_set_lamports() {
-    let detector = ManualLamportsZeroingDetector::new();
-
-    let code_with_set_lamports = r#"
-        use solana_program::*;
-
-        pub fn process() {
-            account.set_lamports(0);
-        }
-    "#;
-    assert!(detector.should_run(code_with_set_lamports));
-}
-
-#[test]
-fn test_should_not_run_without_solana_imports() {
-    let detector = ManualLamportsZeroingDetector::new();
-
-    let no_solana = r#"
-        pub fn test() {
-            let lamports = 0;
-        }
-    "#;
-    assert!(!detector.should_run(no_solana));
-}
-
-#[test]
-fn test_should_not_run_without_lamports_reference() {
-    let detector = ManualLamportsZeroingDetector::new();
-
-    let anchor_no_lamports = r#"
-        use anchor_lang::prelude::*;
-
-        pub fn safe_function(ctx: Context<SafeContext>) -> Result<()> {
-            ctx.accounts.account.balance = 100;
-            Ok(())
-        }
-    "#;
-    assert!(!detector.should_run(anchor_no_lamports));
-}
-
-#[test]
 fn test_detects_direct_lamports_assignment() {
     let mut detector = ManualLamportsZeroingDetector::new();
 

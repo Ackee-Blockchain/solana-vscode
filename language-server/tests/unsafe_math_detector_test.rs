@@ -1,6 +1,4 @@
-use language_server::core::detectors::{
-    detector::Detector, unsafe_math::UnsafeMathDetector,
-};
+use language_server::core::detectors::{detector::Detector, unsafe_math::UnsafeMathDetector};
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]
@@ -14,78 +12,6 @@ fn test_detector_metadata() {
         "Detects unchecked arithmetic operations that could lead to overflow/underflow vulnerabilities"
     );
     assert_eq!(detector.default_severity(), DiagnosticSeverity::ERROR);
-}
-
-#[test]
-fn test_should_run_with_anchor_and_math() {
-    let detector = UnsafeMathDetector::new();
-
-    // Should run on anchor files with math operations
-    let anchor_with_math = r#"
-        use anchor_lang::prelude::*;
-
-        #[program]
-        pub mod my_program {
-            use super::*;
-
-            pub fn transfer(ctx: Context<Transfer>, amount: u64) -> Result<()> {
-                let balance = ctx.accounts.user.balance + amount;
-                Ok(())
-            }
-        }
-    "#;
-    assert!(detector.should_run(anchor_with_math));
-
-    // Should run on anchor_spl files with math operations
-    let anchor_spl_with_math = r#"
-        use anchor_lang::prelude::*;
-        use anchor_spl::token::*;
-
-        #[program]
-        pub mod token_program {
-            use super::*;
-
-            pub fn mint_tokens(ctx: Context<MintTokens>, amount: u64) -> Result<()> {
-                let new_supply = ctx.accounts.mint.supply * amount;
-                Ok(())
-            }
-        }
-    "#;
-    assert!(detector.should_run(anchor_spl_with_math));
-}
-
-#[test]
-fn test_should_not_run_without_anchor() {
-    let detector = UnsafeMathDetector::new();
-
-    // Should not run on files without anchor imports
-    let no_anchor = r#"
-        fn test() {
-            let result = a + b;
-        }
-    "#;
-    assert!(!detector.should_run(no_anchor));
-}
-
-#[test]
-fn test_should_not_run_without_math() {
-    let detector = UnsafeMathDetector::new();
-
-    // Should not run on anchor files without math operations
-    let anchor_no_math = r#"
-        use anchor_lang::prelude::*;
-
-        #[program]
-        pub mod my_program {
-            use super::*;
-
-            pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-                ctx.accounts.user.authority = ctx.accounts.authority.key();
-                Ok(())
-            }
-        }
-    "#;
-    assert!(!detector.should_run(anchor_no_math));
 }
 
 #[test]

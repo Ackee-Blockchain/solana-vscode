@@ -17,11 +17,5 @@ pub trait Detector: Send + Sync {
 
     /// Analyze the given content and return any security issues found
     fn analyze(&mut self, content: &str) -> Vec<Diagnostic>;
-
-    /// Check if this detector should run on the given content
-    /// Can be used for performance optimization or file type filtering
-    fn should_run(&self, content: &str) -> bool {
-        // Default: run on all Rust files that contain anchor imports
-        content.contains("anchor_lang") || content.contains("anchor_spl")
-    }
+    
 }

@@ -1,5 +1,5 @@
 use language_server::core::detectors::{
-    detector::Detector, detector_config::DetectorConfig, unsafe_math::UnsafeMathDetector,
+    detector::Detector, unsafe_math::UnsafeMathDetector,
 };
 use tower_lsp::lsp_types::DiagnosticSeverity;
 

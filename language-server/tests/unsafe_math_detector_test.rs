@@ -71,8 +71,8 @@ fn test_detects_multiple_arithmetic_operations() {
 
             pub fn calculate_rewards(ctx: Context<CalculateRewards>, stake_amount: u64, duration: u64) -> Result<()> {
                 let base_reward = stake_amount + ctx.accounts.pool.base_rate;
-                let time_bonus = duration + ctx.accounts.pool.time_multiplier;
-                let total_reward = base_reward + time_bonus;
+                let time_bonus = duration - ctx.accounts.pool.time_multiplier;
+                let total_reward = base_reward * time_bonus;
 
                 ctx.accounts.user.rewards = total_reward;
                 Ok(())
@@ -271,6 +271,9 @@ fn test_token_transfer_with_unsafe_math() {
             pub fn deposit_tokens(ctx: Context<DepositTokens>, amount: u64) -> Result<()> {
                 // Unsafe: could overflow
                 ctx.accounts.vault.total_deposits = ctx.accounts.vault.total_deposits + amount;
+
+                // Safe: explicit type annotation
+                let a: u8 = 8 + 12;
 
                 let cpi_accounts = Transfer {
                     from: ctx.accounts.user_token_account.to_account_info(),

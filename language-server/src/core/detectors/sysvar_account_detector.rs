@@ -34,6 +34,7 @@ impl SysvarAccountDetector {
                     // Extract the sysvar type from generic arguments
                     if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
                         // Look for the second generic argument (the sysvar type)
+                        // to provide a more accurate suggestion
                         if args.args.len() >= 2 {
                             if let Some(syn::GenericArgument::Type(Type::Path(type_path))) =
                                 args.args.iter().nth(1)

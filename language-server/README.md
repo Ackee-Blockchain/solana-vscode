@@ -1,30 +1,30 @@
-# Solana Language Server
+# Solana Security Analysis Language Server
 
-A Language Server Protocol (LSP) implementation for Solana smart contracts, providing IDE features like code completion, diagnostics, and more.
+A Language Server Protocol (LSP) implementation for Solana smart contract security analysis, providing real-time security diagnostics and workspace scanning.
 
 ## Overview
 
-This language server is built using Rust and implements the Language Server Protocol to provide enhanced IDE support for Solana smart contract development. It integrates with the Solana VSCode extension to deliver a seamless development experience.
+This language server provides automated security analysis for Solana smart contract development. It integrates with the Solana VSCode extension to deliver real-time security feedback for Solana/Anchor projects.
 
 ## Features
 
-- Syntax validation for Solana smart contracts
-- Code completion and suggestions
-- Real-time diagnostics
-- Semantic analysis of Rust code
+- **Real-time Security Diagnostics**: Instant feedback on security issues
+- **Workspace Scanning**: Analyze entire projects for vulnerabilities
+- **Multiple Security Detectors**: Built-in analyzers for common security issues
+- **Anchor Program Support**: Specialized analysis for Anchor framework
 
-## Technical Details
+### Security Detectors
 
-- Built with Rust 2024 edition
-- Uses `tower-lsp` for LSP implementation
-- Leverages `syn` for Rust code parsing and analysis
-- Asynchronous runtime powered by `tokio`
+1. **Unsafe Math Detector**: Identifies arithmetic overflow/underflow vulnerabilities
+2. **Missing Signer Detector**: Detects missing signature verification
+3. **Manual Lamports Zeroing Detector**: Identifies improper account balance manipulation
+4. **Sysvar Account Detector**: Validates proper sysvar account usage
 
 ## Development
 
 ### Prerequisites
 
-- Rust toolchain (latest stable version)
+- Rust toolchain (latest stable)
 - Cargo package manager
 
 ### Building
@@ -39,27 +39,61 @@ cargo build
 cargo run
 ```
 
-### Debugging
-
-Use the provided `debug-run.zsh` script to run the language server in debug mode:
+### Testing
 
 ```bash
+cargo test
+```
+
+### Debugging
+
+```bash
+# Debug level (default)
 ./debug-run.zsh
+
+# With specific log level
+./debug-run.zsh info
 ```
 
 ## Dependencies
 
-- tower-lsp = "0.20.0"
-- tokio = { version = "1.0", features = ["full"] }
-- log = "0.4"
-- env_logger = "0.11.8"
-- syn = { version = "2.0.101", features = ["full", "extra-traits", "visit", "parsing"] }
+- `tower-lsp = "0.20.0"` - LSP implementation
+- `tokio = { version = "1.45.1", features = ["full"] }` - Async runtime
+- `syn = { version = "2.0.101", features = ["full", "extra-traits", "visit", "parsing"] }` - Rust parsing
+- `serde = { version = "1.0", features = ["derive"] }` - Serialization
+- `log = "0.4"` - Logging
+- `env_logger = "0.11.8"` - Logger configuration
 
 ## Project Structure
 
-- `src/main.rs` - Entry point and server initialization
-- `src/server.rs` - LSP server implementation
-- `src/backend.rs` - Core language server functionality
+```
+src/
+├── main.rs              # Entry point
+├── server.rs            # LSP server setup
+├── backend.rs           # Core implementation
+└── core/
+    ├── detectors/       # Security detectors
+    ├── file_scanner/    # Workspace scanning
+    ├── registry/        # Detector management
+    └── utilities/       # Helper functions
+
+tests/                   # Test suite
+```
+
+## Usage
+
+### Integration with VSCode
+
+- Automatic project scanning when opened
+- Real-time security issue highlighting
+- Manual workspace scan via `workspace.scan` command
+- Issues displayed in Problems panel
+
+### Supported Files
+
+- Rust files (`.rs`) - Primary analysis
+- `Anchor.toml` - Anchor configuration
+- `Cargo.toml` - Rust project configuration
 
 ## License
 

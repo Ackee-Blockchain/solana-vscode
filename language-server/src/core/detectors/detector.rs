@@ -17,5 +17,4 @@ pub trait Detector: Send + Sync {
 
     /// Analyze the given content and return any security issues found
     fn analyze(&mut self, content: &str) -> Vec<Diagnostic>;
-    
 }

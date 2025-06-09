@@ -1,8 +1,8 @@
 use super::detector::Detector;
 use super::detector_config::DetectorConfig;
-use crate::core::utilities::DiagnosticBuilder;
+use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use syn::spanned::Spanned;
-use syn::{Attribute, Fields, Meta, parse_str, visit::Visit};
+use syn::{Fields, parse_str, visit::Visit};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
 pub struct MissingSignerDetector {
@@ -31,21 +31,6 @@ impl MissingSignerDetector {
         if let syn::Type::Path(type_path) = &field.ty {
             if let Some(segment) = type_path.path.segments.last() {
                 return segment.ident == "Signer";
-            }
-        }
-        false
-    }
-
-    /// Check if a struct has the #[derive(Accounts)] attribute
-    fn has_accounts_derive(&self, attrs: &[Attribute]) -> bool {
-        for attr in attrs {
-            if let Meta::List(meta_list) = &attr.meta {
-                if meta_list.path.is_ident("derive") {
-                    let tokens = meta_list.tokens.to_string();
-                    if tokens.contains("Accounts") {
-                        return true;
-                    }
-                }
             }
         }
         false
@@ -88,7 +73,7 @@ impl Detector for MissingSignerDetector {
 impl<'ast> Visit<'ast> for MissingSignerDetector {
     fn visit_item_struct(&mut self, node: &'ast syn::ItemStruct) {
         // Check if this struct has #[derive(Accounts)]
-        if !self.has_accounts_derive(&node.attrs) {
+        if !AnchorPatterns::is_accounts_struct(node) {
             return;
         }
 

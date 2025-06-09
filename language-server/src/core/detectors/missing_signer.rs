@@ -95,8 +95,16 @@ impl<'ast> Visit<'ast> for MissingSignerDetector {
                 .config
                 .severity_override
                 .unwrap_or(self.default_severity());
+
+            // Create span for just the struct declaration line
+            let struct_decl_span = node
+                .struct_token
+                .span()
+                .join(node.generics.span())
+                .unwrap_or(node.ident.span());
+
             self.diagnostics.push(DiagnosticBuilder::create(
-                DiagnosticBuilder::create_range_from_span(node.span()),
+                DiagnosticBuilder::create_range_from_span(struct_decl_span),
                 self.message().to_string(),
                 severity,
                 self.id().to_string(),

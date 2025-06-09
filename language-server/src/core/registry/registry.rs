@@ -63,7 +63,7 @@ impl DetectorRegistry {
         for detector in &mut self.detectors {
             let config = self.configs.get(detector.id()).cloned().unwrap_or_default();
 
-            if !config.enabled || !detector.should_run(content) {
+            if !config.enabled {
                 continue;
             }
 

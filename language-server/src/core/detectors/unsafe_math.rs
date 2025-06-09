@@ -26,97 +26,60 @@ impl UnsafeMathDetector {
         }
     }
 
-    /// Check for custom patterns in the content
-    fn check_custom_patterns(&mut self, content: &str) {
-        for pattern in &self.config.custom_patterns {
-            let mut start_pos = 0;
-            while let Some(pos) = content[start_pos..].find(pattern) {
-                let actual_pos = start_pos + pos;
-
-                // Calculate line and column for the match
-                let lines_before = content[..actual_pos].matches('\n').count();
-                let line_start = content[..actual_pos]
-                    .rfind('\n')
-                    .map(|p| p + 1)
-                    .unwrap_or(0);
-                let line_end = content[actual_pos..]
-                    .find('\n')
-                    .map(|p| actual_pos + p)
-                    .unwrap_or(content.len());
-                let current_line = &content[line_start..line_end];
-                let column = actual_pos - line_start;
-
-                // Skip matches in import statements
-                if current_line.trim_start().starts_with("use ") {
-                    start_pos = actual_pos + pattern.len();
-                    continue;
+    /// Check if an expression has explicit type casting or annotation
+    fn has_explicit_type(&self, expr: &syn::Expr) -> bool {
+        match expr {
+            // Type casting: expr as Type
+            syn::Expr::Cast(_) => true,
+            // Literal with type suffix: 42u64, 3.14f32
+            syn::Expr::Lit(lit_expr) => {
+                if let syn::Lit::Int(int_lit) = &lit_expr.lit {
+                    !int_lit.suffix().is_empty()
+                } else if let syn::Lit::Float(float_lit) = &lit_expr.lit {
+                    !float_lit.suffix().is_empty()
+                } else {
+                    false
                 }
-
-                // Skip matches in single-line comments
-                if let Some(comment_start) = current_line.find("//") {
-                    let comment_start_abs = line_start + comment_start;
-                    if actual_pos >= comment_start_abs {
-                        start_pos = actual_pos + pattern.len();
-                        continue;
-                    }
+            }
+            // Method call with explicit turbo fish: value.into::<u64>()
+            syn::Expr::MethodCall(method_call) => method_call.turbofish.is_some(),
+            // Function call with explicit generics: from::<u64>(value)
+            syn::Expr::Call(call_expr) => {
+                if let syn::Expr::Path(path_expr) = &*call_expr.func {
+                    path_expr
+                        .path
+                        .segments
+                        .iter()
+                        .any(|seg| seg.arguments != syn::PathArguments::None)
+                } else {
+                    false
                 }
+            }
+            _ => false,
+        }
+    }
 
-                // Skip matches in multi-line comments
-                let mut is_in_multiline_comment = false;
-                let mut search_pos = 0;
-                while search_pos < actual_pos {
-                    if let Some(comment_start) = content[search_pos..].find("/*") {
-                        let comment_start_abs = search_pos + comment_start;
-                        if comment_start_abs < actual_pos {
-                            if let Some(comment_end) = content[comment_start_abs + 2..].find("*/") {
-                                let comment_end_abs = comment_start_abs + 2 + comment_end + 2;
-                                if actual_pos < comment_end_abs {
-                                    is_in_multiline_comment = true;
-                                    break;
-                                }
-                                search_pos = comment_end_abs;
-                            } else {
-                                // Unclosed comment, assume everything after is commented
-                                is_in_multiline_comment = true;
-                                break;
-                            }
-                        } else {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
+    /// Check if an expression is a safe literal (small integer)
+    fn is_safe_literal(&self, expr: &syn::Expr) -> bool {
+        if let syn::Expr::Lit(lit_expr) = expr {
+            if let syn::Lit::Int(int_lit) = &lit_expr.lit {
+                // Consider small integers safe (less than 2^32)
+                if let Ok(value) = int_lit.base10_parse::<u64>() {
+                    return value < (1u64 << 32);
                 }
-
-                if is_in_multiline_comment {
-                    start_pos = actual_pos + pattern.len();
-                    continue;
-                }
-
-                // Create diagnostic for custom pattern
-                let diagnostic = DiagnosticBuilder::create(
-                    tower_lsp::lsp_types::Range {
-                        start: tower_lsp::lsp_types::Position {
-                            line: lines_before as u32,
-                            character: column as u32,
-                        },
-                        end: tower_lsp::lsp_types::Position {
-                            line: lines_before as u32,
-                            character: (column + pattern.len()) as u32,
-                        },
-                    },
-                    format!("Custom pattern '{}' detected. {}", pattern, self.message()),
-                    self.config
-                        .severity_override
-                        .unwrap_or(self.default_severity()),
-                    format!("{}_CUSTOM", self.id()),
-                    None,
-                );
-
-                self.diagnostics.push(diagnostic);
-                start_pos = actual_pos + pattern.len();
             }
         }
+        false
+    }
+
+    /// Check operand types for safety
+    fn check_operand_types(&self, left: &syn::Expr, right: &syn::Expr) -> bool {
+        let left_explicit = self.has_explicit_type(left);
+        let right_explicit = self.has_explicit_type(right);
+        let left_safe_literal = self.is_safe_literal(left);
+        let right_safe_literal = self.is_safe_literal(right);
+
+        left_explicit || right_explicit || (left_safe_literal && right_safe_literal)
     }
 }
 
@@ -149,66 +112,34 @@ impl Detector for UnsafeMathDetector {
             self.visit_file(&syntax_tree);
         }
 
-        // Check custom patterns
-        self.check_custom_patterns(content);
-
         self.diagnostics.clone()
-    }
-
-    fn should_run(&self, content: &str) -> bool {
-        // Always run if custom patterns are configured
-        if !self.config.custom_patterns.is_empty() {
-            return content.contains("anchor_lang") || content.contains("anchor_spl");
-        }
-
-        // Run on Rust files that contain arithmetic operations and anchor imports
-        if !(content.contains("anchor_lang") || content.contains("anchor_spl")) {
-            return false;
-        }
-
-        // Look for arithmetic operations in more specific contexts to avoid false positives
-        // from import statements like "use anchor_lang::prelude::*;"
-        let lines: Vec<&str> = content.lines().collect();
-        for line in lines {
-            let trimmed = line.trim();
-            // Skip import lines and comments
-            if trimmed.starts_with("use ") || trimmed.starts_with("//") || trimmed.starts_with("/*")
-            {
-                continue;
-            }
-
-            // Look for arithmetic operators in actual code
-            if trimmed.contains(" + ")
-                || trimmed.contains(" - ")
-                || trimmed.contains(" * ")
-                || trimmed.contains(" / ")
-                || trimmed.contains("+=")
-                || trimmed.contains("-=")
-                || trimmed.contains("*=")
-                || trimmed.contains("/=")
-            {
-                return true;
-            }
-        }
-
-        false
     }
 }
 
 impl<'ast> Visit<'ast> for UnsafeMathDetector {
     fn visit_expr_binary(&mut self, node: &'ast syn::ExprBinary) {
-        if let BinOp::Add(_) = node.op {
-            let severity = self
-                .config
-                .severity_override
-                .unwrap_or(self.default_severity());
-            self.diagnostics.push(DiagnosticBuilder::create(
-                DiagnosticBuilder::create_range_from_span(node.span()),
-                self.message().to_string(),
-                severity,
-                self.id().to_string(),
-                None,
-            ));
+        match node.op {
+            BinOp::Add(_) | BinOp::Sub(_) | BinOp::Mul(_) | BinOp::Div(_) => {
+                // Check if operands have explicit type annotations or are literals
+                let is_type_safe = self.check_operand_types(&node.left, &node.right);
+
+                // Only flag if we can't determine safe types
+                if !is_type_safe {
+                    let severity = self
+                        .config
+                        .severity_override
+                        .unwrap_or(self.default_severity());
+
+                    self.diagnostics.push(DiagnosticBuilder::create(
+                        DiagnosticBuilder::create_range_from_span(node.span()),
+                        self.message().to_string(),
+                        severity,
+                        self.id().to_string(),
+                        None,
+                    ));
+                }
+            }
+            _ => {}
         }
 
         // Continue visiting children

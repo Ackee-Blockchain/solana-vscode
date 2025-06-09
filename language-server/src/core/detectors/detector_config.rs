@@ -6,7 +6,6 @@ use tower_lsp::lsp_types::DiagnosticSeverity;
 pub struct DetectorConfig {
     pub enabled: bool,
     pub severity_override: Option<DiagnosticSeverity>,
-    pub custom_patterns: Vec<String>,
 }
 
 impl Default for DetectorConfig {
@@ -14,7 +13,6 @@ impl Default for DetectorConfig {
         Self {
             enabled: true,
             severity_override: None,
-            custom_patterns: Vec::new(),
         }
     }
 }
@@ -34,15 +32,6 @@ impl DetectorConfig {
     pub fn with_severity(severity: DiagnosticSeverity) -> Self {
         Self {
             severity_override: Some(severity),
-            ..Default::default()
-        }
-    }
-
-    /// Create a config with custom patterns
-    #[allow(dead_code)]
-    pub fn with_patterns(patterns: Vec<String>) -> Self {
-        Self {
-            custom_patterns: patterns,
             ..Default::default()
         }
     }

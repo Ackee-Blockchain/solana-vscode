@@ -50,47 +50,6 @@ impl MissingSignerDetector {
         }
         false
     }
-
-    /// Check for custom patterns in the content
-    fn check_custom_patterns(&mut self, content: &str) {
-        for pattern in &self.config.custom_patterns {
-            let mut start_pos = 0;
-            while let Some(pos) = content[start_pos..].find(pattern) {
-                let actual_pos = start_pos + pos;
-
-                // Calculate line and column for the match
-                let lines_before = content[..actual_pos].matches('\n').count();
-                let line_start = content[..actual_pos]
-                    .rfind('\n')
-                    .map(|p| p + 1)
-                    .unwrap_or(0);
-                let column = actual_pos - line_start;
-
-                // Create diagnostic for custom pattern
-                let diagnostic = DiagnosticBuilder::create(
-                    tower_lsp::lsp_types::Range {
-                        start: tower_lsp::lsp_types::Position {
-                            line: lines_before as u32,
-                            character: column as u32,
-                        },
-                        end: tower_lsp::lsp_types::Position {
-                            line: lines_before as u32,
-                            character: (column + pattern.len()) as u32,
-                        },
-                    },
-                    format!("Custom pattern '{}' detected. {}", pattern, self.message()),
-                    self.config
-                        .severity_override
-                        .unwrap_or(self.default_severity()),
-                    format!("{}_CUSTOM", self.id()),
-                    None,
-                );
-
-                self.diagnostics.push(diagnostic);
-                start_pos = actual_pos + pattern.len();
-            }
-        }
-    }
 }
 
 impl Detector for MissingSignerDetector {
@@ -122,21 +81,7 @@ impl Detector for MissingSignerDetector {
             self.visit_file(&syntax_tree);
         }
 
-        // Check custom patterns
-        self.check_custom_patterns(content);
-
         self.diagnostics.clone()
-    }
-
-    fn should_run(&self, content: &str) -> bool {
-        // Always run if custom patterns are configured
-        if !self.config.custom_patterns.is_empty() {
-            return content.contains("anchor_lang") || content.contains("anchor_spl");
-        }
-
-        // Run on Anchor files that contain #[derive(Accounts)]
-        (content.contains("anchor_lang") || content.contains("anchor_spl"))
-            && content.contains("#[derive(Accounts)]")
     }
 }
 

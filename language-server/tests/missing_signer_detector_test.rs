@@ -15,48 +15,6 @@ fn test_detector_metadata() {
 }
 
 #[test]
-fn test_should_run_with_accounts_derive() {
-    let detector = MissingSignerDetector::new();
-
-    let anchor_with_accounts = r#"
-        use anchor_lang::prelude::*;
-
-        #[derive(Accounts)]
-        pub struct MyAccounts<'info> {
-            pub account: Account<'info, MyAccount>,
-        }
-    "#;
-    assert!(detector.should_run(anchor_with_accounts));
-}
-
-#[test]
-fn test_should_not_run_without_anchor() {
-    let detector = MissingSignerDetector::new();
-
-    let no_anchor = r#"
-        #[derive(Accounts)]
-        pub struct MyAccounts {
-            pub account: String,
-        }
-    "#;
-    assert!(!detector.should_run(no_anchor));
-}
-
-#[test]
-fn test_should_not_run_without_accounts_derive() {
-    let detector = MissingSignerDetector::new();
-
-    let anchor_no_accounts = r#"
-        use anchor_lang::prelude::*;
-
-        pub struct MyStruct {
-            pub field: u64,
-        }
-    "#;
-    assert!(!detector.should_run(anchor_no_accounts));
-}
-
-#[test]
 fn test_detects_missing_signer() {
     let mut detector = MissingSignerDetector::new();
 

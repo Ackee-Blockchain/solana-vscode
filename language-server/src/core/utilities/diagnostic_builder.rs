@@ -26,8 +26,7 @@ impl DiagnosticBuilder {
     }
 
     /// Create a diagnostic from a span
-    #[allow(dead_code)]
-    pub fn from_span(
+    pub fn create_from_span(
         content: &str,
         span: Span,
         message: String,
@@ -48,7 +47,7 @@ impl DiagnosticBuilder {
         code: String,
     ) -> Diagnostic {
         let span = AstAnalyzer::get_span(node);
-        Self::from_span(content, span, message, severity, code)
+        Self::create_from_span(content, span, message, severity, code)
     }
 
     /// Create a range from line and character positions

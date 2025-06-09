@@ -1,39 +1,21 @@
-# Pull Request Template
-
-## Title
-
-[Provide a succinct and descriptive title for the pull request, e.g., "Improve caching mechanism for API calls"]
-
-## Type of Change
-
-- [ ] New feature
-- [ ] Bug fix
-- [ ] Documentation update
-- [ ] Refactoring
-- [ ] Hotfix
-- [ ] Security patch
-- [ ] UI/UX improvement
-
 ## Description
 
-[Provide a detailed explanation of the changes you have made. Include the reasons behind these changes and any relevant context. Link any related issues.]
+<!--
+Write a description of your pull request.
+-->
 
-## Testing
+## Related Tickets & Documents
 
-[Detail the testing you have performed to ensure that these changes function as intended. Include information about any added tests.]
+<!--
+For pull requests that relate or close an issue, please include them
+below.  We like to follow [Github's guidance on linking issues to pull requests](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue).
 
-## Impact
+For example having the text: "closes #1234" would connect the current pull
+request to issue 1234.  And when we merge the pull request, Github will
+automatically close the issue.
+-->
 
-[Discuss the impact of your changes on the project. This might include effects on performance, new dependencies, or changes in behaviour.]
+- Related Issue #
+- Closes #
 
-## Additional Information
-
-[Any additional information that reviewers should be aware of.]
-
-## Checklist
-
-- [ ] My code adheres to the coding and style guidelines of the project.
-- [ ] I have performed a self-review of my own code.
-- [ ] I have commented my code, particularly in hard-to-understand areas.
-- [ ] I have made corresponding changes to the documentation.
-- [ ] My changes generate no new warnings
+- [ ] I clicked on "Allow edits from maintainers"

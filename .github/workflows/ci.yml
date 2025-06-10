@@ -5,13 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      build_binaries:
-        description: "Build platform binaries"
-        type: boolean
-        default: false
-        required: false
 
 jobs:
   language-server:
@@ -85,7 +78,6 @@ jobs:
 
   build-linux:
     needs: [language-server, extension]
-    if: github.event.inputs.build_binaries == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -108,7 +100,6 @@ jobs:
 
   build-macos:
     needs: [language-server, extension]
-    if: github.event.inputs.build_binaries == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -140,7 +131,6 @@ jobs:
 
   build-windows:
     needs: [language-server, extension]
-    if: github.event.inputs.build_binaries == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -163,7 +153,6 @@ jobs:
 
   combine-artifacts:
     needs: [build-linux, build-macos, build-windows]
-    if: github.event.inputs.build_binaries == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts

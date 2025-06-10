@@ -1,0 +1,90 @@
+name: Build Release Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for building artifacts"
+        required: false
+        type: string
+        default: "Manual build trigger"
+
+jobs:
+  build-artifacts:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_path: language-server
+            output_dir: linux
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary_path: language-server
+            output_dir: darwin-x64
+          - os: macos-14
+            target: aarch64-apple-darwin
+            binary_path: language-server
+            output_dir: darwin-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_path: language-server.exe
+            output_dir: win32
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: |
+          cd language-server
+          cargo build --target ${{ matrix.target }} --release
+
+          mkdir -p ../extension/bin/${{ matrix.output_dir }}
+          cp target/${{ matrix.target }}/release/${{ matrix.binary_path }} ../extension/bin/${{ matrix.output_dir }}/
+
+      - name: Upload binary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output_dir }}-binary
+          path: extension/bin/${{ matrix.output_dir }}
+          if-no-files-found: error
+
+  package-extension:
+    needs: build-artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: extension/bin
+          merge-multiple: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install extension dependencies
+        run: |
+          cd extension
+          npm ci
+
+      - name: Package extension
+        run: |
+          cd extension
+          npm run package
+
+      - name: Upload packaged extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-extension
+          path: extension/*.vsix
+          if-no-files-found: error

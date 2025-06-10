@@ -1,5 +1,9 @@
 import { OutputChannel, window, workspace } from 'vscode';
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, StateChangeEvent, TransportKind } from 'vscode-languageclient/node';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as vscode from 'vscode';
 
 // Interface for scan summary data from language server
 interface ScanSummary {
@@ -20,7 +24,7 @@ interface FileIssueInfo {
 }
 
 export class DetectorsManager {
-    private client: LanguageClient;
+    private client?: LanguageClient;
     private outputChannel: OutputChannel;
 
     constructor() {
@@ -28,14 +32,140 @@ export class DetectorsManager {
         this.outputChannel = window.createOutputChannel('Security Server');
         this.outputChannel.show(true);
 
-        const config = workspace.getConfiguration('server');
-        const serverPath = config.get<string>('path');
+        // Improved server path resolution
+        const serverPath = this.resolveServerPath();
 
         if (!serverPath) {
-            this.outputChannel.appendLine('No server path found in settings');
-            throw new Error('Server path not configured');
+            this.handleServerNotFound();
+            return;
         }
 
+        this.outputChannel.appendLine(`Using language server: ${serverPath}`);
+        this.startLanguageServer(serverPath);
+    }
+
+    private resolveServerPath(): string | null {
+        this.outputChannel.appendLine('Resolving language server path...');
+
+        // Strategy 1: User-configured path
+        const configuredPath = this.getConfiguredPath();
+        if (configuredPath) {
+            this.outputChannel.appendLine(`Trying configured path: ${configuredPath}`);
+            if (this.validateBinary(configuredPath)) {
+                return configuredPath;
+            }
+            this.outputChannel.appendLine(`Configured path invalid: ${configuredPath}`);
+            return null; // If user specified a path but it's invalid, don't fallback
+        }
+
+        // Strategy 2: Bundled binary (platform-specific)
+        const bundledPath = this.getBundledServerPath();
+        if (bundledPath) {
+            this.outputChannel.appendLine(`Trying bundled binary: ${bundledPath}`);
+            if (this.validateBinary(bundledPath)) {
+                return bundledPath;
+            }
+            this.outputChannel.appendLine(`Bundled binary not found: ${bundledPath}`);
+        }
+
+        this.outputChannel.appendLine('No valid language server binary found');
+        return null;
+    }
+
+    private getConfiguredPath(): string | null {
+        const config = workspace.getConfiguration('server');
+        const configPath = config.get<string>('path');
+
+        // Handle empty strings and whitespace-only strings
+        if (!configPath || configPath.trim() === '') {
+            return null;
+        }
+
+        // Expand home directory if needed
+        if (configPath.startsWith('~/')) {
+            return path.join(os.homedir(), configPath.slice(2));
+        }
+
+        return configPath;
+    }
+
+    private getBundledServerPath(): string | null {
+        // Use extension path instead of workspace
+        const extensionContext = vscode.extensions.getExtension('AckeeBlockchain.solana');
+        if (!extensionContext) {
+            this.outputChannel.appendLine('Extension context not found');
+            return null;
+        }
+
+        const extensionPath = extensionContext.extensionPath;
+        const platform = process.platform;
+        const arch = process.arch;
+
+        // Determine binary name
+        const binaryName = platform === 'win32' ? 'language-server.exe' : 'language-server';
+
+        // Determine platform directory with architecture support
+        let platformDir: string;
+
+        if (platform === 'darwin') {
+            // Handle Apple Silicon vs Intel Mac
+            platformDir = arch === 'arm64' ? 'darwin-arm64' : 'darwin-x64';
+        } else if (platform === 'win32') {
+            platformDir = arch === 'x64' ? 'win32-x64' : 'win32';
+        } else if (platform === 'linux') {
+            platformDir = arch === 'x64' ? 'linux-x64' : `linux-${arch}`;
+        } else {
+            platformDir = platform;
+        }
+
+        // Only check the standard bundled location
+        const bundledPath = path.join(extensionPath, 'bin', platformDir, binaryName);
+
+        if (fs.existsSync(bundledPath)) {
+            return bundledPath;
+        }
+
+        return null;
+    }
+
+    private validateBinary(binaryPath: string): boolean {
+        if (!fs.existsSync(binaryPath)) {
+            this.outputChannel.appendLine(`Binary not found: ${binaryPath}`);
+            return false;
+        }
+        return true;
+    }
+
+    private handleServerNotFound(): void {
+        const message = 'Language server binary not found. Please install or configure the server path.';
+        this.outputChannel.appendLine(message);
+
+        // Show user-friendly error with actionable options
+        window.showErrorMessage(
+            'Solana language server not found',
+            'Open Settings',
+            'View Output',
+            'Learn More'
+        ).then(selection => {
+            switch (selection) {
+                case 'Open Settings':
+                    workspace.getConfiguration().update('server.path', '', true);
+                    break;
+                case 'View Output':
+                    this.outputChannel.show();
+                    break;
+                case 'Learn More':
+                    // Could open documentation or README
+                    window.showInformationMessage(
+                        'Please set "server.path" in your settings to point to your language server binary, ' +
+                        'or ensure it\'s installed in a standard location like ~/.cargo/bin/'
+                    );
+                    break;
+            }
+        });
+    }
+
+    private startLanguageServer(serverPath: string): void {
         // If the extension is launched in debug mode then the debug server options are used
         // Otherwise the run options are used
 
@@ -120,7 +250,7 @@ export class DetectorsManager {
     }
 
     dispose() {
-        this.client.stop();
+        this.client?.stop();
         this.outputChannel.dispose();
     }
 
@@ -130,7 +260,7 @@ export class DetectorsManager {
         this.outputChannel.appendLine('=== Manual Workspace Scan Triggered ===');
         try {
             // Send a custom request to trigger workspace scan
-            await this.client.sendRequest('workspace/executeCommand', {
+            await this.client?.sendRequest('workspace/executeCommand', {
                 command: 'workspace.scan',
                 arguments: []
             });

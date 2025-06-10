@@ -41,7 +41,7 @@
       "properties": {
         "server.path": {
           "type": "string",
-          "default": "/Users/maxkup/Documents/Ackee/extension/solana-vscode/language-server/target/debug/language-server",
+          "default": "",
           "description": "Path to the Solana language server binary (leave empty to use bundled version)"
         },
         "tridentCoverage.showExecutionCount": {

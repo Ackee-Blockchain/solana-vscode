@@ -34,7 +34,6 @@ jobs:
 
   extension:
     runs-on: ubuntu-latest
-    needs: language-server
     steps:
       - uses: actions/checkout@v4
 

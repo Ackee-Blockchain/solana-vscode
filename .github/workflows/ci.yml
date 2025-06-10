@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_binaries:
+        description: "Build platform binaries"
+        type: boolean
+        default: false
+        required: false
 
 jobs:
   language-server:
@@ -76,46 +83,96 @@ jobs:
           cd extension
           xvfb-run -a npm test
 
-  build-release:
+  build-linux:
     needs: [language-server, extension]
+    if: github.event.inputs.build_binaries == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin, x86_64-pc-windows-msvc
 
       - name: Build Linux binary
         run: |
           cd language-server
-          cargo build --target x86_64-unknown-linux-gnu --release
+          cargo build --release
           mkdir -p ../extension/bin/linux
-          cp target/x86_64-unknown-linux-gnu/release/language-server ../extension/bin/linux/
+          cp target/release/language-server ../extension/bin/linux/
 
-      - name: Build macOS Intel binary
+      - name: Upload Linux binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary
+          path: extension/bin/linux/
+
+  build-macos:
+    needs: [language-server, extension]
+    if: github.event.inputs.build_binaries == 'true'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Build Intel Mac binary
         run: |
           cd language-server
-          cargo build --target x86_64-apple-darwin --release
+          cargo build --release
           mkdir -p ../extension/bin/darwin-x64
-          cp target/x86_64-apple-darwin/release/language-server ../extension/bin/darwin-x64/
+          cp target/release/language-server ../extension/bin/darwin-x64/
 
-      - name: Build macOS ARM binary
+      - name: Build ARM Mac binary
         run: |
           cd language-server
           cargo build --target aarch64-apple-darwin --release
           mkdir -p ../extension/bin/darwin-arm64
           cp target/aarch64-apple-darwin/release/language-server ../extension/bin/darwin-arm64/
 
+      - name: Upload macOS binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-binaries
+          path: extension/bin/darwin-*
+
+  build-windows:
+    needs: [language-server, extension]
+    if: github.event.inputs.build_binaries == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Build Windows binary
         run: |
           cd language-server
-          cargo build --target x86_64-pc-windows-msvc --release
+          cargo build --release
           mkdir -p ../extension/bin/win32
-          cp target/x86_64-pc-windows-msvc/release/language-server.exe ../extension/bin/win32/
+          copy target\release\language-server.exe ..\extension\bin\win32\
 
-      - name: Upload binaries artifact
+      - name: Upload Windows binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binary
+          path: extension/bin/win32/
+
+  combine-artifacts:
+    needs: [build-linux, build-macos, build-windows]
+    if: github.event.inputs.build_binaries == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: extension/bin
+          merge-multiple: true
+
+      - name: Upload combined artifacts
         uses: actions/upload-artifact@v4
         with:
           name: language-server-binaries

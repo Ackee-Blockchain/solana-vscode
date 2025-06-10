@@ -166,3 +166,10 @@ jobs:
         with:
           name: language-server-binaries
           path: extension/bin/
+
+      - name: Commit binaries
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'github-actions@github.com'
+          git add extension/bin/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update language server binaries" && git push)

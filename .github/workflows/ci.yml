@@ -2,77 +2,122 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   language-server:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: rustfmt, clippy
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
-    - name: Format Rust code
-      run: |
-        cd language-server
-        cargo fmt -- --check
+      - name: Format Rust code
+        run: |
+          cd language-server
+          cargo fmt -- --check
 
-    - name: Build language server
-      run: |
-        cd language-server
-        cargo build --verbose
+      - name: Build language server
+        run: |
+          cd language-server
+          cargo build --verbose
 
-    - name: Run language server tests
-      run: |
-        cd language-server
-        cargo test --verbose
+      - name: Run language server tests
+        run: |
+          cd language-server
+          cargo test --verbose
 
   extension:
     runs-on: ubuntu-latest
     needs: language-server
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-    - name: Install extension dependencies
-      run: |
-        cd extension
-        npm ci
+      - name: Install extension dependencies
+        run: |
+          cd extension
+          npm ci
 
-    - name: Run linting
-      run: |
-        cd extension
-        npm run lint
+      - name: Run linting
+        run: |
+          cd extension
+          npm run lint
 
-    - name: Fix code style
-      run: |
-        cd extension
-        npm run lint -- --fix
-      continue-on-error: true
+      - name: Fix code style
+        run: |
+          cd extension
+          npm run lint -- --fix
+        continue-on-error: true
 
-    - name: Commit fixes
-      if: success()
-      run: |
-        git config --global user.name 'GitHub Actions'
-        git config --global user.email 'github-actions@github.com'
-        git add .
-        git diff --quiet && git diff --staged --quiet || (git commit -m "style: auto fixes from CI" && git push)
+      - name: Commit fixes
+        if: success()
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'github-actions@github.com'
+          git add .
+          git diff --quiet && git diff --staged --quiet || (git commit -m "style: auto fixes from CI" && git push)
 
-    - name: Build extension
-      run: |
-        cd extension
-        npm run compile
+      - name: Build extension
+        run: |
+          cd extension
+          npm run compile
 
-    - name: Run extension tests
-      run: |
-        cd extension
-        xvfb-run -a npm test
+      - name: Run extension tests
+        run: |
+          cd extension
+          xvfb-run -a npm test
+
+  build-release:
+    needs: [language-server, extension]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin, x86_64-pc-windows-msvc
+
+      - name: Build Linux binary
+        run: |
+          cd language-server
+          cargo build --target x86_64-unknown-linux-gnu --release
+          mkdir -p ../extension/bin/linux
+          cp target/x86_64-unknown-linux-gnu/release/language-server ../extension/bin/linux/
+
+      - name: Build macOS Intel binary
+        run: |
+          cd language-server
+          cargo build --target x86_64-apple-darwin --release
+          mkdir -p ../extension/bin/darwin-x64
+          cp target/x86_64-apple-darwin/release/language-server ../extension/bin/darwin-x64/
+
+      - name: Build macOS ARM binary
+        run: |
+          cd language-server
+          cargo build --target aarch64-apple-darwin --release
+          mkdir -p ../extension/bin/darwin-arm64
+          cp target/aarch64-apple-darwin/release/language-server ../extension/bin/darwin-arm64/
+
+      - name: Build Windows binary
+        run: |
+          cd language-server
+          cargo build --target x86_64-pc-windows-msvc --release
+          mkdir -p ../extension/bin/win32
+          cp target/x86_64-pc-windows-msvc/release/language-server.exe ../extension/bin/win32/
+
+      - name: Upload binaries artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: language-server-binaries
+          path: extension/bin/

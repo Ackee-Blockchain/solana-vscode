@@ -1,7 +1,7 @@
 use crate::core::{
-    DetectorInfo, DetectorRegistry, FileScanner, ManualLamportsZeroingDetector,
-    MissingSignerDetector, ScanCompleteNotification, ScanResult, ScanSummary,
-    SysvarAccountDetector,
+    DetectorInfo, DetectorRegistry, FileScanner, ImmutableAccountMutatedDetector,
+    ManualLamportsZeroingDetector, MissingSignerDetector, ScanCompleteNotification, ScanResult,
+    ScanSummary, SysvarAccountDetector,
 };
 use log::info;
 use std::sync::Arc;
@@ -307,5 +307,6 @@ fn create_default_registry() -> DetectorRegistry {
         .with_detector(MissingSignerDetector::new())
         .with_detector(ManualLamportsZeroingDetector::new())
         .with_detector(SysvarAccountDetector::new())
+        .with_detector(ImmutableAccountMutatedDetector::new())
         .build()
 }

@@ -192,31 +192,16 @@ suite("Coverage Manager Test Suite", () => {
       }
     });
     test("test static coverage", async function () {
-      this.timeout(60000);
-  
-      Object.defineProperty(vscode.window, "showQuickPick", {
-        value: () => Promise.resolve(CoverageType.Static as string),
-        configurable: true,
-      });
-  
-      const testProgramPath = path.join(__dirname, "../../../src/coverage/tests/test-program");
-      const mockWorkspaceFolder = {
-        uri: vscode.Uri.file(testProgramPath),
-        name: "test-program",
-        index: 0,
-      };
-      Object.defineProperty(vscode.workspace, "workspaceFolders", {
-        get: () => [mockWorkspaceFolder],
-        configurable: true,
-      });
-        
+      mockShowQuickPickStaticCoverage();
+      mockWorkspaceFoldersWithTestProgram();
+
       const coverageManager = new CoverageManager();
       await coverageManager.showCoverage();
-  
+
       // @ts-ignore - accessing private field for testing
       const decorations = coverageManager.coverageDecorations.lineCoverageDecorations;
       assert.ok(decorations.length > 0, "Should have created coverage decorations");
-  
+
       // @ts-ignore - accessing private field for testing
       const report = coverageManager.coverageReportLoader.coverageReport;
       assert.ok(report, "Should have loaded coverage report");
@@ -1089,3 +1074,23 @@ suite("Coverage Manager Test Suite", () => {
     });
   });
 });
+
+function mockShowQuickPickStaticCoverage() {
+  Object.defineProperty(vscode.window, "showQuickPick", {
+    value: () => Promise.resolve(CoverageType.Static as string),
+    configurable: true,
+  });
+}
+
+function mockWorkspaceFoldersWithTestProgram() {
+  const testProgramPath = path.join(__dirname, "../../../src/coverage/tests/test-program");
+  const mockWorkspaceFolder = {
+    uri: vscode.Uri.file(testProgramPath),
+    name: "test-program",
+    index: 0,
+  };
+  Object.defineProperty(vscode.workspace, "workspaceFolders", {
+    get: () => [mockWorkspaceFolder],
+    configurable: true,
+  });
+}

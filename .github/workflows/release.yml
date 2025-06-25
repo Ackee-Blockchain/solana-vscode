@@ -6,53 +6,53 @@ on:
 jobs:
   build-language-server:
     strategy:
-      matrix:
-        include:
-          # Linux builds
-          - os: ubuntu-latest
-            platform: linux
-            arch: x64
-            rust_target: x86_64-unknown-linux-gnu
-            linker: gcc
-          - os: ubuntu-latest
-            platform: linux
-            arch: arm64
-            rust_target: aarch64-unknown-linux-gnu
-            linker: aarch64-linux-gnu-gcc
-          - os: ubuntu-latest
-            platform: linux
-            arch: armhf
-            rust_target: armv7-unknown-linux-gnueabihf
-            linker: arm-linux-gnueabihf-gcc
-          # Alpine Linux builds
-          #   - os: ubuntu-latest
-          #     platform: alpine
-          #     arch: x64
-          #     rust_target: x86_64-unknown-linux-musl
-          #     linker: musl-gcc
-          #   - os: ubuntu-latest
-          #     platform: alpine
-          #     arch: arm64
-          #     rust_target: aarch64-unknown-linux-musl
-          #     linker: aarch64-linux-gnu-gcc
-          # Windows builds
-          - os: windows-latest
-            platform: win32
-            arch: x64
-            rust_target: x86_64-pc-windows-msvc
-          - os: windows-latest
-            platform: win32
-            arch: arm64
-            rust_target: aarch64-pc-windows-msvc
-          # macOS builds
-          - os: macos-latest
-            platform: darwin
-            arch: x64
-            rust_target: x86_64-apple-darwin
-          - os: macos-latest
-            platform: darwin
-            arch: arm64
-            rust_target: aarch64-apple-darwin
+        matrix:
+            include:
+            # Linux builds
+            - os: ubuntu-latest
+              platform: linux
+              arch: x64
+              rust_target: x86_64-unknown-linux-gnu
+              linker: gcc
+            - os: ubuntu-latest
+              platform: linux
+              arch: arm64
+              rust_target: aarch64-unknown-linux-gnu
+              linker: aarch64-linux-gnu-gcc
+            - os: ubuntu-latest
+              platform: linux
+              arch: armhf
+              rust_target: armv7-unknown-linux-gnueabihf
+              linker: arm-linux-gnueabihf-gcc
+            # Alpine Linux builds
+            - os: ubuntu-latest
+              platform: alpine
+              arch: x64
+              rust_target: x86_64-unknown-linux-musl
+              linker: musl-gcc
+            - os: ubuntu-latest
+              platform: alpine
+              arch: arm64
+              rust_target: aarch64-unknown-linux-musl
+              linker: aarch64-linux-gnu-gcc
+            # Windows builds
+            - os: windows-latest
+              platform: win32
+              arch: x64
+              rust_target: x86_64-pc-windows-msvc
+            - os: windows-latest
+              platform: win32
+              arch: arm64
+              rust_target: aarch64-pc-windows-msvc
+            # macOS builds
+            - os: macos-latest
+              platform: darwin
+              arch: x64
+              rust_target: x86_64-apple-darwin
+            - os: macos-latest
+              platform: darwin
+              arch: arm64
+              rust_target: aarch64-apple-darwin
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -123,8 +123,8 @@ jobs:
             "linux-x64",
             "linux-arm64",
             "linux-armhf",
-            # "alpine-x64",
-            # "alpine-arm64",
+            "alpine-x64",
+            "alpine-arm64",
             "darwin-x64",
             "darwin-arm64",
             # "web",
@@ -140,16 +140,14 @@ jobs:
             os: ubuntu-latest
           - target: linux-armhf
             os: ubuntu-latest
-          #   - target: alpine-x64
-          #     os: ubuntu-latest
-          #   - target: alpine-arm64
-          #     os: ubuntu-latest
+          - target: alpine-x64
+            os: ubuntu-latest
+          - target: alpine-arm64
+            os: ubuntu-latest
           - target: darwin-x64
             os: macos-latest
           - target: darwin-arm64
             os: macos-latest
-        #   - target: web
-        #     os: ubuntu-latest
 
     runs-on: ${{ matrix.os }}
     steps:

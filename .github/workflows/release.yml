@@ -25,16 +25,16 @@ jobs:
             rust_target: armv7-unknown-linux-gnueabihf
             linker: arm-linux-gnueabihf-gcc
           # Alpine Linux builds
-        #   - os: ubuntu-latest
-        #     platform: alpine
-        #     arch: x64
-        #     rust_target: x86_64-unknown-linux-musl
-        #     linker: musl-gcc
-        #   - os: ubuntu-latest
-        #     platform: alpine
-        #     arch: arm64
-        #     rust_target: aarch64-unknown-linux-musl
-        #     linker: aarch64-linux-gnu-gcc
+          #   - os: ubuntu-latest
+          #     platform: alpine
+          #     arch: x64
+          #     rust_target: x86_64-unknown-linux-musl
+          #     linker: musl-gcc
+          #   - os: ubuntu-latest
+          #     platform: alpine
+          #     arch: arm64
+          #     rust_target: aarch64-unknown-linux-musl
+          #     linker: aarch64-linux-gnu-gcc
           # Windows builds
           - os: windows-latest
             platform: win32
@@ -86,14 +86,15 @@ jobs:
           echo "linker = \"${{ matrix.linker }}\"" >> ~/.cargo/config.toml
           echo "rustflags = [\"-C\", \"target-feature=+crt-static\"]" >> ~/.cargo/config.toml
 
+      - name: Set CC environment variable for Linux builds
+        if: matrix.platform == 'linux' || matrix.platform == 'alpine'
+        run: |
+          export CC=${{ matrix.linker }}
+          export RUSTFLAGS="-C target-feature=+crt-static"
+
       - name: Build Language Server
         run: |
           cd language-server
-          # Set CC environment variable for Linux builds
-          if [[ "${{ matrix.platform }}" == "linux" || "${{ matrix.platform }}" == "alpine" ]]; then
-            export CC=${{ matrix.linker }}
-            export RUSTFLAGS="-C target-feature=+crt-static"
-          fi
           cargo build --target ${{ matrix.rust_target }} --release
 
       - name: Prepare Binary Directory

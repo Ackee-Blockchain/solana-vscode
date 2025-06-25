@@ -99,38 +99,38 @@ jobs:
       matrix:
         target:
           [
-            "win32-x64",
-            "win32-arm64",
-            "linux-x64",
-            "linux-arm64",
-            "linux-armhf",
-            "alpine-x64",
-            "alpine-arm64",
+            # "win32-x64",
+            # "win32-arm64",
+            # "linux-x64",
+            # "linux-arm64",
+            # "linux-armhf",
+            # "alpine-x64",
+            # "alpine-arm64",
             "darwin-x64",
             "darwin-arm64",
-            "web",
+            # "web",
           ]
         include:
-          - target: win32-x64
-            os: windows-latest
-          - target: win32-arm64
-            os: windows-latest
-          - target: linux-x64
-            os: ubuntu-latest
-          - target: linux-arm64
-            os: ubuntu-latest
-          - target: linux-armhf
-            os: ubuntu-latest
-          - target: alpine-x64
-            os: ubuntu-latest
-          - target: alpine-arm64
-            os: ubuntu-latest
+        #   - target: win32-x64
+        #     os: windows-latest
+        #   - target: win32-arm64
+        #     os: windows-latest
+        #   - target: linux-x64
+        #     os: ubuntu-latest
+        #   - target: linux-arm64
+        #     os: ubuntu-latest
+        #   - target: linux-armhf
+        #     os: ubuntu-latest
+        #   - target: alpine-x64
+        #     os: ubuntu-latest
+        #   - target: alpine-arm64
+        #     os: ubuntu-latest
           - target: darwin-x64
             os: macos-latest
           - target: darwin-arm64
             os: macos-latest
-          - target: web
-            os: ubuntu-latest
+        #   - target: web
+        #     os: ubuntu-latest
 
     runs-on: ${{ matrix.os }}
     steps:

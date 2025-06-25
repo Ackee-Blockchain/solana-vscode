@@ -6,53 +6,53 @@ on:
 jobs:
   build-language-server:
     strategy:
-        matrix:
-            include:
-            # Linux builds
-            - os: ubuntu-latest
-              platform: linux
-              arch: x64
-              rust_target: x86_64-unknown-linux-gnu
-              linker: gcc
-            - os: ubuntu-latest
-              platform: linux
-              arch: arm64
-              rust_target: aarch64-unknown-linux-gnu
-              linker: aarch64-linux-gnu-gcc
-            - os: ubuntu-latest
-              platform: linux
-              arch: armhf
-              rust_target: armv7-unknown-linux-gnueabihf
-              linker: arm-linux-gnueabihf-gcc
-            # Alpine Linux builds
-            - os: ubuntu-latest
-              platform: alpine
-              arch: x64
-              rust_target: x86_64-unknown-linux-musl
-              linker: musl-gcc
-            - os: ubuntu-latest
-              platform: alpine
-              arch: arm64
-              rust_target: aarch64-unknown-linux-musl
-              linker: aarch64-linux-gnu-gcc
-            # Windows builds
-            - os: windows-latest
-              platform: win32
-              arch: x64
-              rust_target: x86_64-pc-windows-msvc
-            - os: windows-latest
-              platform: win32
-              arch: arm64
-              rust_target: aarch64-pc-windows-msvc
-            # macOS builds
-            - os: macos-latest
-              platform: darwin
-              arch: x64
-              rust_target: x86_64-apple-darwin
-            - os: macos-latest
-              platform: darwin
-              arch: arm64
-              rust_target: aarch64-apple-darwin
+      matrix:
+        include:
+          # Linux builds
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            rust_target: x86_64-unknown-linux-gnu
+            linker: gcc
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
+            rust_target: aarch64-unknown-linux-gnu
+            linker: aarch64-linux-gnu-gcc
+          - os: ubuntu-latest
+            platform: linux
+            arch: armhf
+            rust_target: armv7-unknown-linux-gnueabihf
+            linker: arm-linux-gnueabihf-gcc
+          # Alpine Linux builds
+          - os: ubuntu-latest
+            platform: alpine
+            arch: x64
+            rust_target: x86_64-unknown-linux-musl
+            linker: musl-gcc
+          - os: ubuntu-latest
+            platform: alpine
+            arch: arm64
+            rust_target: aarch64-unknown-linux-musl
+            linker: aarch64-linux-musl-gcc
+          # Windows builds
+          - os: windows-latest
+            platform: win32
+            arch: x64
+            rust_target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            platform: win32
+            arch: arm64
+            rust_target: aarch64-pc-windows-msvc
+          # macOS builds
+          - os: macos-latest
+            platform: darwin
+            arch: x64
+            rust_target: x86_64-apple-darwin
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            rust_target: aarch64-apple-darwin
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -76,6 +76,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y musl-tools
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-musl
+          fi
 
       # Configure Rust target linker
       - name: Configure target linker

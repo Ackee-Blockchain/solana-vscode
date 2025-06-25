@@ -111,9 +111,19 @@ export class DetectorsManager {
             // Handle Apple Silicon vs Intel Mac
             platformDir = arch === 'arm64' ? 'darwin-arm64' : 'darwin-x64';
         } else if (platform === 'win32') {
-            platformDir = arch === 'x64' ? 'win32-x64' : 'win32';
+            platformDir = arch === 'arm64' ? 'win32-arm64' : 'win32-x64';
         } else if (platform === 'linux') {
-            platformDir = arch === 'x64' ? 'linux-x64' : `linux-${arch}`;
+            // Check if running on Alpine Linux
+            const isAlpine = fs.existsSync('/etc/alpine-release');
+            const baseDir = isAlpine ? 'alpine' : 'linux';
+
+            if (arch === 'arm64') {
+                platformDir = `${baseDir}-arm64`;
+            } else if (arch === 'arm') {
+                platformDir = `${baseDir}-armhf`;
+            } else {
+                platformDir = `${baseDir}-x64`;
+            }
         } else {
             platformDir = platform;
         }

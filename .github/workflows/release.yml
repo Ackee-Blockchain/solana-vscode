@@ -1,0 +1,167 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-language-server:
+    strategy:
+      matrix:
+        include:
+          # Linux builds
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            rust_target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
+            rust_target: aarch64-unknown-linux-gnu
+          - os: ubuntu-latest
+            platform: linux
+            arch: armhf
+            rust_target: armv7-unknown-linux-gnueabihf
+          # Alpine Linux builds
+          - os: ubuntu-latest
+            platform: alpine
+            arch: x64
+            rust_target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            platform: alpine
+            arch: arm64
+            rust_target: aarch64-unknown-linux-musl
+          # Windows builds
+          - os: windows-latest
+            platform: win32
+            arch: x64
+            rust_target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            platform: win32
+            arch: arm64
+            rust_target: aarch64-pc-windows-msvc
+          # macOS builds
+          - os: macos-latest
+            platform: darwin
+            arch: x64
+            rust_target: x86_64-apple-darwin
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            rust_target: aarch64-apple-darwin
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      # Install cross-compilation tools for Linux ARM targets
+      - name: Install ARM cross-compilation tools
+        if: matrix.platform == 'linux' && (matrix.arch == 'arm64' || matrix.arch == 'armhf')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf
+
+      # Install musl tools for Alpine builds
+      - name: Install musl tools
+        if: matrix.platform == 'alpine'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      - name: Build Language Server
+        run: |
+          cd language-server
+          cargo build --target ${{ matrix.rust_target }} --release
+
+      - name: Prepare Binary Directory
+        shell: bash
+        run: |
+          mkdir -p extension/bin/${{ matrix.platform }}-${{ matrix.arch }}
+          if [ "${{ matrix.platform }}" = "win32" ]; then
+            cp language-server/target/${{ matrix.rust_target }}/release/language-server.exe extension/bin/${{ matrix.platform }}-${{ matrix.arch }}/
+          else
+            cp language-server/target/${{ matrix.rust_target }}/release/language-server extension/bin/${{ matrix.platform }}-${{ matrix.arch }}/
+          fi
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: language-server-${{ matrix.platform }}-${{ matrix.arch }}
+          path: extension/bin/${{ matrix.platform }}-${{ matrix.arch }}
+
+  build-vsix:
+    needs: build-language-server
+    strategy:
+      matrix:
+        target:
+          [
+            "win32-x64",
+            "win32-arm64",
+            "linux-x64",
+            "linux-arm64",
+            "linux-armhf",
+            "alpine-x64",
+            "alpine-arm64",
+            "darwin-x64",
+            "darwin-arm64",
+            "web",
+          ]
+        include:
+          - target: win32-x64
+            os: windows-latest
+          - target: win32-arm64
+            os: windows-latest
+          - target: linux-x64
+            os: ubuntu-latest
+          - target: linux-arm64
+            os: ubuntu-latest
+          - target: linux-armhf
+            os: ubuntu-latest
+          - target: alpine-x64
+            os: ubuntu-latest
+          - target: alpine-arm64
+            os: ubuntu-latest
+          - target: darwin-x64
+            os: macos-latest
+          - target: darwin-arm64
+            os: macos-latest
+          - target: web
+            os: ubuntu-latest
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Dependencies
+        run: |
+          cd extension
+          npm ci
+          npm install -g @vscode/vsce
+
+      # Skip binary download for web target
+      - name: Download All Language Server Binaries
+        if: matrix.target != 'web'
+        uses: actions/download-artifact@v4
+        with:
+          path: extension/bin
+          merge-multiple: true
+
+      - name: Build VSIX Package
+        run: |
+          cd extension
+          vsce package --target ${{ matrix.target }}
+
+      - name: Upload VSIX Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: solana-${{ matrix.target }}.vsix
+          path: extension/*.vsix

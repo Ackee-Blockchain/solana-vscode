@@ -25,16 +25,16 @@ jobs:
             rust_target: armv7-unknown-linux-gnueabihf
             linker: arm-linux-gnueabihf-gcc
           # Alpine Linux builds
-        #   - os: ubuntu-latest
-        #     platform: alpine
-        #     arch: x64
-        #     rust_target: x86_64-unknown-linux-musl
-        #     linker: musl-gcc
-        #   - os: ubuntu-latest
-        #     platform: alpine
-        #     arch: arm64
-        #     rust_target: aarch64-unknown-linux-musl
-        #     linker: aarch64-linux-gnu-gcc
+          - os: ubuntu-latest
+            platform: alpine
+            arch: x64
+            rust_target: x86_64-unknown-linux-musl
+            linker: musl-gcc
+          - os: ubuntu-latest
+            platform: alpine
+            arch: arm64
+            rust_target: aarch64-unknown-linux-musl
+            linker: aarch64-linux-musl-gcc
           # Windows builds
           - os: windows-latest
             platform: win32
@@ -76,6 +76,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y musl-tools
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-musl
+          fi
 
       # Configure Rust target linker
       - name: Configure target linker
@@ -86,14 +89,15 @@ jobs:
           echo "linker = \"${{ matrix.linker }}\"" >> ~/.cargo/config.toml
           echo "rustflags = [\"-C\", \"target-feature=+crt-static\"]" >> ~/.cargo/config.toml
 
+      - name: Set CC environment variable for Linux builds
+        if: matrix.platform == 'linux' || matrix.platform == 'alpine'
+        run: |
+          export CC=${{ matrix.linker }}
+          export RUSTFLAGS="-C target-feature=+crt-static"
+
       - name: Build Language Server
         run: |
           cd language-server
-          # Set CC environment variable for Linux builds
-          if [[ "${{ matrix.platform }}" == "linux" || "${{ matrix.platform }}" == "alpine" ]]; then
-            export CC=${{ matrix.linker }}
-            export RUSTFLAGS="-C target-feature=+crt-static"
-          fi
           cargo build --target ${{ matrix.rust_target }} --release
 
       - name: Prepare Binary Directory
@@ -122,8 +126,8 @@ jobs:
             "linux-x64",
             "linux-arm64",
             "linux-armhf",
-            # "alpine-x64",
-            # "alpine-arm64",
+            "alpine-x64",
+            "alpine-arm64",
             "darwin-x64",
             "darwin-arm64",
             # "web",
@@ -139,16 +143,14 @@ jobs:
             os: ubuntu-latest
           - target: linux-armhf
             os: ubuntu-latest
-          #   - target: alpine-x64
-          #     os: ubuntu-latest
-          #   - target: alpine-arm64
-          #     os: ubuntu-latest
+          - target: alpine-x64
+            os: ubuntu-latest
+          - target: alpine-arm64
+            os: ubuntu-latest
           - target: darwin-x64
             os: macos-latest
           - target: darwin-arm64
             os: macos-latest
-        #   - target: web
-        #     os: ubuntu-latest
 
     runs-on: ${{ matrix.os }}
     steps:

@@ -10,7 +10,6 @@ import {
   coverageErrorLog,
   executeCommand,
   getDirContents,
-  getFuzzerConstants,
   getTargetDirPath,
   getWorkspaceRoot,
   extractCorruptedFiles,
@@ -18,16 +17,16 @@ import {
   readProfrawList,
 } from "./utils";
 import * as path from "path";
-import { CoverageType, FuzzerType } from "./types";
+import { CoverageType } from "./types";
 
 const { COVERAGE_ID, COVERAGE_LABEL } = TestApiConstants;
 const { IGNORE_FILE_NAME_REGEX } = TridentConstants;
 const { DEFAULT_UPDATE_INTERVAL, NOTIFICATION_FILE } = CoverageConstants;
 
 /**
- * Manages code coverage visualization and updates in VS Code
- * Handles both static and dynamic coverage reporting for AFL and Honggfuzz fuzzers.
- * Coordinates between coverage decorations, report loading, and test controller components.
+ * Manages code coverage functionality including static and dynamic coverage visualization
+ * Coordinates between coverage decorations, report loading, and VS Code test integration
+ * Handles both file-based static coverage and real-time dynamic coverage from running fuzzer
  */
 class CoverageManager {
   /** Manages the visual representation of coverage in editors */
@@ -42,11 +41,13 @@ class CoverageManager {
   private windowChangeListener: vscode.Disposable | undefined;
   /** Type of coverage analysis being performed */
   private coverageType: CoverageType | undefined;
-  /** Type of fuzzer being used */
-  private fuzzerType: FuzzerType | undefined;
   /** File watcher for notification file */
   private notificationWatcher: vscode.FileSystemWatcher;
 
+  /**
+   * Creates a new CoverageManager instance and initializes all required components
+   * Sets up coverage decorations, report loader, test controller, and notification watcher
+   */
   constructor() {
     this.coverageDecorations = new CoverageDecorations();
     this.coverageReportLoader = new CoverageReportLoader();
@@ -120,7 +121,6 @@ class CoverageManager {
       return;
     }
 
-    await this.selectFuzzerType();
     await this.setupDynamicCoverage();
   }
 
@@ -145,29 +145,6 @@ class CoverageManager {
     }
 
     this.coverageType = coverageType as CoverageType;
-  }
-
-  /**
-   * Prompts user to select fuzzer type (AFL or Honggfuzz)
-   * @private
-   * @throws {Error} If no fuzzer type is selected
-   */
-  private async selectFuzzerType() {
-    const fuzzerType = await vscode.window.showQuickPick(
-      [FuzzerType.Afl, FuzzerType.Honggfuzz],
-      {
-        placeHolder: "Select fuzzer type",
-        title: "Fuzzer Type",
-      }
-    );
-
-    if (!fuzzerType) {
-      const errorMessage = "No fuzzer type selected.";
-      coverageErrorLog(errorMessage);
-      throw new Error(errorMessage);
-    }
-
-    this.fuzzerType = fuzzerType as FuzzerType;
   }
 
   /**
@@ -220,7 +197,7 @@ class CoverageManager {
   private async waitForProfrawFiles() {
     return new Promise<void>(async (resolve, reject) => {
       try {
-        const targetPath = await getTargetDirPath(this.fuzzerType);
+        const targetPath = await getTargetDirPath();
         const watcher = vscode.workspace.createFileSystemWatcher(
           new vscode.RelativePattern(targetPath, "*.profraw")
         );
@@ -288,12 +265,9 @@ class CoverageManager {
     await this.generateReport();
 
     // Load and display the coverage report
-    const liveReportFilePath = getFuzzerConstants(
-      this.fuzzerType
-    ).LIVE_REPORT_FILE;
-    const targetPath = await getTargetDirPath(this.fuzzerType);
+    const targetPath = await getTargetDirPath();
     const reportUri = vscode.Uri.file(
-      path.join(targetPath, liveReportFilePath)
+      path.join(targetPath, TridentConstants.LIVE_REPORT_FILE)
     );
     await this.coverageReportLoader.loadCoverageReport(reportUri);
 
@@ -317,7 +291,7 @@ class CoverageManager {
    */
   private async checkProfrawFiles(): Promise<boolean> {
     try {
-      const targetPath = await getTargetDirPath(this.fuzzerType);
+      const targetPath = await getTargetDirPath();
       const profrawFiles = await getDirContents(targetPath);
       const hasProfrawFiles = profrawFiles.some(
         ([name, type]) =>
@@ -342,7 +316,6 @@ class CoverageManager {
     }
 
     this.coverageType = undefined;
-    this.fuzzerType = undefined;
 
     this.coverageDecorations.clearCoverage(this.coverageTestController);
   }
@@ -373,7 +346,7 @@ class CoverageManager {
    * @throws {Error} If file operations fail
    */
   private async handleProfdata(): Promise<void> {
-    const targetPath = await getTargetDirPath(this.fuzzerType);
+    const targetPath = await getTargetDirPath();
     const workspaceName = path.basename(getWorkspaceRoot());
     const profDataPath = path.join(targetPath, `${workspaceName}.profdata`);
     const oldProfrawPath = path.join(
@@ -413,7 +386,7 @@ class CoverageManager {
     // Remove used profraw files because all the data
     // is combined and stored in a .profdata file
     const workspaceRoot = getWorkspaceRoot();
-    const targetDirPath = await getTargetDirPath(this.fuzzerType);
+    const targetDirPath = await getTargetDirPath();
     const workspaceName = path.basename(workspaceRoot);
     const profrawListPath = path.join(
       targetDirPath,
@@ -431,26 +404,22 @@ class CoverageManager {
    */
   private async getGenerateReportCommand(): Promise<string> {
     const workspaceRoot = getWorkspaceRoot();
-    const fuzzerConstants = getFuzzerConstants(this.fuzzerType);
-    const targetPath = await getTargetDirPath(this.fuzzerType);
-    const releaseFlag =
-      this.fuzzerType === FuzzerType.Honggfuzz ? "--release" : "";
-    const profrawFilePath = path.join(targetPath, fuzzerConstants.PROFRAW_FILE);
+    const targetPath = await getTargetDirPath();
     const liveReportFilePath = path.join(
       targetPath,
-      fuzzerConstants.LIVE_REPORT_FILE
+      TridentConstants.LIVE_REPORT_FILE
     );
 
     return (
-      `cd ${workspaceRoot} && LLVM_PROFILE_FILE="${profrawFilePath}"` +
+      `cd ${workspaceRoot} &&` +
       " " +
       `CARGO_LLVM_COV_TARGET_DIR="${targetPath}"` +
       " " +
-      `cargo llvm-cov report --json --skip-functions ${releaseFlag}` +
+      `cargo llvm-cov report --json --skip-functions` +
       " " +
       `--output-path ${liveReportFilePath}` +
       " " +
-      `--ignore-filename-regex ${IGNORE_FILE_NAME_REGEX}`
+      `--ignore-filename-regex "${IGNORE_FILE_NAME_REGEX}"`
     );
   }
 
@@ -461,7 +430,7 @@ class CoverageManager {
   private async removeLeftOverProfrawFiles(): Promise<void> {
     const workspaceRoot = getWorkspaceRoot();
     const workspaceName = path.basename(workspaceRoot);
-    const targetDirPath = await getTargetDirPath(this.fuzzerType);
+    const targetDirPath = await getTargetDirPath();
     const profrawListPath = path.join(
       targetDirPath,
       `${workspaceName}-profraw-list`
@@ -489,31 +458,24 @@ class CoverageManager {
   }
 
   /**
-   * Handles the creation of the notification file
-   * Parses the file contents to determine fuzzer type and sets up dynamic coverage
+   * Handles notification file creation events to automatically start dynamic coverage
+   * Sets coverage type to dynamic and initiates coverage monitoring when a notification file is detected
    * @private
-   * @throws {Error} If:
-   *  - The notification file cannot be read
-   *  - The file contents cannot be parsed as valid JSON
-   *  - Dynamic coverage setup fails
    */
   private async handleNotificationFile() {
-    const notificationPath = NOTIFICATION_FILE.split("/");
-    const completePath = path.join(getWorkspaceRoot(), ...notificationPath);
+    // We dont need to read the fuzzer type with MGF
+    // Could be useful in the future to pass metadata
+
+    // const notificationPath = NOTIFICATION_FILE.split("/");
+    // const completePath = path.join(getWorkspaceRoot(), ...notificationPath);
 
     try {
-      const jsonContent = await vscode.workspace.fs.readFile(
-        vscode.Uri.file(completePath)
-      );
-      const notification = JSON.parse(jsonContent.toString());
+      // const jsonContent = await vscode.workspace.fs.readFile(
+      //   vscode.Uri.file(completePath)
+      // );
+      // const _ = JSON.parse(jsonContent.toString());
 
       this.coverageType = CoverageType.Dynamic;
-      if (notification.fuzzer === "AFL") {
-        this.fuzzerType = FuzzerType.Afl;
-      } else {
-        this.fuzzerType = FuzzerType.Honggfuzz;
-      }
-
       this.setupWindowChangeListener();
       await this.setupDynamicCoverage(true);
       await this.startDynamicCoverage();

@@ -1,12 +1,11 @@
 import * as vscode from "vscode";
-import { CoverageReport, CoverageSegment, FuzzerType } from "./types";
+import { CoverageReport, CoverageSegment} from "./types";
 import { coverageErrorLog, getDirContents, getTargetDirPath } from "./utils";
 import * as path from "path";
 
 /**
- * Handles loading and parsing of coverage report files
- * Manages the discovery, selection, and parsing of coverage report files
- * from different fuzzer outputs (AFL and Honggfuzz).
+ * Manages loading, parsing, and selection of coverage report files
+ * Provides functionality to find coverage files, handle user selection, and parse coverage data
  */
 class CoverageReportLoader {
   /**
@@ -15,6 +14,9 @@ class CoverageReportLoader {
    */
   public coverageReport: CoverageReport | undefined;
 
+  /**
+   * Creates a new CoverageReportLoader instance
+   */
   constructor() {
     this.coverageReport = undefined;
   }
@@ -27,9 +29,8 @@ class CoverageReportLoader {
   }
 
   /**
-   * Finds all coverage report files in the fuzzer target directories
-   * Searches in both AFL and Honggfuzz target directories for coverage files
-   * @returns {Promise<vscode.Uri[]>} Array of URIs to coverage report files, or empty array if no workspace folders found
+   * Searches for coverage report files in the target directory
+   * @returns {Promise<vscode.Uri[]>} Array of URIs to found coverage report files, or empty array if none found
    */
   public async findCoverageFiles(): Promise<vscode.Uri[]> {
     let coverageFiles: vscode.Uri[] = [];
@@ -37,30 +38,16 @@ class CoverageReportLoader {
       return coverageFiles;
     }
 
-    let hfuzzTargetPath = "";
-    let aflTargetPath = "";
-
     try {
-      hfuzzTargetPath = await getTargetDirPath(FuzzerType.Honggfuzz);
+      const targetPath = await getTargetDirPath();
+      const parentPath = path.dirname(targetPath);
+      const getTargetContents = await getDirContents(parentPath);
+      coverageFiles.push(
+        ...this.getFilteredCoverageFiles(parentPath, getTargetContents)
+      );
     } catch (error) {
-      console.error("Failed to get Honggfuzz target path:", error);
+      console.error("Failed to find coverage files:", error);
     }
-
-    try {
-      aflTargetPath = await getTargetDirPath(FuzzerType.Afl);
-    } catch (error) {
-      console.error("Failed to get AFL target path:", error);
-    }
-
-    const getHfuzzTargetContents = await getDirContents(hfuzzTargetPath);
-    const getAflTargetContents = await getDirContents(aflTargetPath);
-
-    coverageFiles.push(
-      ...this.getFilteredCoverageFiles(hfuzzTargetPath, getHfuzzTargetContents)
-    );
-    coverageFiles.push(
-      ...this.getFilteredCoverageFiles(aflTargetPath, getAflTargetContents)
-    );
 
     return coverageFiles;
   }

@@ -122,15 +122,6 @@ const enum CoverageType {
   Dynamic = "Attach to active fuzzing session",
 }
 
-/**
- * Type of fuzzer being used for testing
- * @enum {string}
- */
-const enum FuzzerType {
-  Afl = "AFL",
-  Honggfuzz = "Honggfuzz",
-}
-
 export {
   CoverageReport,
   CoverageSegment,
@@ -138,5 +129,4 @@ export {
   CoverageFileData,
   CoverageData,
   CoverageType,
-  FuzzerType,
 };

@@ -4,16 +4,13 @@ import * as path from "path";
 import {
   coverageErrorLog,
   getWorkspaceRoot,
-  getFuzzerConstants,
   getTargetDirPath,
-  getOsDir,
   getDirContents,
   executeCommand,
   extractCorruptedFiles,
   removeFiles,
   readProfrawList,
 } from "../utils";
-import { FuzzerType } from "../types";
 import { TridentConstants } from "../constants";
 
 suite("Utils Test Suite", () => {
@@ -124,34 +121,14 @@ suite("Utils Test Suite", () => {
     });
   });
 
-  suite("getFuzzerConstants", () => {
-    test("should return AFL constants for AFL fuzzer type", () => {
-      const constants = getFuzzerConstants(FuzzerType.Afl);
-      assert.deepStrictEqual(constants, TridentConstants.afl);
-    });
-
-    test("should return Honggfuzz constants for Honggfuzz fuzzer type", () => {
-      const constants = getFuzzerConstants(FuzzerType.Honggfuzz);
-      assert.deepStrictEqual(constants, TridentConstants.hfuzz);
-    });
-
-    test("should throw error when no fuzzer type is provided", () => {
-      assert.throws(() => getFuzzerConstants(undefined), Error);
-    });
-  });
-
   suite("getTargetDirPath", () => {
-    test("should return correct path for AFL fuzzer", async () => {
+    test("should return correct path", async () => {
       const expectedPath = path.join(
         mockWorkspaceFolder.uri.fsPath,
-        ...TridentConstants.afl.TARGET_PATH.split("/")
+        ...TridentConstants.TARGET_PATH.split("/")
       );
-      const result = await getTargetDirPath(FuzzerType.Afl);
+      const result = await getTargetDirPath();
       assert.strictEqual(result, expectedPath);
-    });
-
-    test("should throw error when no fuzzer type is provided", async () => {
-      await assert.rejects(() => getTargetDirPath(undefined), Error);
     });
   });
 
@@ -185,32 +162,6 @@ suite("Utils Test Suite", () => {
       if (originalFs) {
         Object.defineProperty(vscode.workspace, "fs", originalFs);
       }
-    });
-  });
-
-  suite("getOsDir", () => {
-    test("should find OS directory excluding debug and release", () => {
-      const contents: [string, vscode.FileType][] = [
-        ["debug", vscode.FileType.Directory],
-        ["release", vscode.FileType.Directory],
-        ["custom-target-triple", vscode.FileType.Directory],
-      ];
-
-      const result = getOsDir(contents);
-      assert.notStrictEqual(result, "debug");
-      assert.notStrictEqual(result, "release");
-      assert.strictEqual(result, "custom-target-triple");
-    });
-
-    test("should throw error when OS directory is not found", () => {
-      const contents: [string, vscode.FileType][] = [
-        ["debug", vscode.FileType.Directory],
-        ["release", vscode.FileType.Directory],
-      ];
-      assert.throws(
-        () => getOsDir(contents),
-        /Could not find os directory in honggfuzz target path/
-      );
     });
   });
 

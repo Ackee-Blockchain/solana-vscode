@@ -15,6 +15,9 @@ class CoverageDecorations {
    */
   public lineCoverageDecorations: vscode.TextEditorDecorationType[];
 
+  /**
+   * Creates a new CoverageDecorations instance and initializes line coverage decorations
+   */
   constructor() {
     this.lineCoverageDecorations = [];
     this.initLineCoverageDecorations();

@@ -1,7 +1,6 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import { CoverageReportLoader } from "../coverageReportLoader";
-import { FuzzerType } from "../types";
 
 // Test-only subclass to access private methods
 class TestCoverageReportLoader extends CoverageReportLoader {
@@ -87,28 +86,22 @@ suite("Coverage Report Loader Test Suite", () => {
     });
 
     test("should find coverage files in fuzzer directories", async () => {
-      const hfuzzPath = "/test/hfuzz/target";
-      const aflPath = "/test/afl/target";
+      const targetPath = "/test/target";
 
-      const hfuzzContents: [string, vscode.FileType][] = [
+      const contents: [string, vscode.FileType][] = [
         ["coverage.json", vscode.FileType.File],
+        ["cov_report.json", vscode.FileType.File],
         ["other.txt", vscode.FileType.File],
       ];
-
-      const aflContents: [string, vscode.FileType][] = [
-        ["cov_report.json", vscode.FileType.File],
-        ["temp.json", vscode.FileType.File],
-      ];
-
       const originalGetTargetDirPath = require("../utils").getTargetDirPath;
       const originalGetDirContents = require("../utils").getDirContents;
 
-      require("../utils").getTargetDirPath = async (fuzzerType: FuzzerType) => {
-        return fuzzerType === FuzzerType.Honggfuzz ? hfuzzPath : aflPath;
+      require("../utils").getTargetDirPath = async () => {
+        return targetPath;
       };
 
-      require("../utils").getDirContents = async (path: string) => {
-        return path === hfuzzPath ? hfuzzContents : aflContents;
+      require("../utils").getDirContents = async () => {
+        return contents;
       };
 
       try {
@@ -116,11 +109,7 @@ suite("Coverage Report Loader Test Suite", () => {
         assert.strictEqual(files.length, 2, "Should find two coverage files");
         assert.ok(
           files.some((f) => f.fsPath.endsWith("coverage.json")),
-          "Should include Honggfuzz coverage file"
-        );
-        assert.ok(
-          files.some((f) => f.fsPath.endsWith("cov_report.json")),
-          "Should include AFL coverage file"
+          "Should include coverage file"
         );
       } finally {
         require("../utils").getTargetDirPath = originalGetTargetDirPath;

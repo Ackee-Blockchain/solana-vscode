@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { FuzzerType } from "./types";
 import { TridentConstants } from "./constants";
 import * as path from "path";
 
@@ -28,55 +27,16 @@ function getWorkspaceRoot(): string {
 }
 
 /**
- * Retrieves the constants associated with a specific fuzzer type
- * @param {FuzzerType} type - The type of fuzzer
- * @returns {Object} Constants specific to the fuzzer type
- * @throws {Error} If no fuzzer type is provided
- */
-function getFuzzerConstants(type?: FuzzerType) {
-  if (!type) {
-    throw new Error("Fuzzer type is required.");
-  }
-
-  const constantsMap = {
-    [FuzzerType.Afl]: TridentConstants.afl,
-    [FuzzerType.Honggfuzz]: TridentConstants.hfuzz,
-  };
-
-  return constantsMap[type];
-}
-
-/**
- * Gets the target directory path for a specific fuzzer type
- * @param {FuzzerType} type - The type of fuzzer
+ * Gets the target directory path by combining workspace root with the target path from constants
  * @returns {Promise<string>} The absolute path to the target directory
- * @throws {Error} If no fuzzer type is provided or if there's an error getting the directory
+ * @throws {Error} If there's an error getting the workspace root or constructing the path
  */
-async function getTargetDirPath(type?: FuzzerType): Promise<string> {
-  if (!type) {
-    throw new Error("Fuzzer type is required.");
-  }
-
+async function getTargetDirPath(): Promise<string> {
   try {
     const workspaceRoot = getWorkspaceRoot();
-    const fuzzerConstants = getFuzzerConstants(type);
-    const targetDirPathParts = fuzzerConstants.TARGET_PATH.split("/");
+    const targetDirPathParts = TridentConstants.TARGET_PATH.split("/");
 
-    switch (type) {
-      case FuzzerType.Afl: {
-        return path.join(workspaceRoot, ...targetDirPathParts);
-      }
-      case FuzzerType.Honggfuzz: {
-        let targetDirPath = path.join(workspaceRoot, ...targetDirPathParts);
-        const targetContents = await getDirContents(targetDirPath);
-        const osDir = getOsDir(targetContents);
-
-        if (osDir) {
-          targetDirPath = path.join(targetDirPath, osDir);
-        }
-        return targetDirPath;
-      }
-    }
+    return path.join(workspaceRoot, ...targetDirPathParts);
   } catch (error) {
     console.error(`Error getting target directory: ${error}`);
     throw error;
@@ -100,29 +60,6 @@ async function getDirContents(
     console.error(`Error getting directory contents: ${error}`);
     return [];
   }
-}
-
-/**
- * Gets the OS-specific directory from the target directory contents
- * @param {[string, vscode.FileType][]} targetDirContents - Array of directory entries
- * @returns {string} The name of the OS-specific directory
- * @throws {Error} If the OS directory cannot be found
- */
-function getOsDir(targetDirContents: [string, vscode.FileType][]) {
-  // There should only be 3 directories in Honggfuzz target.
-  // We are looking for the target triple directory.
-  const osDir = targetDirContents.find(
-    ([name, type]) =>
-      type === vscode.FileType.Directory &&
-      name !== "debug" &&
-      name !== "release"
-  );
-
-  if (!osDir) {
-    throw new Error("Could not find os directory in honggfuzz target path.");
-  }
-
-  return osDir[0];
 }
 
 /**
@@ -210,9 +147,7 @@ async function readProfrawList(profrawListPath: string): Promise<string[]> {
 export {
   coverageErrorLog,
   getWorkspaceRoot,
-  getFuzzerConstants,
   getTargetDirPath,
-  getOsDir,
   getDirContents,
   executeCommand,
   extractCorruptedFiles,

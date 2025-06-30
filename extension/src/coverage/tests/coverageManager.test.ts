@@ -1,12 +1,11 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import { CoverageManager } from "../coverageManager";
-import { CoverageType, FuzzerType } from "../types";
+import { CoverageType } from "../types";
 import {
   TridentConstants,
   CoverageConstants,
 } from "../constants";
-import * as path from "path";
 const { DEFAULT_UPDATE_INTERVAL } = CoverageConstants;
 
 // Test-only subclass to access private methods
@@ -43,16 +42,8 @@ class TestCoverageManager extends CoverageManager {
     return this["coverageType"];
   }
 
-  public getFuzzerType(): FuzzerType | undefined {
-    return this["fuzzerType"];
-  }
-
   public setCoverageType(type: CoverageType): void {
     this["coverageType"] = type;
-  }
-
-  public setFuzzerType(type: FuzzerType): void {
-    this["fuzzerType"] = type;
   }
 }
 
@@ -191,25 +182,6 @@ suite("Coverage Manager Test Suite", () => {
         originalStartDynamicCoverage;
       }
     });
-    test("test static coverage", async function () {
-      mockShowQuickPickStaticCoverage();
-      mockWorkspaceFoldersWithTestProgram();
-
-      const coverageManager = new CoverageManager();
-      await coverageManager.showCoverage();
-
-      // @ts-ignore - accessing private field for testing
-      const decorations = coverageManager.coverageDecorations.lineCoverageDecorations;
-      assert.ok(decorations.length > 0, "Should have created coverage decorations");
-
-      // @ts-ignore - accessing private field for testing
-      const report = coverageManager.coverageReportLoader.coverageReport;
-      assert.ok(report, "Should have loaded coverage report");
-      
-      const segments = report.data[0].files[0].segments;
-      const hasExecutionCounts = segments.some(segment => segment.execution_count > 0);
-      assert.ok(hasExecutionCounts, "Should have some segments with execution counts");
-    });
   });
   
   suite("Window Change Listener", () => {
@@ -326,7 +298,6 @@ suite("Coverage Manager Test Suite", () => {
       };
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         await coverageManager.testGenerateReport();
 
         assert.ok(workspaceRootCalled, "Should get workspace root");
@@ -367,7 +338,6 @@ suite("Coverage Manager Test Suite", () => {
       };
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         await coverageManager.testGenerateReport();
         assert.ok(filesRemoved, "Should remove corrupted files");
         assert.ok(retryExecuted, "Should retry report generation");
@@ -402,7 +372,6 @@ suite("Coverage Manager Test Suite", () => {
       };
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         const result = await coverageManager.testCheckProfrawFiles();
         assert.ok(targetDirPathCalled, "Should get target directory path");
         assert.ok(getDirContentsCalled, "Should get directory contents");
@@ -421,7 +390,6 @@ suite("Coverage Manager Test Suite", () => {
       };
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         const result = await coverageManager.testCheckProfrawFiles();
         assert.strictEqual(
           result,
@@ -439,7 +407,6 @@ suite("Coverage Manager Test Suite", () => {
       };
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         await assert.rejects(
           () => coverageManager.testCheckProfrawFiles(),
           Error,
@@ -467,7 +434,6 @@ suite("Coverage Manager Test Suite", () => {
       };
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         await coverageManager.testRemoveLeftOverProfrawFiles();
 
         assert.deepStrictEqual(
@@ -495,7 +461,6 @@ suite("Coverage Manager Test Suite", () => {
       };
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         await assert.rejects(
           () => coverageManager.testRemoveLeftOverProfrawFiles(),
           Error,
@@ -546,109 +511,6 @@ suite("Coverage Manager Test Suite", () => {
             originalShowQuickPick
           );
         }
-      }
-    });
-
-    test("should prompt for fuzzer type selection for dynamic coverage", async () => {
-      let quickPickCallCount = 0;
-      const originalShowQuickPick = Object.getOwnPropertyDescriptor(
-        vscode.window,
-        "showQuickPick"
-      );
-      const originalUtils = {
-        getWorkspaceRoot: require("../utils").getWorkspaceRoot,
-        getTargetDirPath: require("../utils").getTargetDirPath,
-        getDirContents: require("../utils").getDirContents,
-      };
-      const originalFs = Object.getOwnPropertyDescriptor(
-        vscode.workspace,
-        "fs"
-      );
-      const mockFs = {};
-      Object.defineProperty(vscode.workspace, "fs", {
-        value: mockFs,
-        configurable: true,
-      });
-      const originalStat = Object.getOwnPropertyDescriptor(
-        vscode.workspace.fs,
-        "stat"
-      );
-      const originalCreateFileSystemWatcher = Object.getOwnPropertyDescriptor(
-        vscode.workspace,
-        "createFileSystemWatcher"
-      );
-
-      Object.defineProperty(vscode.window, "showQuickPick", {
-        value: (items: readonly string[] | Thenable<readonly string[]>): Thenable<string | undefined> => {
-          quickPickCallCount++;
-          if (quickPickCallCount === 1) {
-            return Promise.resolve(CoverageType.Dynamic);
-          }
-          assert.deepStrictEqual(
-            [...(items as readonly string[])],
-            [FuzzerType.Afl, FuzzerType.Honggfuzz],
-            "Should show correct fuzzer type options"
-          );
-          return Promise.resolve(FuzzerType.Afl);
-        },
-        configurable: true,
-      });
-
-      require("../utils").getWorkspaceRoot = () => "/test/workspace";
-      require("../utils").getTargetDirPath = async () => "/test/target/dir";
-      require("../utils").getDirContents = async () => [
-        ["test.profraw", vscode.FileType.File],
-      ];
-
-      Object.defineProperty(vscode.workspace.fs, "stat", {
-        value: async () => ({} as vscode.FileStat),
-        configurable: true,
-      });
-
-      Object.defineProperty(vscode.workspace, "createFileSystemWatcher", {
-        value: () => ({
-          dispose: () => {},
-          onDidChange: () => ({ dispose: () => {} }),
-          onDidCreate: () => ({ dispose: () => {} }),
-          onDidDelete: () => ({ dispose: () => {} }),
-        }),
-        configurable: true,
-      });
-
-      try {
-        await coverageManager.testSetupCoverage();
-        assert.strictEqual(
-          quickPickCallCount,
-          2,
-          "Should show quick pick twice"
-        );
-        assert.strictEqual(
-          coverageManager.getFuzzerType(),
-          FuzzerType.Afl,
-          "Should set selected fuzzer type"
-        );
-      } finally {
-        if (originalShowQuickPick) {
-          Object.defineProperty(
-            vscode.window,
-            "showQuickPick",
-            originalShowQuickPick
-          );
-        }
-        if (originalStat) {
-          Object.defineProperty(vscode.workspace.fs, "stat", originalStat);
-        }
-        if (originalFs) {
-          Object.defineProperty(vscode.workspace, "fs", originalFs);
-        }
-        if (originalCreateFileSystemWatcher) {
-          Object.defineProperty(
-            vscode.workspace,
-            "createFileSystemWatcher",
-            originalCreateFileSystemWatcher
-          );
-        }
-        Object.assign(require("../utils"), originalUtils);
       }
     });
 
@@ -853,8 +715,6 @@ suite("Coverage Manager Test Suite", () => {
         );
       };
 
-      coverageManager.setFuzzerType(FuzzerType.Afl);
-
       try {
         await coverageManager.testStartDynamicCoverage();
         assert.ok(
@@ -884,22 +744,16 @@ suite("Coverage Manager Test Suite", () => {
   });
 
   suite("getGenerateReportCommand", () => {
-    test("should generate correct command for AFL fuzzer", async () => {
+    test("should generate correct command", async () => {
       const originalUtils = {
         getWorkspaceRoot: require("../utils").getWorkspaceRoot,
         getTargetDirPath: require("../utils").getTargetDirPath,
-        getFuzzerConstants: require("../utils").getFuzzerConstants,
       };
 
       require("../utils").getWorkspaceRoot = () => "/test/workspace";
-      require("../utils").getTargetDirPath = async () => "/test/target/dir";
-      require("../utils").getFuzzerConstants = () => ({
-        PROFRAW_FILE: "test.profraw",
-        LIVE_REPORT_FILE: "coverage.json",
-      });
+      require("../utils").getTargetDirPath = async () => "/test/target/dir";  
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         const command = await coverageManager.testGetGenerateReportCommand();
 
         assert.ok(
@@ -913,61 +767,6 @@ suite("Coverage Manager Test Suite", () => {
         assert.ok(
           command.includes(TridentConstants.IGNORE_FILE_NAME_REGEX),
           "Should include ignore regex"
-        );
-      } finally {
-        Object.assign(require("../utils"), originalUtils);
-      }
-    });
-
-    test("should generate correct command for Honggfuzz fuzzer", async () => {
-      const originalUtils = {
-        getWorkspaceRoot: require("../utils").getWorkspaceRoot,
-        getTargetDirPath: require("../utils").getTargetDirPath,
-        getFuzzerConstants: require("../utils").getFuzzerConstants,
-      };
-
-      require("../utils").getWorkspaceRoot = () => "/test/workspace";
-      require("../utils").getTargetDirPath = async () => "/test/target/dir";
-      require("../utils").getFuzzerConstants = () => ({
-        PROFRAW_FILE: "test.profraw",
-        LIVE_REPORT_FILE: "coverage.json",
-      });
-
-      try {
-        coverageManager.setFuzzerType(FuzzerType.Honggfuzz);
-        const command = await coverageManager.testGetGenerateReportCommand();
-
-        assert.ok(
-          command.includes("--release"),
-          "Should include release flag for Honggfuzz"
-        );
-      } finally {
-        Object.assign(require("../utils"), originalUtils);
-      }
-    });
-
-    test("should throw error when fuzzer type not set", async () => {
-      const originalUtils = {
-        getFuzzerConstants: require("../utils").getFuzzerConstants,
-      };
-
-      require("../utils").getFuzzerConstants = (
-        fuzzerType: FuzzerType | undefined
-      ) => {
-        if (!fuzzerType) {
-          throw new Error("Fuzzer type not set");
-        }
-        return {
-          PROFRAW_FILE: "test.profraw",
-          LIVE_REPORT_FILE: "coverage.json",
-        };
-      };
-
-      try {
-        await assert.rejects(
-          () => coverageManager.testGetGenerateReportCommand(),
-          Error,
-          "Should throw error when fuzzer type not set"
         );
       } finally {
         Object.assign(require("../utils"), originalUtils);
@@ -995,7 +794,6 @@ suite("Coverage Manager Test Suite", () => {
       };
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         await coverageManager.testHandleProfdata();
       } finally {
         Object.assign(require("../utils"), originalUtils);
@@ -1034,7 +832,6 @@ suite("Coverage Manager Test Suite", () => {
       });
 
       try {
-        coverageManager.setFuzzerType(FuzzerType.Afl);
         await coverageManager.testHandleProfdata();
         assert.ok(
           consoleLogCalled,
@@ -1047,50 +844,5 @@ suite("Coverage Manager Test Suite", () => {
         }
       }
     });
-
-    test("should throw error when fuzzer type not set", async () => {
-      const originalUtils = {
-        getTargetDirPath: require("../utils").getTargetDirPath,
-      };
-
-      require("../utils").getTargetDirPath = async (
-        fuzzerType: FuzzerType | undefined
-      ) => {
-        if (!fuzzerType) {
-          throw new Error("Fuzzer type not set");
-        }
-        return "/test/target/dir";
-      };
-
-      try {
-        await assert.rejects(
-          () => coverageManager.testHandleProfdata(),
-          Error,
-          "Should throw error when fuzzer type not set"
-        );
-      } finally {
-        Object.assign(require("../utils"), originalUtils);
-      }
-    });
   });
 });
-
-function mockShowQuickPickStaticCoverage() {
-  Object.defineProperty(vscode.window, "showQuickPick", {
-    value: () => Promise.resolve(CoverageType.Static as string),
-    configurable: true,
-  });
-}
-
-function mockWorkspaceFoldersWithTestProgram() {
-  const testProgramPath = path.join(__dirname, "../../../src/coverage/tests/test-program");
-  const mockWorkspaceFolder = {
-    uri: vscode.Uri.file(testProgramPath),
-    name: "test-program",
-    index: 0,
-  };
-  Object.defineProperty(vscode.workspace, "workspaceFolders", {
-    get: () => [mockWorkspaceFolder],
-    configurable: true,
-  });
-}

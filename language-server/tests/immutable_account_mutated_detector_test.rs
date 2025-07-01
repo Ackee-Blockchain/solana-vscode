@@ -294,3 +294,43 @@ fn test_invalid_syntax_handling() {
     let diagnostics = detector.analyze(invalid_code);
     assert_eq!(diagnostics.len(), 0);
 }
+
+#[test]
+fn test_detects_mutation_through_reference() {
+    let mut detector = ImmutableAccountMutatedDetector::default();
+
+    let code_with_ref_mutation = r#"
+        use anchor_lang::prelude::*;
+
+        #[program]
+        pub mod test_program {
+            use super::*;
+
+            pub fn mutating_accounts_check(ctx: Context<MutatingAccountsCheck>) -> Result<()> {
+                let counter = &mut ctx.accounts.mutating_account;
+                counter.value += 1;
+                Ok(())
+            }
+        }
+
+        #[derive(Accounts)]
+        pub struct MutatingAccountsCheck<'info> {
+            pub mutating_account: Account<'info, Counter>,
+            #[account(mut)]
+            pub payer: Signer<'info>,
+        }
+
+        #[account]
+        pub struct Counter {
+            pub value: u64,
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code_with_ref_mutation);
+    assert_eq!(diagnostics.len(), 1);
+
+    let diagnostic = &diagnostics[0];
+    assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
+    assert!(diagnostic.message.contains("mutating_account"));
+    assert!(diagnostic.message.contains("#[account(mut)]"));
+}

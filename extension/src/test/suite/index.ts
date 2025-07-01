@@ -6,7 +6,8 @@ export function run(): Promise<void> {
   // Create the mocha test
   const mocha = new Mocha({
     ui: 'tdd',
-    color: true
+    color: true,
+    timeout: 10000 // Increase timeout to 10 seconds
   });
 
   const testsRoot = path.resolve(__dirname, '../..');

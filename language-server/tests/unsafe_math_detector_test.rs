@@ -3,7 +3,7 @@ use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]
 fn test_detector_metadata() {
-    let detector = UnsafeMathDetector::new();
+    let detector = UnsafeMathDetector::default();
 
     assert_eq!(detector.id(), "UNSAFE_ARITHMETIC");
     assert_eq!(detector.name(), "Unsafe Math Operations");
@@ -16,7 +16,7 @@ fn test_detector_metadata() {
 
 #[test]
 fn test_detects_addition_in_instruction() {
-    let mut detector = UnsafeMathDetector::new();
+    let mut detector = UnsafeMathDetector::default();
 
     let code_with_addition = r#"
         use anchor_lang::prelude::*;
@@ -60,7 +60,7 @@ fn test_detects_addition_in_instruction() {
 
 #[test]
 fn test_detects_multiple_arithmetic_operations() {
-    let mut detector = UnsafeMathDetector::new();
+    let mut detector = UnsafeMathDetector::default();
 
     let code_with_multiple_operations = r#"
         use anchor_lang::prelude::*;
@@ -114,7 +114,7 @@ fn test_detects_multiple_arithmetic_operations() {
 
 #[test]
 fn test_nested_addition_in_anchor_context() {
-    let mut detector = UnsafeMathDetector::new();
+    let mut detector = UnsafeMathDetector::default();
 
     let code_with_nested_additions = r#"
         use anchor_lang::prelude::*;
@@ -149,7 +149,7 @@ fn test_nested_addition_in_anchor_context() {
 
 #[test]
 fn test_no_detection_without_addition() {
-    let mut detector = UnsafeMathDetector::new();
+    let mut detector = UnsafeMathDetector::default();
 
     let code_without_addition = r#"
         use anchor_lang::prelude::*;
@@ -190,7 +190,7 @@ fn test_no_detection_without_addition() {
 
 #[test]
 fn test_invalid_syntax_handling() {
-    let mut detector = UnsafeMathDetector::new();
+    let mut detector = UnsafeMathDetector::default();
 
     let invalid_code = r#"
         use anchor_lang::prelude::*;
@@ -212,7 +212,7 @@ fn test_invalid_syntax_handling() {
 
 #[test]
 fn test_addition_in_different_anchor_contexts() {
-    let mut detector = UnsafeMathDetector::new();
+    let mut detector = UnsafeMathDetector::default();
 
     let code_with_various_contexts = r#"
         use anchor_lang::prelude::*;
@@ -258,7 +258,7 @@ fn test_addition_in_different_anchor_contexts() {
 
 #[test]
 fn test_token_transfer_with_unsafe_math() {
-    let mut detector = UnsafeMathDetector::new();
+    let mut detector = UnsafeMathDetector::default();
 
     let token_program_code = r#"
         use anchor_lang::prelude::*;
@@ -315,8 +315,8 @@ fn test_token_transfer_with_unsafe_math() {
 
 #[test]
 fn test_detector_state_isolation() {
-    let mut detector1 = UnsafeMathDetector::new();
-    let mut detector2 = UnsafeMathDetector::new();
+    let mut detector1 = UnsafeMathDetector::default();
+    let mut detector2 = UnsafeMathDetector::default();
 
     let code = r#"
         use anchor_lang::prelude::*;

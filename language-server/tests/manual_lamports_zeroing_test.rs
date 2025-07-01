@@ -5,7 +5,7 @@ use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]
 fn test_detector_metadata() {
-    let detector = ManualLamportsZeroingDetector::new();
+    let detector = ManualLamportsZeroingDetector::default();
 
     assert_eq!(detector.id(), "MANUAL_LAMPORTS_ZEROING");
     assert_eq!(detector.name(), "Manual Lamports Zeroing");
@@ -18,7 +18,7 @@ fn test_detector_metadata() {
 
 #[test]
 fn test_detects_direct_lamports_assignment() {
-    let mut detector = ManualLamportsZeroingDetector::new();
+    let mut detector = ManualLamportsZeroingDetector::default();
 
     let code_with_direct_assignment = r#"
         use anchor_lang::prelude::*;
@@ -56,7 +56,7 @@ fn test_detects_direct_lamports_assignment() {
 
 #[test]
 fn test_detects_set_lamports_method() {
-    let mut detector = ManualLamportsZeroingDetector::new();
+    let mut detector = ManualLamportsZeroingDetector::default();
 
     let code_with_set_lamports = r#"
         use solana_program::prelude::*;
@@ -86,7 +86,7 @@ fn test_detects_set_lamports_method() {
 
 #[test]
 fn test_no_detection_for_safe_patterns() {
-    let mut detector = ManualLamportsZeroingDetector::new();
+    let mut detector = ManualLamportsZeroingDetector::default();
 
     let safe_code = r#"
         use anchor_lang::prelude::*;
@@ -116,7 +116,7 @@ fn test_no_detection_for_safe_patterns() {
 
 #[test]
 fn test_detects_multiple_violations() {
-    let mut detector = ManualLamportsZeroingDetector::new();
+    let mut detector = ManualLamportsZeroingDetector::default();
 
     let code_with_multiple_violations = r#"
         use anchor_lang::prelude::*;
@@ -158,7 +158,7 @@ fn test_detects_multiple_violations() {
 
 #[test]
 fn test_ignores_non_zero_assignments() {
-    let mut detector = ManualLamportsZeroingDetector::new();
+    let mut detector = ManualLamportsZeroingDetector::default();
 
     let code_with_non_zero = r#"
         use anchor_lang::prelude::*;
@@ -181,7 +181,7 @@ fn test_ignores_non_zero_assignments() {
 
 #[test]
 fn test_complex_lamports_patterns() {
-    let mut detector = ManualLamportsZeroingDetector::new();
+    let mut detector = ManualLamportsZeroingDetector::default();
 
     let complex_code = r#"
         use anchor_lang::prelude::*;
@@ -242,7 +242,7 @@ fn test_complex_lamports_patterns() {
 
 #[test]
 fn test_invalid_syntax_handling() {
-    let mut detector = ManualLamportsZeroingDetector::new();
+    let mut detector = ManualLamportsZeroingDetector::default();
 
     let invalid_code = r#"
         use anchor_lang::prelude::*;
@@ -260,8 +260,8 @@ fn test_invalid_syntax_handling() {
 
 #[test]
 fn test_detector_state_isolation() {
-    let mut detector1 = ManualLamportsZeroingDetector::new();
-    let mut detector2 = ManualLamportsZeroingDetector::new();
+    let mut detector1 = ManualLamportsZeroingDetector::default();
+    let mut detector2 = ManualLamportsZeroingDetector::default();
 
     let code = r#"
         use anchor_lang::prelude::*;
@@ -281,7 +281,7 @@ fn test_detector_state_isolation() {
 
 #[test]
 fn test_real_world_vulnerability_patterns() {
-    let mut detector = ManualLamportsZeroingDetector::new();
+    let mut detector = ManualLamportsZeroingDetector::default();
 
     let real_world_vulnerable = r#"
         use anchor_lang::prelude::*;

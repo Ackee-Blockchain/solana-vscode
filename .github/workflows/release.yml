@@ -117,11 +117,6 @@ jobs:
             export RUSTFLAGS="-C target-feature=+crt-static"
           fi
 
-      - name: Build Language Server
-        run: |
-          cd language-server
-          cargo build --target ${{ matrix.rust_target }} --release
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -133,18 +128,11 @@ jobs:
           npm ci
           npm install -g @vscode/vsce
 
-      - name: Prepare Binary Directory
-        shell: bash
+      - name: Build Language Server
         run: |
           cd extension
-          # Clean bin directory to ensure only target platform binary exists
-          rm -rf bin
-          mkdir -p bin
-          if [ "${{ matrix.platform }}" = "win32" ]; then
-            cp ../language-server/target/${{ matrix.rust_target }}/release/language-server.exe bin/
-          else
-            cp ../language-server/target/${{ matrix.rust_target }}/release/language-server bin/
-          fi
+          chmod +x build-language-server.sh
+          ./build-language-server.sh --ci ${{ matrix.platform }} ${{ matrix.arch }}
 
       - name: Build VSIX Package
         run: |

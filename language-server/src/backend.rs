@@ -39,7 +39,7 @@ impl LanguageServer for Backend {
                     // Perform initial workspace scan
                     info!("Performing initial workspace scan...");
                     let mut registry = self.detector_registry.lock().await;
-                    let scan_result = scanner.scan_workspace(&mut *registry).await;
+                    let scan_result = scanner.scan_workspace(&mut registry).await;
 
                     // Log scan results
                     info!("Initial scan completed:");
@@ -90,7 +90,7 @@ impl LanguageServer for Backend {
                 // Perform initial workspace scan
                 info!("Performing initial workspace scan...");
                 let mut registry = self.detector_registry.lock().await;
-                let scan_result = scanner.scan_workspace(&mut *registry).await;
+                let scan_result = scanner.scan_workspace(&mut registry).await;
 
                 // Log scan results
                 info!("Initial scan completed:");
@@ -186,7 +186,7 @@ impl LanguageServer for Backend {
                 let scan_result = {
                     let scanner = self.file_scanner.lock().await;
                     let mut registry = self.detector_registry.lock().await;
-                    scanner.scan_workspace(&mut *registry).await
+                    scanner.scan_workspace(&mut registry).await
                 };
 
                 // Log scan results
@@ -236,7 +236,7 @@ impl Backend {
         Backend {
             client,
             detector_registry: Arc::new(Mutex::new(create_default_registry())),
-            file_scanner: Arc::new(Mutex::new(FileScanner::new())),
+            file_scanner: Arc::new(Mutex::new(FileScanner::default())),
         }
     }
 

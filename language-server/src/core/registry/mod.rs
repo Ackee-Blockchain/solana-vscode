@@ -1,3 +1,3 @@
-pub mod registry;
+pub mod detector_registry;
 
-pub use registry::*;
+pub use detector_registry::*;

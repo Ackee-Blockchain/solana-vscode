@@ -6,9 +6,9 @@
 		{
 			"label": "Build Language Server",
 			"type": "shell",
-			"command": "chmod +x build-language-server.sh && ./build-language-server.sh --release",
+			"command": "ls -la && chmod +x build-language-server.sh && ./build-language-server.sh --release",
 			"options": {
-				"cwd": "${workspaceFolder}/extension"
+				"cwd": "${workspaceFolder}/language-server"
 			},
 			"group": "build",
 			"presentation": {
@@ -19,9 +19,9 @@
 		{
 			"label": "Build Language Server (Debug)",
 			"type": "shell",
-			"command": "chmod +x build-language-server.sh && ./build-language-server.sh --debug",
+			"command": "ls -la && chmod +x build-language-server.sh && ./build-language-server.sh --debug",
 			"options": {
-				"cwd": "${workspaceFolder}/extension"
+				"cwd": "${workspaceFolder}/language-server"
 			},
 			"group": "build",
 			"presentation": {

@@ -97,8 +97,8 @@
     "eslint": "^9.26.0",
     "eslint-plugin-unused-imports": "^4.1.4",
     "typescript": "^5.7.2",
-    "webpack": "^5.91.0",
-    "webpack-cli": "^5.1.4",
-    "ts-loader": "^9.5.1"
+    "webpack": "5.99.9",
+    "webpack-cli": "5.1.4",
+    "ts-loader": "9.5.2"
   }
 }

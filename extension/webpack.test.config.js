@@ -15,7 +15,8 @@ testFiles.forEach(file => {
   const entryName = file
     .replace('./src/', '')
     .replace('.ts', '');
-  testEntries[entryName] = file;
+  // Keep the ./ prefix for the file path
+  testEntries[entryName] = `./${file}`;
 });
 
 /** @type {import('webpack').Configuration} */

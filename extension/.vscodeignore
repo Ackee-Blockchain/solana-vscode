@@ -1,12 +1,53 @@
+# Source files
+src/**
+tests/**
+
+# Build files
+out/**
+tsconfig.json
+webpack.config.js
+.eslintrc.json
+.eslintignore
+.prettierrc
+.prettierignore
+
+# Development files
 .vscode/**
 .vscode-test/**
-extension/src/**
 .gitignore
+.git/**
+.github/**
+.editorconfig
+.npmrc
 .yarnrc
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/eslint.config.mjs
+
+# Node modules (since we're bundling)
+node_modules/**
+
+# Documentation and examples
+docs/**
+examples/**
+*.md
+!README.md
+!CHANGELOG.md
+
+# Test files
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+test/**
+__tests__/**
+__mocks__/**
+
+# Debug files
 **/*.map
-**/*.ts
-**/.vscode-test.*
-language-server/**
+**/*.debug
+**/*.log
+
+# Misc
+.DS_Store
+Thumbs.db
+desktop.ini
+*.zip
+*.vsix

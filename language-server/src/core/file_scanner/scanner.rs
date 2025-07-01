@@ -84,8 +84,7 @@ impl FileScanner {
                     debug!("Analyzing Rust file: {:?}", file_path);
 
                     // Run security analysis
-                    let diagnostics =
-                        detector_registry.analyze(&content, Some(&file_path));
+                    let diagnostics = detector_registry.analyze(&content, Some(&file_path));
 
                     if !diagnostics.is_empty() {
                         info!(

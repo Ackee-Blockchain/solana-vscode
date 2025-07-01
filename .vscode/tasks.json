@@ -4,28 +4,86 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Build Language Server",
+			"type": "shell",
+			"command": "chmod +x build-language-server.sh && ./build-language-server.sh --release",
+			"options": {
+				"cwd": "${workspaceFolder}/extension"
+			},
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			}
+		},
+		{
+			"label": "Build Language Server (Debug)",
+			"type": "shell",
+			"command": "chmod +x build-language-server.sh && ./build-language-server.sh --debug",
+			"options": {
+				"cwd": "${workspaceFolder}/extension"
+			},
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			}
+		},
+		{
+			"label": "Watch Extension",
 			"type": "npm",
 			"script": "watch",
-			"problemMatcher": "$tsc-watch",
+			"path": "extension",
+			"group": "build",
 			"isBackground": true,
 			"presentation": {
-				"reveal": "never"
+				"reveal": "never",
+				"panel": "dedicated"
 			},
+			"problemMatcher": "$tsc-watch"
+		},
+		{
+			"label": "Build Extension",
+			"type": "npm",
+			"script": "build",
+			"path": "extension",
+			"group": "build",
+			"presentation": {
+				"reveal": "silent",
+				"panel": "shared"
+			},
+			"problemMatcher": "$tsc"
+		},
+		{
+			"label": "Build Extension and Language Server",
+			"dependsOn": [
+				"Build Language Server",
+				"Build Extension"
+			],
+			"dependsOrder": "sequence",
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			}
 		},
 		{
-            "type": "npm",
-            "script": "compile",
-            "group": "build",
-            "problemMatcher": "$tsc",
-            "label": "npm: build",
-            "detail": "tsc -p ./",
-            "options": {
-                "cwd": "${workspaceFolder}/extension"
-            }
-        }
+			"label": "Watch Extension and Build Language Server",
+			"dependsOn": [
+				"Build Language Server",
+				"Watch Extension"
+			],
+			"dependsOrder": "sequence",
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Extension and Language Server (Debug)",
+			"dependsOn": [
+				"Build Language Server (Debug)",
+				"Build Extension"
+			],
+			"dependsOrder": "sequence",
+			"group": "build"
+		}
 	]
 }

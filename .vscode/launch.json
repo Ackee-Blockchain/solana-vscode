@@ -15,7 +15,19 @@
 			"outFiles": [
 				"${workspaceFolder}/extension/out/**/*.js"
 			],
-			"preLaunchTask": "npm: build"
+			"preLaunchTask": "Build Extension and Language Server"
+		},
+		{
+			"name": "Run Extension (Debug Language Server)",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}/extension"
+			],
+			"outFiles": [
+				"${workspaceFolder}/extension/out/**/*.js"
+			],
+			"preLaunchTask": "Build Extension and Language Server (Debug)"
 		}
 	]
 }

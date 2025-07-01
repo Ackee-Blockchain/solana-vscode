@@ -45,7 +45,7 @@ fn test_detects_addition_in_instruction() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_addition);
+    let diagnostics = detector.analyze(code_with_addition, None);
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];
@@ -99,7 +99,7 @@ fn test_detects_multiple_arithmetic_operations() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_multiple_operations);
+    let diagnostics = detector.analyze(code_with_multiple_operations, None);
     assert_eq!(diagnostics.len(), 3);
 
     for diagnostic in &diagnostics {
@@ -142,7 +142,7 @@ fn test_nested_addition_in_anchor_context() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_nested_additions);
+    let diagnostics = detector.analyze(code_with_nested_additions, None);
     // Should detect 3 additions: a+b, c+d, and (a+b)+(c+d)
     assert_eq!(diagnostics.len(), 3);
 }
@@ -184,7 +184,7 @@ fn test_no_detection_without_addition() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_without_addition);
+    let diagnostics = detector.analyze(code_without_addition, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -206,7 +206,7 @@ fn test_invalid_syntax_handling() {
     "#;
 
     // Should handle invalid syntax gracefully and return empty diagnostics
-    let diagnostics = detector.analyze(invalid_code);
+    let diagnostics = detector.analyze(invalid_code, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -252,7 +252,7 @@ fn test_addition_in_different_anchor_contexts() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_various_contexts);
+    let diagnostics = detector.analyze(code_with_various_contexts, None);
     assert_eq!(diagnostics.len(), 3);
 }
 
@@ -308,7 +308,7 @@ fn test_token_transfer_with_unsafe_math() {
         }
     "#;
 
-    let diagnostics = detector.analyze(token_program_code);
+    let diagnostics = detector.analyze(token_program_code, None);
     // Should detect the unsafe addition in total_deposits calculation
     assert_eq!(diagnostics.len(), 1);
 }
@@ -343,8 +343,8 @@ fn test_detector_state_isolation() {
         }
     "#;
 
-    let diagnostics1 = detector1.analyze(code);
-    let diagnostics2 = detector2.analyze(code);
+    let diagnostics1 = detector1.analyze(code, None);
+    let diagnostics2 = detector2.analyze(code, None);
 
     // Each detector instance should produce the same results
     assert_eq!(diagnostics1.len(), diagnostics2.len());

@@ -244,7 +244,8 @@ impl Backend {
         // Run security analysis
         let diagnostics = {
             let mut registry = self.detector_registry.lock().await;
-            registry.analyze(&params.text)
+            let file_path = params.uri.to_file_path().ok();
+            registry.analyze(&params.text, file_path.as_ref())
         };
 
         // Publish diagnostics to the client

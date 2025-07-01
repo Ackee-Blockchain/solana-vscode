@@ -34,7 +34,7 @@ fn test_detects_missing_signer() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_without_signer);
+    let diagnostics = detector.analyze(code_without_signer, None);
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];
@@ -64,7 +64,7 @@ fn test_no_detection_with_signer() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_signer);
+    let diagnostics = detector.analyze(code_with_signer, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -97,7 +97,7 @@ fn test_detects_multiple_accounts_structs() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_multiple_structs);
+    let diagnostics = detector.analyze(code_with_multiple_structs, None);
     assert_eq!(diagnostics.len(), 2); // Should detect 2 vulnerable structs
 
     for diagnostic in &diagnostics {
@@ -130,7 +130,7 @@ fn test_ignores_non_accounts_structs() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_mixed_structs);
+    let diagnostics = detector.analyze(code_with_mixed_structs, None);
     assert_eq!(diagnostics.len(), 1); // Only the Accounts struct should be flagged
 }
 
@@ -161,7 +161,7 @@ fn test_different_signer_patterns() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_various_signers);
+    let diagnostics = detector.analyze(code_with_various_signers, None);
     assert_eq!(diagnostics.len(), 0); // All structs have signers
 }
 
@@ -183,7 +183,7 @@ fn test_real_world_anchor_patterns() {
         }
     "#;
 
-    let diagnostics = detector.analyze(vulnerable_transfer);
+    let diagnostics = detector.analyze(vulnerable_transfer, None);
     assert_eq!(diagnostics.len(), 1);
 
     let secure_transfer = r#"
@@ -201,7 +201,7 @@ fn test_real_world_anchor_patterns() {
         }
     "#;
 
-    let diagnostics = detector.analyze(secure_transfer);
+    let diagnostics = detector.analyze(secure_transfer, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -219,7 +219,7 @@ fn test_invalid_syntax_handling() {
     "#;
 
     // Should handle invalid syntax gracefully
-    let diagnostics = detector.analyze(invalid_code);
+    let diagnostics = detector.analyze(invalid_code, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -237,8 +237,8 @@ fn test_detector_state_isolation() {
         }
     "#;
 
-    let diagnostics1 = detector1.analyze(code);
-    let diagnostics2 = detector2.analyze(code);
+    let diagnostics1 = detector1.analyze(code, None);
+    let diagnostics2 = detector2.analyze(code, None);
 
     // Each detector instance should produce the same results
     assert_eq!(diagnostics1.len(), diagnostics2.len());
@@ -306,7 +306,7 @@ fn test_complex_anchor_program() {
         }
     "#;
 
-    let diagnostics = detector.analyze(complex_program);
+    let diagnostics = detector.analyze(complex_program, None);
     assert_eq!(diagnostics.len(), 1); // Only VulnerableWithdraw should be flagged
 
     let diagnostic = &diagnostics[0];

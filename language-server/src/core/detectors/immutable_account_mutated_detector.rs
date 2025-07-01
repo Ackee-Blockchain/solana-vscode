@@ -136,6 +136,11 @@ impl ImmutableAccountMutatedDetector {
                     false
                 }
             }
+            // Mutable reference creation: &mut account or &mut ctx.accounts.account
+            syn::Expr::Reference(ref_expr) => {
+                ref_expr.mutability.is_some()
+                    && self.expression_references_account(&ref_expr.expr, account_name)
+            }
             _ => false,
         }
     }

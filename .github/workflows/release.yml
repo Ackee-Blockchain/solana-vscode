@@ -75,9 +75,14 @@ jobs:
         if: matrix.platform == 'alpine'
         run: |
           sudo apt-get update
-          sudo apt-get install -y musl-tools
+          sudo apt-get install -y musl-tools musl-dev
           if [ "${{ matrix.arch }}" = "arm64" ]; then
-            sudo apt-get install -y gcc-aarch64-linux-musl
+            # Add universe repository for cross-compilation tools
+            sudo add-apt-repository universe
+            sudo apt-get update
+            # Install cross-compilation tools for arm64
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+            sudo ln -s /usr/bin/aarch64-linux-gnu-gcc /usr/local/bin/aarch64-linux-musl-gcc
           fi
 
       # Configure Rust target linker
@@ -87,13 +92,21 @@ jobs:
           mkdir -p ~/.cargo
           echo "[target.${{ matrix.rust_target }}]" >> ~/.cargo/config.toml
           echo "linker = \"${{ matrix.linker }}\"" >> ~/.cargo/config.toml
-          echo "rustflags = [\"-C\", \"target-feature=+crt-static\"]" >> ~/.cargo/config.toml
+          if [ "${{ matrix.platform }}" = "alpine" ]; then
+            echo "rustflags = [\"-C\", \"target-feature=+crt-static\", \"-C\", \"link-arg=-static\"]" >> ~/.cargo/config.toml
+          else
+            echo "rustflags = [\"-C\", \"target-feature=+crt-static\"]" >> ~/.cargo/config.toml
+          fi
 
       - name: Set CC environment variable for Linux builds
         if: matrix.platform == 'linux' || matrix.platform == 'alpine'
         run: |
           export CC=${{ matrix.linker }}
-          export RUSTFLAGS="-C target-feature=+crt-static"
+          if [ "${{ matrix.platform }}" = "alpine" ]; then
+            export RUSTFLAGS="-C target-feature=+crt-static -C link-arg=-static"
+          else
+            export RUSTFLAGS="-C target-feature=+crt-static"
+          fi
 
       - name: Build Language Server
         run: |

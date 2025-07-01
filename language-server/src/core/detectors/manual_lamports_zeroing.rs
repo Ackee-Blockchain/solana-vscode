@@ -5,19 +5,13 @@ use syn::spanned::Spanned;
 use syn::{Expr, ExprAssign, ExprField, ExprLit, ExprMethodCall, Lit, parse_str, visit::Visit};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
+#[derive(Default)]
 pub struct ManualLamportsZeroingDetector {
     diagnostics: Vec<Diagnostic>,
     config: DetectorConfig,
 }
 
 impl ManualLamportsZeroingDetector {
-    pub fn new() -> Self {
-        Self {
-            diagnostics: Vec::new(),
-            config: DetectorConfig::default(),
-        }
-    }
-
     #[allow(dead_code)]
     pub fn with_config(config: DetectorConfig) -> Self {
         Self {

@@ -6,6 +6,7 @@ use syn::spanned::Spanned;
 use syn::{Fields, parse_str, visit::Visit};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
+#[derive(Default)]
 pub struct ImmutableAccountMutatedDetector {
     diagnostics: Vec<Diagnostic>,
     config: DetectorConfig,
@@ -13,14 +14,6 @@ pub struct ImmutableAccountMutatedDetector {
 }
 
 impl ImmutableAccountMutatedDetector {
-    pub fn new() -> Self {
-        Self {
-            diagnostics: Vec::new(),
-            config: DetectorConfig::default(),
-            immutable_accounts: HashSet::new(),
-        }
-    }
-
     #[allow(dead_code)]
     pub fn with_config(config: DetectorConfig) -> Self {
         Self {

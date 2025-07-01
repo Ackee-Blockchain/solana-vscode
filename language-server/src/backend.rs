@@ -303,10 +303,10 @@ fn create_default_registry() -> DetectorRegistry {
     use crate::core::{DetectorRegistryBuilder, UnsafeMathDetector};
 
     DetectorRegistryBuilder::new()
-        .with_detector(UnsafeMathDetector::new())
-        .with_detector(MissingSignerDetector::new())
-        .with_detector(ManualLamportsZeroingDetector::new())
-        .with_detector(SysvarAccountDetector::new())
-        .with_detector(ImmutableAccountMutatedDetector::new())
+        .with_detector(UnsafeMathDetector::default())
+        .with_detector(MissingSignerDetector::default())
+        .with_detector(ManualLamportsZeroingDetector::default())
+        .with_detector(SysvarAccountDetector::default())
+        .with_detector(ImmutableAccountMutatedDetector::default())
         .build()
 }

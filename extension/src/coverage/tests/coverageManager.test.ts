@@ -96,11 +96,11 @@ suite("Coverage Manager Test Suite", () => {
       configurable: true,
     });
   });
-  
+
   test("should initialize with required components", () => {
     assert.ok(coverageManager, "Coverage manager should be created");
   });
-  
+
   test("should dispose all components", () => {
     coverageManager.dispose();
     assert.ok(
@@ -108,17 +108,17 @@ suite("Coverage Manager Test Suite", () => {
       "Should dispose test controller and other components"
     );
   });
-  
+
   suite("showCoverage", () => {
     test("should handle static coverage", async () => {
       let coverageDisplayed = false;
       let coverageCleared = false;
-      
+
       const originalSetupCoverage = (coverageManager as any).setupCoverage;
       (coverageManager as any).setupCoverage = async () => {
         (coverageManager as any).coverageType = CoverageType.Static;
       };
-      
+
       (coverageManager as any).coverageDecorations = {
         clearCoverage: () => {
           coverageCleared = true;
@@ -127,7 +127,7 @@ suite("Coverage Manager Test Suite", () => {
           coverageDisplayed = true;
         },
       };
-      
+
       (coverageManager as any).coverageReportLoader = {
         selectCoverageFile: async () => {},
         coverageReport: {
@@ -140,7 +140,7 @@ suite("Coverage Manager Test Suite", () => {
           },
         },
       };
-      
+
       try {
         await coverageManager.showCoverage();
         assert.ok(coverageCleared, "Should clear existing coverage");
@@ -149,29 +149,29 @@ suite("Coverage Manager Test Suite", () => {
         (coverageManager as any).setupCoverage = originalSetupCoverage;
       }
     });
-    
+
     test("should handle dynamic coverage", async () => {
       let dynamicCoverageStarted = false;
       let coverageCleared = false;
-      
+
       const originalSetupCoverage = (coverageManager as any).setupCoverage;
       const originalStartDynamicCoverage = (coverageManager as any)
       .startDynamicCoverage;
-      
+
       (coverageManager as any).setupCoverage = async () => {
         (coverageManager as any).coverageType = CoverageType.Dynamic;
       };
-      
+
       (coverageManager as any).startDynamicCoverage = async () => {
         dynamicCoverageStarted = true;
       };
-      
+
       (coverageManager as any).coverageDecorations = {
         clearCoverage: () => {
           coverageCleared = true;
         },
       };
-      
+
       try {
         await coverageManager.showCoverage();
         assert.ok(coverageCleared, "Should clear existing coverage");
@@ -183,20 +183,20 @@ suite("Coverage Manager Test Suite", () => {
       }
     });
   });
-  
+
   suite("Window Change Listener", () => {
     test("should setup window change listener and handle editor changes", () => {
       let listenerCallback:
       | ((editor: vscode.TextEditor | undefined) => void)
       | undefined;
       let coverageUpdated = false;
-      
+
       const originalOnDidChangeActiveTextEditor =
       Object.getOwnPropertyDescriptor(
         vscode.window,
         "onDidChangeActiveTextEditor"
       );
-      
+
       Object.defineProperty(vscode.window, "onDidChangeActiveTextEditor", {
         get:
           () => (callback: (editor: vscode.TextEditor | undefined) => void) => {

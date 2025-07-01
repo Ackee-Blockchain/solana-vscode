@@ -23,13 +23,10 @@ impl ManualLamportsZeroingDetector {
     /// Check if an expression is accessing the lamports field
     fn is_lamports_access(&self, expr: &Expr) -> bool {
         match expr {
-            Expr::Field(ExprField { member, .. }) => {
-                if let syn::Member::Named(ident) = member {
-                    ident == "lamports"
-                } else {
-                    false
-                }
-            }
+            Expr::Field(ExprField {
+                member: syn::Member::Named(ident),
+                ..
+            }) => ident == "lamports",
             Expr::MethodCall(ExprMethodCall { method, .. }) => method == "lamports",
             _ => false,
         }

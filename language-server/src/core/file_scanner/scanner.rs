@@ -5,18 +5,12 @@ use std::path::{Path, PathBuf};
 use tower_lsp::Client;
 
 /// File scanner for analyzing workspace files on startup
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct FileScanner {
     workspace_root: Option<PathBuf>,
 }
 
 impl FileScanner {
-    pub fn new() -> Self {
-        Self {
-            workspace_root: None,
-        }
-    }
-
     /// Set the workspace root directory
     pub fn set_workspace_root(&mut self, root: PathBuf) {
         self.workspace_root = Some(root.clone());
@@ -160,6 +154,7 @@ impl FileScanner {
     }
 
     /// Recursive helper for walking directories
+    #[allow(clippy::only_used_in_recursion)]
     fn walk_directory_recursive(
         &self,
         dir: &Path,
@@ -207,6 +202,7 @@ impl FileScanner {
     }
 
     /// Recursive helper for finding files by name
+    #[allow(clippy::only_used_in_recursion)]
     fn find_files_by_name_recursive(
         &self,
         dir: &Path,

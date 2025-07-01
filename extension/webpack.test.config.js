@@ -5,8 +5,8 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 // Find all test files in the project
 const testFiles = glob.sync('./src/**/tests/**/*.test.ts');
 const testEntries = {
-  runTest: './src/test/runTest.ts',
-  'suite/index': './src/test/suite/index.ts'
+  'test/runTest': './src/test/runTest.ts',
+  'test/suite/index': './src/test/suite/index.ts'
 };
 
 // Add each test file to the entries
@@ -55,7 +55,7 @@ module.exports = {
       patterns: [
         {
           from: 'src/coverage/tests/test-program',
-          to: 'src/coverage/tests/test-program'
+          to: 'coverage/tests/test-program'
         }
       ]
     })

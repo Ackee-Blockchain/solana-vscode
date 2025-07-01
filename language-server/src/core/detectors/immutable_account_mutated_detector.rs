@@ -1,6 +1,7 @@
 use super::detector::Detector;
 use super::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
+use std::collections::HashMap;
 use std::collections::HashSet;
 use syn::spanned::Spanned;
 use syn::{Fields, parse_str, visit::Visit};
@@ -10,7 +11,8 @@ use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 pub struct ImmutableAccountMutatedDetector {
     diagnostics: Vec<Diagnostic>,
     config: DetectorConfig,
-    immutable_accounts: HashSet<String>,
+    current_context: Option<String>,
+    context_immutable_accounts: HashMap<String, HashSet<String>>,
 }
 
 impl ImmutableAccountMutatedDetector {
@@ -19,11 +21,12 @@ impl ImmutableAccountMutatedDetector {
         Self {
             diagnostics: Vec::new(),
             config,
-            immutable_accounts: HashSet::new(),
+            current_context: None,
+            context_immutable_accounts: HashMap::new(),
         }
     }
 
-    /// Check if a field is marked as immutable (no #[account(mut)] attribute)
+    /// Check if a field is marked as immutable (no #[account(mut)] or #[account(init)] attribute)
     fn is_immutable_account_field(&self, field: &syn::Field) -> Option<String> {
         // Check if this field has a type that looks like an account
         let is_account_type = match &field.ty {
@@ -44,26 +47,50 @@ impl ImmutableAccountMutatedDetector {
             return None;
         }
 
-        // Check if the field has the #[account(mut)] attribute
-        let has_mut_attribute = field.attrs.iter().any(|attr| {
+        // Check if the field has either #[account(mut)] or #[account(init, ...)] attribute
+        let has_mut_or_init = field.attrs.iter().any(|attr| {
             if attr.path().is_ident("account") {
                 if let syn::Meta::List(meta_list) = &attr.meta {
-                    return meta_list.tokens.to_string().contains("mut");
+                    let tokens = meta_list.tokens.to_string();
+                    // Check for mut or init at word boundaries to avoid false positives
+                    return tokens.split(',').any(|token| {
+                        let token = token.trim();
+                        token == "mut" || token.starts_with("init")
+                    });
                 }
             }
             false
         });
 
-        // If it's an account type but doesn't have mut, it's immutable
-        if !has_mut_attribute {
-            if let Some(field_name) = field.ident.as_ref() {
-                Some(field_name.to_string())
-            } else {
-                None
-            }
+        // If it's an account type but doesn't have mut or init, it's immutable
+        if !has_mut_or_init {
+            field
+                .ident
+                .as_ref()
+                .map(|field_name| field_name.to_string())
         } else {
             None
         }
+    }
+
+    /// Collect immutable accounts from an Accounts struct
+    fn collect_immutable_accounts(
+        &mut self,
+        context_name: &str,
+        accounts_struct: &syn::ItemStruct,
+    ) {
+        let mut immutable_accounts = HashSet::new();
+
+        if let Fields::Named(fields) = &accounts_struct.fields {
+            for field in &fields.named {
+                if let Some(account_name) = self.is_immutable_account_field(field) {
+                    immutable_accounts.insert(account_name);
+                }
+            }
+        }
+
+        self.context_immutable_accounts
+            .insert(context_name.to_string(), immutable_accounts);
     }
 
     /// Check if an expression attempts to mutate an account
@@ -125,9 +152,16 @@ impl ImmutableAccountMutatedDetector {
                 }
             }
             syn::Expr::Field(field_expr) => {
-                // Recursively check the base expression and see if it references our account
+                // Check if this field access is directly to our account name
+                if let syn::Member::Named(field_name) = &field_expr.member {
+                    if field_name == account_name {
+                        // If it matches our account name, verify it's accessed through ctx.accounts
+                        return self.is_accounts_access(&field_expr.base);
+                    }
+                }
+
+                // If not a direct match, recursively check the base expression
                 self.expression_references_account(&field_expr.base, account_name)
-                    || self.check_nested_field_access(&field_expr.base, account_name)
             }
             syn::Expr::MethodCall(method_call) => {
                 self.expression_references_account(&method_call.receiver, account_name)
@@ -146,48 +180,19 @@ impl ImmutableAccountMutatedDetector {
         }
     }
 
-    /// Check nested field access like ctx.accounts.account_name
-    fn check_nested_field_access(&self, expr: &syn::Expr, account_name: &str) -> bool {
-        match expr {
-            syn::Expr::Field(field_expr) => {
-                // Check if this is accessing accounts.<account_name>
-                if let syn::Member::Named(field_name) = &field_expr.member {
-                    if field_name == account_name {
-                        // Check if the base is accessing "accounts"
-                        return self.is_accounts_access(&field_expr.base);
-                    }
-                }
-                // Continue checking recursively
-                self.check_nested_field_access(&field_expr.base, account_name)
-            }
-            _ => false,
-        }
-    }
-
     /// Check if expression is accessing the "accounts" field (like ctx.accounts)
     fn is_accounts_access(&self, expr: &syn::Expr) -> bool {
         match expr {
             syn::Expr::Field(field_expr) => {
                 if let syn::Member::Named(field_name) = &field_expr.member {
+                    // Just check if we're accessing a field named "accounts"
+                    // The parent context validation is handled by the Anchor framework
                     field_name == "accounts"
                 } else {
                     false
                 }
             }
             _ => false,
-        }
-    }
-
-    /// Collect immutable account names from an Accounts struct
-    fn collect_immutable_accounts(&mut self, accounts_struct: &syn::ItemStruct) {
-        self.immutable_accounts.clear();
-
-        if let Fields::Named(fields) = &accounts_struct.fields {
-            for field in &fields.named {
-                if let Some(account_name) = self.is_immutable_account_field(field) {
-                    self.immutable_accounts.insert(account_name);
-                }
-            }
         }
     }
 }
@@ -215,9 +220,23 @@ impl Detector for ImmutableAccountMutatedDetector {
 
     fn analyze(&mut self, content: &str) -> Vec<Diagnostic> {
         self.diagnostics.clear();
-        self.immutable_accounts.clear();
+        self.context_immutable_accounts.clear();
+        self.current_context = None;
 
         if let Ok(syntax_tree) = parse_str::<syn::File>(content) {
+            // First pass: collect all immutable accounts for each context
+            for item in &syntax_tree.items {
+                if let syn::Item::Struct(item_struct) = item {
+                    if AnchorPatterns::is_accounts_struct(item_struct) {
+                        self.collect_immutable_accounts(
+                            &item_struct.ident.to_string(),
+                            item_struct,
+                        );
+                    }
+                }
+            }
+
+            // Second pass: check for mutations in each context
             self.visit_file(&syntax_tree);
         }
 
@@ -226,46 +245,66 @@ impl Detector for ImmutableAccountMutatedDetector {
 }
 
 impl<'ast> Visit<'ast> for ImmutableAccountMutatedDetector {
-    fn visit_item_struct(&mut self, node: &'ast syn::ItemStruct) {
-        // Check if this struct has #[derive(Accounts)]
-        if AnchorPatterns::is_accounts_struct(node) {
-            println!("Found Accounts struct: {}", node.ident);
-            self.collect_immutable_accounts(node);
-            println!(
-                "Collected {} immutable accounts",
-                self.immutable_accounts.len()
-            );
-            for account in &self.immutable_accounts {
-                println!("  - {}", account);
+    fn visit_item_fn(&mut self, node: &'ast syn::ItemFn) {
+        // Check if this is an instruction function by looking at its first parameter
+        if let Some(syn::FnArg::Typed(pat_type)) = node.sig.inputs.first() {
+            if let syn::Type::Path(type_path) = &*pat_type.ty {
+                if let Some(syn::PathSegment {
+                    ident,
+                    arguments: syn::PathArguments::AngleBracketed(args),
+                }) = type_path.path.segments.first()
+                {
+                    if ident == "Context" {
+                        if let Some(syn::GenericArgument::Type(syn::Type::Path(context_type))) =
+                            args.args.first()
+                        {
+                            if let Some(type_segment) = context_type.path.segments.first() {
+                                // Set the current context to the Accounts struct name
+                                self.current_context = Some(type_segment.ident.to_string());
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        // Continue visiting children
-        syn::visit::visit_item_struct(self, node);
+        // Visit the function body
+        syn::visit::visit_item_fn(self, node);
+
+        // Clear the context after visiting the function
+        self.current_context = None;
     }
 
     fn visit_expr(&mut self, node: &'ast syn::Expr) {
-        // Check if this expression mutates any immutable accounts
-        for account_name in &self.immutable_accounts.clone() {
-            if self.is_mutation_attempt(node, account_name) {
-                println!("Found mutation attempt for account: {}", account_name);
-                let severity = self
-                    .config
-                    .severity_override
-                    .unwrap_or(self.default_severity());
+        // Only check for mutations if we're in a context
+        if let Some(ref context) = self.current_context {
+            if let Some(immutable_accounts) = self.context_immutable_accounts.get(context) {
+                for account_name in immutable_accounts {
+                    if self.is_mutation_attempt(node, account_name) {
+                        log::debug!(
+                            "Found mutation attempt for account: {} in context: {}",
+                            account_name,
+                            context
+                        );
+                        let severity = self
+                            .config
+                            .severity_override
+                            .unwrap_or(self.default_severity());
 
-                let message = format!(
-                    "Attempting to mutate immutable account '{}'. Add #[account(mut)] to allow mutation.",
-                    account_name
-                );
+                        let message = format!(
+                            "Attempting to mutate immutable account '{}'. Add #[account(mut)] to allow mutation.",
+                            account_name
+                        );
 
-                self.diagnostics.push(DiagnosticBuilder::create(
-                    DiagnosticBuilder::create_range_from_span(node.span()),
-                    message,
-                    severity,
-                    self.id().to_string(),
-                    None,
-                ));
+                        self.diagnostics.push(DiagnosticBuilder::create(
+                            DiagnosticBuilder::create_range_from_span(node.span()),
+                            message,
+                            severity,
+                            self.id().to_string(),
+                            None,
+                        ));
+                    }
+                }
             }
         }
 

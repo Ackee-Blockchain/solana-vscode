@@ -236,14 +236,14 @@ fn test_complex_anchor_program() {
             use super::*;
 
             pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-                // This should be flagged - vault is not marked as mutable
+                // This should be ok - vault is initialized in the Initialize context
                 ctx.accounts.vault.total_deposits = 0;
                 Ok(())
             }
 
             pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-                // This should be ok - vault is marked as mutable in Deposit context
-                ctx.accounts.vault.total_deposits += amount;
+                // This should be flagged - vault is NOT marked as mutable in Deposit context
+                ctx.accounts.vault.total_deposits = amount;
                 Ok(())
             }
         }
@@ -259,7 +259,6 @@ fn test_complex_anchor_program() {
 
         #[derive(Accounts)]
         pub struct Deposit<'info> {
-            #[account(mut)]
             pub vault: Account<'info, Vault>,
             #[account(mut)]
             pub user_token_account: Account<'info, TokenAccount>,

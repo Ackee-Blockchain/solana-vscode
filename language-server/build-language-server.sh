@@ -6,7 +6,7 @@ print_usage() {
     echo ""
     echo "Options:"
     echo "  --ci PLATFORM ARCH    Run in CI mode with specified platform and architecture"
-    echo "                        Platforms: darwin, linux, alpine, win32"
+    echo "                        Platforms: darwin (macOS), linux, alpine, win32"
     echo "                        Architectures: x64, arm64, armhf"
     echo "  --debug              Build in debug mode (default is release)"
     echo "  --release            Build in release mode (default)"
@@ -80,7 +80,7 @@ fi
 
 # Validate platform and architecture
 case "$platform" in
-    "darwin"|"linux"|"alpine"|"win32"|"msys"|"cygwin"|"windows_nt") ;;
+    "darwin"|"linux"|"alpine"|"win32") ;;
     *)
         echo "Unsupported platform: $platform"
         exit 1
@@ -116,8 +116,7 @@ case "$platform" in
             rust_target="${rust_target/gnu/musl}"
         fi
         ;;
-    "win32" | "msys" | "cygwin" | "windows_nt")
-        platform="win32"
+    "win32")
         if [ "$arch" = "arm64" ]; then
             rust_target="aarch64-pc-windows-msvc"
         else
@@ -133,7 +132,6 @@ echo "Build type: $BUILD_TYPE"
 rustup target add "$rust_target"
 
 # Build for the target platform
-cd ../language-server
 echo "Building for $platform-$arch..."
 if [ "$BUILD_TYPE" = "debug" ]; then
     cargo build --target "$rust_target"

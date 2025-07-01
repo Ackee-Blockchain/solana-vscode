@@ -130,7 +130,7 @@ jobs:
 
       - name: Build Language Server
         run: |
-          cd extension
+          cd language-server
           chmod +x build-language-server.sh
           ./build-language-server.sh --ci ${{ matrix.platform }} ${{ matrix.arch }}
 

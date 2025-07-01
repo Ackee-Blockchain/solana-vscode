@@ -1,4 +1,4 @@
-# Solana extension for VS Code by Ackee Blockchain
+# Solana VSCode Extension
 
 Currently under development 🚧
 
@@ -35,3 +35,82 @@ This will:
 - Allow you to set breakpoints and debug the extension
 
 Note: Make sure you have Node.js and npm installed on your system before starting.
+
+## Development
+
+This extension consists of two main components:
+
+1. The VSCode extension (TypeScript)
+2. The Language Server (Rust)
+
+### Prerequisites
+
+- Node.js (v20 or later)
+- Rust and Cargo (latest stable)
+- VSCode
+
+### Project Structure
+
+```
+solana-vscode/
+├── extension/          # TypeScript extension code
+│   ├── src/           # Source code
+│   ├── bin/           # Language server binary
+│   └── package.json   # Extension manifest
+└── language-server/   # Rust language server code
+    └── src/          # Server source code
+```
+
+### Development Workflow
+
+The extension supports several development workflows:
+
+1. **Standard Development**:
+
+   ```bash
+   # One-time build
+   F5 or "Run Extension" configuration
+   ```
+
+2. **Watch Mode**:
+
+   ```bash
+   # Command Palette > Tasks: Run Task > Watch Extension and Build Language Server
+   # or
+   cd extension && npm run watch
+   ```
+
+3. **Language Server Development**:
+   ```bash
+   # Build language server only
+   cd extension && ./build-language-server.sh
+   ```
+
+### Available Tasks
+
+- `Build Extension and Language Server`: One-time build
+- `Watch Extension and Build Language Server`: Build server once and watch extension
+- `Build Extension and Language Server (Debug)`: Debug builds
+
+### Testing
+
+```bash
+# Extension tests
+cd extension && npm test
+
+# Language server tests
+cd language-server && cargo test
+```
+
+### Packaging
+
+The extension is packaged per platform with its corresponding language server binary. GitHub Actions workflow handles this automatically for releases.
+
+Local packaging:
+
+```bash
+cd extension
+./build-language-server.sh
+npm run build
+vsce package
+```

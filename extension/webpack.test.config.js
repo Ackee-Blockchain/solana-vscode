@@ -1,6 +1,5 @@
 const path = require('path');
 const glob = require('glob');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 // Find all test files in the project
 const testFiles = glob.sync('./src/**/tests/**/*.test.ts');
@@ -50,15 +49,5 @@ module.exports = {
       }
     ]
   },
-  plugins: [
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: 'src/coverage/tests/test-program',
-          to: 'coverage/tests/test-program'
-        }
-      ]
-    })
-  ],
-  devtool: 'source-map'
-}
+  devtool: 'source-map',
+};

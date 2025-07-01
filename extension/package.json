@@ -80,6 +80,7 @@
     "build": "webpack --config webpack.config.js",
     "watch": "webpack --watch --config webpack.config.js",
     "lint": "eslint src --ext ts",
+    "pretest": "webpack --config webpack.test.config.js",
     "test": "node ./out/test/runTest.js"
   },
   "dependencies": {

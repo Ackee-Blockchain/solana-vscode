@@ -126,14 +126,14 @@ impl ImmutableAccountMutatedDetector {
                         | syn::BinOp::BitOrAssign(_)
                         | syn::BinOp::BitXorAssign(_)
                         | syn::BinOp::ShlAssign(_)
-                        | syn::BinOp::ShrAssign(_)
+                        | syn::BinOp::ShrAssign(_),
                 ) && self.expression_references_account(&binary_expr.left, account_name)
             }
             // Method calls that might mutate: account.method()
             syn::Expr::MethodCall(method_call) => {
                 if self.expression_references_account(&method_call.receiver, account_name) {
                     let method_name = method_call.method.to_string();
-                    // Check for common mutating methods
+                    // Check for Solana Account-specific mutating methods
                     matches!(
                         method_name.as_str(),
                         "set_data"
@@ -143,7 +143,32 @@ impl ImmutableAccountMutatedDetector {
                             | "close"
                             | "realloc"
                             | "assign"
-                    )
+                    ) || method_call.args.iter().any(|arg| {
+                        // Check if any argument is a mutable reference
+                        matches!(arg, syn::Expr::Reference(ref_expr) if ref_expr.mutability.is_some())
+                    }) || {
+                        // Check if the receiver is a mutable reference
+                        if let syn::Expr::Reference(ref_expr) = &*method_call.receiver {
+                            ref_expr.mutability.is_some()
+                        } else {
+                            // Check if the method name suggests mutation
+                            method_name.starts_with("push")
+                                || method_name.starts_with("insert")
+                                || method_name.starts_with("remove")
+                                || method_name.starts_with("clear")
+                                || method_name.starts_with("set")
+                                || method_name.starts_with("replace")
+                                || method_name.starts_with("extend")
+                                || method_name.starts_with("append")
+                                || method_name.starts_with("truncate")
+                                || method_name.starts_with("resize")
+                                || method_name.starts_with("retain")
+                                || method_name.starts_with("swap")
+                                || method_name.starts_with("sort")
+                                || method_name.starts_with("rotate")
+                                || method_name.starts_with("fill")
+                        }
+                    }
                 } else {
                     false
                 }
@@ -152,6 +177,23 @@ impl ImmutableAccountMutatedDetector {
             syn::Expr::Reference(ref_expr) => {
                 ref_expr.mutability.is_some()
                     && self.expression_references_account(&ref_expr.expr, account_name)
+            }
+            // Index assignment: account[i] = value
+            syn::Expr::Index(index_expr) => {
+                self.expression_references_account(&index_expr.expr, account_name)
+            }
+            // Range assignment: account[i..j] = value
+            syn::Expr::Range(range_expr) => {
+                range_expr
+                    .start
+                    .as_ref()
+                    .filter(|start| self.expression_references_account(start, account_name))
+                    .is_some()
+                    || range_expr
+                        .end
+                        .as_ref()
+                        .filter(|end| self.expression_references_account(end, account_name))
+                        .is_some()
             }
             _ => false,
         }

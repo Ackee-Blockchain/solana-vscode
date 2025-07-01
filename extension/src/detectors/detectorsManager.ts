@@ -99,42 +99,18 @@ export class DetectorsManager {
 
         const extensionPath = extensionContext.extensionPath;
         const platform = process.platform;
-        const arch = process.arch;
 
-        // Determine binary name
+        // Determine binary name based on platform
         const binaryName = platform === 'win32' ? 'language-server.exe' : 'language-server';
 
-        // Determine platform directory with architecture support
-        let platformDir: string;
-
-        if (platform === 'darwin') {
-            // Handle Apple Silicon vs Intel Mac
-            platformDir = arch === 'arm64' ? 'darwin-arm64' : 'darwin-x64';
-        } else if (platform === 'win32') {
-            platformDir = arch === 'arm64' ? 'win32-arm64' : 'win32-x64';
-        } else if (platform === 'linux') {
-            // Check if running on Alpine Linux
-            const isAlpine = fs.existsSync('/etc/alpine-release');
-            const baseDir = isAlpine ? 'alpine' : 'linux';
-
-            if (arch === 'arm64') {
-                platformDir = `${baseDir}-arm64`;
-            } else if (arch === 'arm') {
-                platformDir = `${baseDir}-armhf`;
-            } else {
-                platformDir = `${baseDir}-x64`;
-            }
-        } else {
-            platformDir = platform;
-        }
-
-        // Only check the standard bundled location
-        const bundledPath = path.join(extensionPath, 'bin', platformDir, binaryName);
+        // Look for binary directly in the bin directory
+        const bundledPath = path.join(extensionPath, 'bin', binaryName);
 
         if (fs.existsSync(bundledPath)) {
             return bundledPath;
         }
 
+        this.outputChannel.appendLine(`Binary not found at expected path: ${bundledPath}`);
         return null;
     }
 

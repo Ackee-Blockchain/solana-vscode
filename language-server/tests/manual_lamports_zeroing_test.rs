@@ -41,7 +41,7 @@ fn test_detects_direct_lamports_assignment() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_direct_assignment);
+    let diagnostics = detector.analyze(code_with_direct_assignment, None);
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];
@@ -72,7 +72,7 @@ fn test_detects_set_lamports_method() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_set_lamports);
+    let diagnostics = detector.analyze(code_with_set_lamports, None);
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];
@@ -110,7 +110,7 @@ fn test_no_detection_for_safe_patterns() {
         }
     "#;
 
-    let diagnostics = detector.analyze(safe_code);
+    let diagnostics = detector.analyze(safe_code, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -143,7 +143,7 @@ fn test_detects_multiple_violations() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_multiple_violations);
+    let diagnostics = detector.analyze(code_with_multiple_violations, None);
     assert_eq!(diagnostics.len(), 3);
 
     for diagnostic in &diagnostics {
@@ -175,7 +175,7 @@ fn test_ignores_non_zero_assignments() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_non_zero);
+    let diagnostics = detector.analyze(code_with_non_zero, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -236,7 +236,7 @@ fn test_complex_lamports_patterns() {
         }
     "#;
 
-    let diagnostics = detector.analyze(complex_code);
+    let diagnostics = detector.analyze(complex_code, None);
     assert_eq!(diagnostics.len(), 2); // Should detect 2 vulnerable patterns
 }
 
@@ -254,7 +254,7 @@ fn test_invalid_syntax_handling() {
     "#;
 
     // Should handle invalid syntax gracefully
-    let diagnostics = detector.analyze(invalid_code);
+    let diagnostics = detector.analyze(invalid_code, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -271,8 +271,8 @@ fn test_detector_state_isolation() {
         }
     "#;
 
-    let diagnostics1 = detector1.analyze(code);
-    let diagnostics2 = detector2.analyze(code);
+    let diagnostics1 = detector1.analyze(code, None);
+    let diagnostics2 = detector2.analyze(code, None);
 
     // Each detector instance should produce the same results
     assert_eq!(diagnostics1.len(), diagnostics2.len());
@@ -339,7 +339,7 @@ fn test_real_world_vulnerability_patterns() {
         }
     "#;
 
-    let diagnostics = detector.analyze(real_world_vulnerable);
+    let diagnostics = detector.analyze(real_world_vulnerable, None);
     assert_eq!(diagnostics.len(), 2); // Should detect both vulnerable patterns
 
     for diagnostic in &diagnostics {

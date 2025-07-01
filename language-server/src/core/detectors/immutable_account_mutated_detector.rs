@@ -3,9 +3,10 @@ use super::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::path::PathBuf;
 use syn::spanned::Spanned;
 use syn::{Fields, parse_str, visit::Visit};
-use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
+use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity, Range};
 
 #[derive(Default)]
 pub struct ImmutableAccountMutatedDetector {
@@ -13,6 +14,8 @@ pub struct ImmutableAccountMutatedDetector {
     config: DetectorConfig,
     current_context: Option<String>,
     context_immutable_accounts: HashMap<String, HashSet<String>>,
+    immutable_field_ranges: HashMap<String, HashMap<String, Range>>,
+    file_path: Option<PathBuf>,
 }
 
 impl ImmutableAccountMutatedDetector {
@@ -23,6 +26,8 @@ impl ImmutableAccountMutatedDetector {
             config,
             current_context: None,
             context_immutable_accounts: HashMap::new(),
+            immutable_field_ranges: HashMap::new(),
+            file_path: None,
         }
     }
 
@@ -80,17 +85,24 @@ impl ImmutableAccountMutatedDetector {
         accounts_struct: &syn::ItemStruct,
     ) {
         let mut immutable_accounts = HashSet::new();
+        let mut field_ranges = HashMap::new();
 
         if let Fields::Named(fields) = &accounts_struct.fields {
             for field in &fields.named {
                 if let Some(account_name) = self.is_immutable_account_field(field) {
-                    immutable_accounts.insert(account_name);
+                    immutable_accounts.insert(account_name.clone());
+                    field_ranges.insert(
+                        account_name,
+                        DiagnosticBuilder::create_range_from_span(field.span()),
+                    );
                 }
             }
         }
 
         self.context_immutable_accounts
             .insert(context_name.to_string(), immutable_accounts);
+        self.immutable_field_ranges
+            .insert(context_name.to_string(), field_ranges);
     }
 
     /// Check if an expression attempts to mutate an account
@@ -223,10 +235,12 @@ impl Detector for ImmutableAccountMutatedDetector {
         DiagnosticSeverity::ERROR
     }
 
-    fn analyze(&mut self, content: &str) -> Vec<Diagnostic> {
+    fn analyze(&mut self, content: &str, file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
         self.diagnostics.clear();
         self.context_immutable_accounts.clear();
+        self.immutable_field_ranges.clear();
         self.current_context = None;
+        self.file_path = file_path.cloned();
 
         if let Ok(syntax_tree) = parse_str::<syn::File>(content) {
             // First pass: collect all immutable accounts for each context
@@ -296,18 +310,40 @@ impl<'ast> Visit<'ast> for ImmutableAccountMutatedDetector {
                             .severity_override
                             .unwrap_or(self.default_severity());
 
-                        let message = format!(
-                            "Attempting to mutate immutable account '{}'. Add #[account(mut)] to allow mutation.",
-                            account_name
-                        );
+                        // Create the mutation diagnostic with related information
+                        if let Some(field_ranges) = self.immutable_field_ranges.get(context) {
+                            if let Some(field_range) = field_ranges.get(account_name) {
+                                let file_path = self
+                                    .file_path
+                                    .clone()
+                                    .unwrap_or_else(|| PathBuf::from("test.rs"));
+                                let (mutation_diagnostic, field_diagnostic) =
+                                    DiagnosticBuilder::create_with_bidirectional_relation(
+                                        DiagnosticBuilder::create_range_from_span(node.span()),
+                                        format!(
+                                            "Attempting to mutate immutable account '{}'. Add #[account(mut)] to allow mutation.",
+                                            account_name
+                                        ),
+                                        *field_range,
+                                        format!(
+                                            "Account '{}' is defined here without #[account(mut)]",
+                                            account_name
+                                        ),
+                                        format!(
+                                            "Account '{}' is defined here without #[account(mut)]",
+                                            account_name
+                                        ),
+                                        format!("Account '{}' is mutated here", account_name),
+                                        severity,
+                                        self.id().to_string(),
+                                        None,
+                                        &file_path,
+                                    );
 
-                        self.diagnostics.push(DiagnosticBuilder::create(
-                            DiagnosticBuilder::create_range_from_span(node.span()),
-                            message,
-                            severity,
-                            self.id().to_string(),
-                            None,
-                        ));
+                                self.diagnostics.push(mutation_diagnostic);
+                                self.diagnostics.push(field_diagnostic);
+                            }
+                        }
                     }
                 }
             }

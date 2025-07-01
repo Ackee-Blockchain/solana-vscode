@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
 /// Base trait for all security detectors in Anchor programs
@@ -7,8 +8,10 @@ pub trait Detector: Send + Sync {
 
     /// Human-readable name for this detector
     fn name(&self) -> &'static str;
+
     /// Description of what this detector checks for
     fn description(&self) -> &'static str;
+
     /// Message for detection
     fn message(&self) -> &'static str;
 
@@ -16,5 +19,5 @@ pub trait Detector: Send + Sync {
     fn default_severity(&self) -> DiagnosticSeverity;
 
     /// Analyze the given content and return any security issues found
-    fn analyze(&mut self, content: &str) -> Vec<Diagnostic>;
+    fn analyze(&mut self, content: &str, file_path: Option<&PathBuf>) -> Vec<Diagnostic>;
 }

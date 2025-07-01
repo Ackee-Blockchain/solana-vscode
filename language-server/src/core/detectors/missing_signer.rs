@@ -1,6 +1,7 @@
 use super::detector::Detector;
 use super::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
+use std::path::PathBuf;
 use syn::spanned::Spanned;
 use syn::{Fields, parse_str, visit::Visit};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
@@ -52,7 +53,7 @@ impl Detector for MissingSignerDetector {
         DiagnosticSeverity::WARNING
     }
 
-    fn analyze(&mut self, content: &str) -> Vec<Diagnostic> {
+    fn analyze(&mut self, content: &str, _file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
         self.diagnostics.clear();
 
         // Run default detection logic

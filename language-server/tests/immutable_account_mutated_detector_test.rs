@@ -56,13 +56,31 @@ fn test_detects_immutable_account_mutation() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_immutable_mutation);
-    assert_eq!(diagnostics.len(), 1);
+    let diagnostics = detector.analyze(code_with_immutable_mutation, None);
+    assert_eq!(diagnostics.len(), 2); // Expect two diagnostics: one at mutation site, one at field definition
 
-    let diagnostic = &diagnostics[0];
-    assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
-    assert!(diagnostic.message.contains("vault"));
-    assert!(diagnostic.message.contains("#[account(mut)]"));
+    // Check the mutation site diagnostic
+    let mutation_diagnostic = diagnostics
+        .iter()
+        .find(|d| d.message.contains("Attempting to mutate"))
+        .expect("Should have mutation diagnostic");
+    assert_eq!(
+        mutation_diagnostic.severity,
+        Some(DiagnosticSeverity::ERROR)
+    );
+    assert!(mutation_diagnostic.message.contains("vault"));
+    assert!(mutation_diagnostic.message.contains("#[account(mut)]"));
+    assert!(mutation_diagnostic.related_information.is_some());
+
+    // Check the field definition diagnostic
+    let field_diagnostic = diagnostics
+        .iter()
+        .find(|d| d.message.contains("defined here"))
+        .expect("Should have field definition diagnostic");
+    assert_eq!(field_diagnostic.severity, Some(DiagnosticSeverity::ERROR));
+    assert!(field_diagnostic.message.contains("vault"));
+    assert!(field_diagnostic.message.contains("#[account(mut)]"));
+    assert!(field_diagnostic.related_information.is_some());
 }
 
 #[test]
@@ -95,12 +113,29 @@ fn test_detects_method_call_mutation() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_method_mutation);
-    assert_eq!(diagnostics.len(), 1);
+    let diagnostics = detector.analyze(code_with_method_mutation, None);
+    assert_eq!(diagnostics.len(), 2); // Expect two diagnostics: one at mutation site, one at field definition
 
-    let diagnostic = &diagnostics[0];
-    assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
-    assert!(diagnostic.message.contains("readonly_account"));
+    // Check the mutation site diagnostic
+    let mutation_diagnostic = diagnostics
+        .iter()
+        .find(|d| d.message.contains("Attempting to mutate"))
+        .expect("Should have mutation diagnostic");
+    assert_eq!(
+        mutation_diagnostic.severity,
+        Some(DiagnosticSeverity::ERROR)
+    );
+    assert!(mutation_diagnostic.message.contains("readonly_account"));
+    assert!(mutation_diagnostic.related_information.is_some());
+
+    // Check the field definition diagnostic
+    let field_diagnostic = diagnostics
+        .iter()
+        .find(|d| d.message.contains("defined here"))
+        .expect("Should have field definition diagnostic");
+    assert_eq!(field_diagnostic.severity, Some(DiagnosticSeverity::ERROR));
+    assert!(field_diagnostic.message.contains("readonly_account"));
+    assert!(field_diagnostic.related_information.is_some());
 }
 
 #[test]
@@ -142,7 +177,7 @@ fn test_no_detection_for_mutable_accounts() {
         }
     "#;
 
-    let diagnostics = detector.analyze(safe_code);
+    let diagnostics = detector.analyze(safe_code, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -181,8 +216,8 @@ fn test_ignores_non_account_fields() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_non_accounts);
-    assert_eq!(diagnostics.len(), 1); // Only the vault mutation should be detected
+    let diagnostics = detector.analyze(code_with_non_accounts, None);
+    assert_eq!(diagnostics.len(), 2); // Expect two diagnostics: one at mutation site, one at field definition
 }
 
 #[test]
@@ -219,8 +254,8 @@ fn test_ignores_non_accounts_structs() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_mixed_structs);
-    assert_eq!(diagnostics.len(), 1); // Only the Accounts struct should be analyzed
+    let diagnostics = detector.analyze(code_with_mixed_structs, None);
+    assert_eq!(diagnostics.len(), 2); // Expect two diagnostics: one at mutation site, one at field definition
 }
 
 #[test]
@@ -273,8 +308,8 @@ fn test_complex_anchor_program() {
         }
     "#;
 
-    let diagnostics = detector.analyze(complex_program);
-    assert_eq!(diagnostics.len(), 1); // Should detect the mutation in initialize function
+    let diagnostics = detector.analyze(complex_program, None);
+    assert_eq!(diagnostics.len(), 2); // Expect two diagnostics: one at mutation site, one at field definition
 }
 
 #[test]
@@ -291,7 +326,7 @@ fn test_invalid_syntax_handling() {
     "#;
 
     // Should handle invalid syntax gracefully
-    let diagnostics = detector.analyze(invalid_code);
+    let diagnostics = detector.analyze(invalid_code, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -326,11 +361,28 @@ fn test_detects_mutation_through_reference() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_ref_mutation);
-    assert_eq!(diagnostics.len(), 1);
+    let diagnostics = detector.analyze(code_with_ref_mutation, None);
+    assert_eq!(diagnostics.len(), 2); // Expect two diagnostics: one at mutation site, one at field definition
 
-    let diagnostic = &diagnostics[0];
-    assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
-    assert!(diagnostic.message.contains("mutating_account"));
-    assert!(diagnostic.message.contains("#[account(mut)]"));
+    // Check the mutation site diagnostic
+    let mutation_diagnostic = diagnostics
+        .iter()
+        .find(|d| d.message.contains("Attempting to mutate"))
+        .expect("Should have mutation diagnostic");
+    assert_eq!(
+        mutation_diagnostic.severity,
+        Some(DiagnosticSeverity::ERROR)
+    );
+    assert!(mutation_diagnostic.message.contains("mutating_account"));
+    assert!(mutation_diagnostic.message.contains("#[account(mut)]"));
+    assert!(mutation_diagnostic.related_information.is_some());
+
+    // Check the field definition diagnostic
+    let field_diagnostic = diagnostics
+        .iter()
+        .find(|d| d.message.contains("defined here"))
+        .expect("Should have field definition diagnostic");
+    assert_eq!(field_diagnostic.severity, Some(DiagnosticSeverity::ERROR));
+    assert!(field_diagnostic.message.contains("mutating_account"));
+    assert!(field_diagnostic.related_information.is_some());
 }

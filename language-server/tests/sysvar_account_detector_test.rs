@@ -36,7 +36,7 @@ fn test_detects_clock_sysvar_account() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_clock_sysvar);
+    let diagnostics = detector.analyze(code_with_clock_sysvar, None);
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];
@@ -60,7 +60,7 @@ fn test_detects_epoch_schedule_sysvar_account() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_epoch_schedule_sysvar);
+    let diagnostics = detector.analyze(code_with_epoch_schedule_sysvar, None);
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];
@@ -83,7 +83,7 @@ fn test_detects_rent_sysvar_account() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_rent_sysvar);
+    let diagnostics = detector.analyze(code_with_rent_sysvar, None);
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];
@@ -106,7 +106,7 @@ fn test_detects_slot_hashes_sysvar_account() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_slot_hashes_sysvar);
+    let diagnostics = detector.analyze(code_with_slot_hashes_sysvar, None);
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];
@@ -134,7 +134,7 @@ fn test_detects_multiple_sysvar_accounts() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_multiple_sysvars);
+    let diagnostics = detector.analyze(code_with_multiple_sysvars, None);
     assert_eq!(diagnostics.len(), 6);
 
     // Check that all sysvars are detected (since all support get() via trait)
@@ -163,7 +163,7 @@ fn test_ignores_non_sysvar_accounts() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_non_sysvar);
+    let diagnostics = detector.analyze(code_with_non_sysvar, None);
     assert_eq!(diagnostics.len(), 0); // Should not detect non-Sysvar account types
 }
 
@@ -191,7 +191,7 @@ fn test_ignores_non_accounts_structs() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_mixed_structs);
+    let diagnostics = detector.analyze(code_with_mixed_structs, None);
     assert_eq!(diagnostics.len(), 1); // Only the Accounts struct should be flagged
 }
 
@@ -216,7 +216,7 @@ fn test_ignores_regular_accounts() {
         }
     "#;
 
-    let diagnostics = detector.analyze(code_with_regular_accounts);
+    let diagnostics = detector.analyze(code_with_regular_accounts, None);
     assert_eq!(diagnostics.len(), 0); // No sysvars to detect
 }
 
@@ -255,7 +255,7 @@ fn test_real_world_anchor_pattern() {
         }
     "#;
 
-    let diagnostics = detector.analyze(real_world_code);
+    let diagnostics = detector.analyze(real_world_code, None);
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];
@@ -278,7 +278,7 @@ fn test_invalid_syntax_handling() {
     "#;
 
     // Should handle invalid syntax gracefully
-    let diagnostics = detector.analyze(invalid_code);
+    let diagnostics = detector.analyze(invalid_code, None);
     assert_eq!(diagnostics.len(), 0);
 }
 
@@ -296,8 +296,8 @@ fn test_detector_state_isolation() {
         }
     "#;
 
-    let diagnostics1 = detector1.analyze(code);
-    let diagnostics2 = detector2.analyze(code);
+    let diagnostics1 = detector1.analyze(code, None);
+    let diagnostics2 = detector2.analyze(code, None);
 
     // Each detector instance should produce the same results
     assert_eq!(diagnostics1.len(), diagnostics2.len());

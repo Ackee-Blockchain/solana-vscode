@@ -1,6 +1,7 @@
 use crate::core::detector::Detector;
 use crate::core::detector_config::DetectorConfig;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use tower_lsp::lsp_types::Diagnostic;
 
 /// Registry that manages all security detectors
@@ -57,7 +58,7 @@ impl DetectorRegistry {
     }
 
     /// Run all enabled detectors on the given content
-    pub fn analyze(&mut self, content: &str) -> Vec<Diagnostic> {
+    pub fn analyze(&mut self, content: &str, file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
         let mut all_diagnostics = Vec::new();
 
         for detector in &mut self.detectors {
@@ -67,7 +68,7 @@ impl DetectorRegistry {
                 continue;
             }
 
-            let mut diagnostics = detector.analyze(content);
+            let mut diagnostics = detector.analyze(content, file_path);
 
             // Apply severity override if configured
             if let Some(severity_override) = config.severity_override {

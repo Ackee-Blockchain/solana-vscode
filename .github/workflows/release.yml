@@ -134,7 +134,7 @@ jobs:
           chmod +x build-language-server.sh
           ./build-language-server.sh --ci ${{ matrix.platform }} ${{ matrix.arch }}
 
-      - name: Compile TypeScript
+      - name: Bundle Extension
         run: |
           cd extension
           npm run build
@@ -142,7 +142,7 @@ jobs:
       - name: Build VSIX Package
         run: |
           cd extension
-          vsce package --target ${{ matrix.vscode_target }}
+          vsce package --target ${{ matrix.vscode_target }} --no-dependencies
 
       - name: Upload VSIX Package
         uses: actions/upload-artifact@v4

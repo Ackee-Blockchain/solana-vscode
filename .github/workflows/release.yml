@@ -129,6 +129,15 @@ jobs:
           npm install -g @vscode/vsce
 
       - name: Build Language Server
+        if: matrix.platform != 'win32'
+        run: |
+          cd language-server
+          chmod +x build-language-server.sh
+          ./build-language-server.sh --ci ${{ matrix.platform }} ${{ matrix.arch }}
+
+      - name: Build Language Server (Windows)
+        if: matrix.platform == 'win32'
+        shell: bash
         run: |
           cd language-server
           chmod +x build-language-server.sh

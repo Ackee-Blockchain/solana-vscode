@@ -5,7 +5,7 @@ use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]
 fn test_detector_metadata() {
-    let detector = SysvarAccountDetector::new();
+    let detector = SysvarAccountDetector::default();
 
     assert_eq!(detector.id(), "INEFFICIENT_SYSVAR_ACCOUNT");
     assert_eq!(detector.name(), "Inefficient Sysvar Account Usage");
@@ -18,7 +18,7 @@ fn test_detector_metadata() {
 
 #[test]
 fn test_detects_clock_sysvar_account() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let code_with_clock_sysvar = r#"
         use anchor_lang::prelude::*;
@@ -47,7 +47,7 @@ fn test_detects_clock_sysvar_account() {
 
 #[test]
 fn test_detects_epoch_schedule_sysvar_account() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let code_with_epoch_schedule_sysvar = r#"
         use anchor_lang::prelude::*;
@@ -70,7 +70,7 @@ fn test_detects_epoch_schedule_sysvar_account() {
 
 #[test]
 fn test_detects_rent_sysvar_account() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let code_with_rent_sysvar = r#"
         use anchor_lang::prelude::*;
@@ -93,7 +93,7 @@ fn test_detects_rent_sysvar_account() {
 
 #[test]
 fn test_detects_slot_hashes_sysvar_account() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let code_with_slot_hashes_sysvar = r#"
         use anchor_lang::prelude::*;
@@ -116,7 +116,7 @@ fn test_detects_slot_hashes_sysvar_account() {
 
 #[test]
 fn test_detects_multiple_sysvar_accounts() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let code_with_multiple_sysvars = r#"
         use anchor_lang::prelude::*;
@@ -149,7 +149,7 @@ fn test_detects_multiple_sysvar_accounts() {
 
 #[test]
 fn test_ignores_non_sysvar_accounts() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let code_with_non_sysvar = r#"
         use anchor_lang::prelude::*;
@@ -169,7 +169,7 @@ fn test_ignores_non_sysvar_accounts() {
 
 #[test]
 fn test_ignores_non_accounts_structs() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let code_with_mixed_structs = r#"
         use anchor_lang::prelude::*;
@@ -197,7 +197,7 @@ fn test_ignores_non_accounts_structs() {
 
 #[test]
 fn test_ignores_regular_accounts() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let code_with_regular_accounts = r#"
         use anchor_lang::prelude::*;
@@ -222,7 +222,7 @@ fn test_ignores_regular_accounts() {
 
 #[test]
 fn test_real_world_anchor_pattern() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let real_world_code = r#"
         use anchor_lang::prelude::*;
@@ -266,7 +266,7 @@ fn test_real_world_anchor_pattern() {
 
 #[test]
 fn test_invalid_syntax_handling() {
-    let mut detector = SysvarAccountDetector::new();
+    let mut detector = SysvarAccountDetector::default();
 
     let invalid_code = r#"
         use anchor_lang::prelude::*;
@@ -284,8 +284,8 @@ fn test_invalid_syntax_handling() {
 
 #[test]
 fn test_detector_state_isolation() {
-    let mut detector1 = SysvarAccountDetector::new();
-    let mut detector2 = SysvarAccountDetector::new();
+    let mut detector1 = SysvarAccountDetector::default();
+    let mut detector2 = SysvarAccountDetector::default();
 
     let code = r#"
         use anchor_lang::prelude::*;

@@ -3,7 +3,7 @@ use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]
 fn test_detector_metadata() {
-    let detector = MissingSignerDetector::new();
+    let detector = MissingSignerDetector::default();
 
     assert_eq!(detector.id(), "MISSING_SIGNER");
     assert_eq!(detector.name(), "Missing Signer Check");
@@ -16,7 +16,7 @@ fn test_detector_metadata() {
 
 #[test]
 fn test_detects_missing_signer() {
-    let mut detector = MissingSignerDetector::new();
+    let mut detector = MissingSignerDetector::default();
 
     let code_without_signer = r#"
         use anchor_lang::prelude::*;
@@ -45,7 +45,7 @@ fn test_detects_missing_signer() {
 
 #[test]
 fn test_no_detection_with_signer() {
-    let mut detector = MissingSignerDetector::new();
+    let mut detector = MissingSignerDetector::default();
 
     let code_with_signer = r#"
         use anchor_lang::prelude::*;
@@ -70,7 +70,7 @@ fn test_no_detection_with_signer() {
 
 #[test]
 fn test_detects_multiple_accounts_structs() {
-    let mut detector = MissingSignerDetector::new();
+    let mut detector = MissingSignerDetector::default();
 
     let code_with_multiple_structs = r#"
         use anchor_lang::prelude::*;
@@ -108,7 +108,7 @@ fn test_detects_multiple_accounts_structs() {
 
 #[test]
 fn test_ignores_non_accounts_structs() {
-    let mut detector = MissingSignerDetector::new();
+    let mut detector = MissingSignerDetector::default();
 
     let code_with_mixed_structs = r#"
         use anchor_lang::prelude::*;
@@ -136,7 +136,7 @@ fn test_ignores_non_accounts_structs() {
 
 #[test]
 fn test_different_signer_patterns() {
-    let mut detector = MissingSignerDetector::new();
+    let mut detector = MissingSignerDetector::default();
 
     let code_with_various_signers = r#"
         use anchor_lang::prelude::*;
@@ -167,7 +167,7 @@ fn test_different_signer_patterns() {
 
 #[test]
 fn test_real_world_anchor_patterns() {
-    let mut detector = MissingSignerDetector::new();
+    let mut detector = MissingSignerDetector::default();
 
     let vulnerable_transfer = r#"
         use anchor_lang::prelude::*;
@@ -207,7 +207,7 @@ fn test_real_world_anchor_patterns() {
 
 #[test]
 fn test_invalid_syntax_handling() {
-    let mut detector = MissingSignerDetector::new();
+    let mut detector = MissingSignerDetector::default();
 
     let invalid_code = r#"
         use anchor_lang::prelude::*;
@@ -225,8 +225,8 @@ fn test_invalid_syntax_handling() {
 
 #[test]
 fn test_detector_state_isolation() {
-    let mut detector1 = MissingSignerDetector::new();
-    let mut detector2 = MissingSignerDetector::new();
+    let mut detector1 = MissingSignerDetector::default();
+    let mut detector2 = MissingSignerDetector::default();
 
     let code = r#"
         use anchor_lang::prelude::*;
@@ -247,7 +247,7 @@ fn test_detector_state_isolation() {
 
 #[test]
 fn test_complex_anchor_program() {
-    let mut detector = MissingSignerDetector::new();
+    let mut detector = MissingSignerDetector::default();
 
     let complex_program = r#"
         use anchor_lang::prelude::*;

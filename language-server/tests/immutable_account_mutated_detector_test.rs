@@ -5,7 +5,7 @@ use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]
 fn test_detector_metadata() {
-    let detector = ImmutableAccountMutatedDetector::new();
+    let detector = ImmutableAccountMutatedDetector::default();
 
     assert_eq!(detector.id(), "IMMUTABLE_ACCOUNT_MUTATED");
     assert_eq!(detector.name(), "Immutable Account Mutation");
@@ -18,7 +18,7 @@ fn test_detector_metadata() {
 
 #[test]
 fn test_detects_immutable_account_mutation() {
-    let mut detector = ImmutableAccountMutatedDetector::new();
+    let mut detector = ImmutableAccountMutatedDetector::default();
 
     let code_with_immutable_mutation = r#"
         use anchor_lang::prelude::*;
@@ -67,7 +67,7 @@ fn test_detects_immutable_account_mutation() {
 
 #[test]
 fn test_detects_method_call_mutation() {
-    let mut detector = ImmutableAccountMutatedDetector::new();
+    let mut detector = ImmutableAccountMutatedDetector::default();
 
     let code_with_method_mutation = r#"
         use anchor_lang::prelude::*;
@@ -109,7 +109,7 @@ fn test_detects_method_call_mutation() {
 
 #[test]
 fn test_no_detection_for_mutable_accounts() {
-    let mut detector = ImmutableAccountMutatedDetector::new();
+    let mut detector = ImmutableAccountMutatedDetector::default();
 
     let safe_code = r#"
         use anchor_lang::prelude::*;
@@ -152,7 +152,7 @@ fn test_no_detection_for_mutable_accounts() {
 
 #[test]
 fn test_ignores_non_account_fields() {
-    let mut detector = ImmutableAccountMutatedDetector::new();
+    let mut detector = ImmutableAccountMutatedDetector::default();
 
     let code_with_non_accounts = r#"
         use anchor_lang::prelude::*;
@@ -191,7 +191,7 @@ fn test_ignores_non_account_fields() {
 
 #[test]
 fn test_ignores_non_accounts_structs() {
-    let mut detector = ImmutableAccountMutatedDetector::new();
+    let mut detector = ImmutableAccountMutatedDetector::default();
 
     let code_with_mixed_structs = r#"
         use anchor_lang::prelude::*;
@@ -229,7 +229,7 @@ fn test_ignores_non_accounts_structs() {
 
 #[test]
 fn test_complex_anchor_program() {
-    let mut detector = ImmutableAccountMutatedDetector::new();
+    let mut detector = ImmutableAccountMutatedDetector::default();
 
     let complex_program = r#"
         use anchor_lang::prelude::*;
@@ -284,7 +284,7 @@ fn test_complex_anchor_program() {
 
 #[test]
 fn test_invalid_syntax_handling() {
-    let mut detector = ImmutableAccountMutatedDetector::new();
+    let mut detector = ImmutableAccountMutatedDetector::default();
 
     let invalid_code = r#"
         use anchor_lang::prelude::*;

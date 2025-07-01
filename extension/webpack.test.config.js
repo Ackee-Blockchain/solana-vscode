@@ -19,6 +19,7 @@ testFiles.forEach(file => {
   testEntries[entryName] = `./${file}`;
 });
 
+
 /** @type {import('webpack').Configuration} */
 module.exports = {
   target: 'node',

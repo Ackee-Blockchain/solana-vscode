@@ -286,7 +286,7 @@ impl Backend {
     pub async fn scan_workspace(&self) -> Option<ScanResult> {
         let scanner = self.file_scanner.lock().await;
         let mut registry = self.detector_registry.lock().await;
-        Some(scanner.scan_workspace(&mut *registry).await)
+        Some(scanner.scan_workspace(&mut registry).await)
     }
 }
 

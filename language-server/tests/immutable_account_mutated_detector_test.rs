@@ -96,10 +96,6 @@ fn test_detects_method_call_mutation() {
     "#;
 
     let diagnostics = detector.analyze(code_with_method_mutation);
-    println!("Diagnostics found: {}", diagnostics.len());
-    for diagnostic in &diagnostics {
-        println!("Diagnostic: {}", diagnostic.message);
-    }
     assert_eq!(diagnostics.len(), 1);
 
     let diagnostic = &diagnostics[0];

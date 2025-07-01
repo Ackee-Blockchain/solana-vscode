@@ -68,7 +68,7 @@ jobs:
       - name: Build extension
         run: |
           cd extension
-          npm run compile
+          npm run build
 
       - name: Run extension tests
         run: |

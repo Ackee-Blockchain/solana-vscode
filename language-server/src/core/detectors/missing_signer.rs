@@ -91,15 +91,12 @@ impl<'ast> Visit<'ast> for MissingSignerDetector {
                 .severity_override
                 .unwrap_or(self.default_severity());
 
-            // Create span for just the struct declaration line
-            let struct_decl_span = node
-                .struct_token
-                .span()
-                .join(node.generics.span())
-                .unwrap_or(node.ident.span());
+            // Create a range that covers the entire line
+            let line = node.span().start().line as u32;
+            let range = DiagnosticBuilder::create_range_from_line(line);
 
             self.diagnostics.push(DiagnosticBuilder::create(
-                DiagnosticBuilder::create_range_from_span(struct_decl_span),
+                range,
                 self.message().to_string(),
                 severity,
                 self.id().to_string(),

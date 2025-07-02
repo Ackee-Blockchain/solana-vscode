@@ -1,7 +1,8 @@
 use crate::core::{
-    DetectorInfo, DetectorRegistry, FileScanner, ImmutableAccountMutatedDetector,
-    ManualLamportsZeroingDetector, MissingSignerDetector, ScanCompleteNotification, ScanResult,
-    ScanSummary, SysvarAccountDetector,
+    DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, FileScanner,
+    ImmutableAccountMutatedDetector, ManualLamportsZeroingDetector, MissingInitspaceDetector,
+    MissingSignerDetector, ScanCompleteNotification, ScanResult, ScanSummary,
+    SysvarAccountDetector, UnsafeMathDetector,
 };
 use log::info;
 use std::sync::Arc;
@@ -301,13 +302,12 @@ pub struct DetectorStats {
 
 /// Create a default detector registry with all available detectors
 fn create_default_registry() -> DetectorRegistry {
-    use crate::core::{DetectorRegistryBuilder, UnsafeMathDetector};
-
     DetectorRegistryBuilder::new()
         .with_detector(UnsafeMathDetector::default())
         .with_detector(MissingSignerDetector::default())
         .with_detector(ManualLamportsZeroingDetector::default())
         .with_detector(SysvarAccountDetector::default())
         .with_detector(ImmutableAccountMutatedDetector::default())
+        .with_detector(MissingInitspaceDetector::default())
         .build()
 }

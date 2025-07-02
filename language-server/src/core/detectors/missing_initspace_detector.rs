@@ -2,6 +2,7 @@ use super::detector::Detector;
 use super::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use std::path::PathBuf;
+use syn::spanned::Spanned;
 use syn::{parse_str, visit::Visit};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
@@ -71,14 +72,17 @@ impl<'ast> Visit<'ast> for MissingInitspaceDetector {
         });
 
         if !has_initspace_macro {
-            // Create a diagnostic for missing InitSpace macro
             let severity = self
                 .config
                 .severity_override
                 .unwrap_or(self.default_severity());
 
+            // Create a range that covers the entire line
+            let line = node.span().start().line as u32;
+            let range = DiagnosticBuilder::create_range_from_line(line);
+
             self.diagnostics.push(DiagnosticBuilder::create(
-                DiagnosticBuilder::create_range_from_span(node.ident.span()),
+                range,
                 self.message().to_string(),
                 severity,
                 self.id().to_string(),

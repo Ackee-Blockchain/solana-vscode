@@ -170,18 +170,21 @@ impl DiagnosticBuilder {
     }
 
     /// Create a range from line and character positions
-    #[allow(dead_code)]
     pub fn create_range(start_line: u32, start_char: u32, end_line: u32, end_char: u32) -> Range {
         Range {
             start: Position {
-                line: start_line - 1,
+                line: start_line,
                 character: start_char,
             },
             end: Position {
-                line: end_line - 1,
+                line: end_line,
                 character: end_char,
             },
         }
+    }
+
+    pub fn create_range_from_line(line: u32) -> Range {
+        Self::create_range(line, 0, line, 200)
     }
 
     pub fn create_range_from_span(span: Span) -> Range {

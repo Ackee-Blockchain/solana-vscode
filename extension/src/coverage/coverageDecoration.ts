@@ -173,7 +173,7 @@ class CoverageDecorations {
       .map(() => [] as vscode.DecorationOptions[]);
 
     const filteredSegments = coverageFileData.segments.filter(
-      (segment) => segment.has_count
+      (segment) => this.shouldDisplaySegment(segment, editor)
     );
     for (const segment of filteredSegments) {
       const decoration = this.createSegmentDecoration(
@@ -193,6 +193,41 @@ class CoverageDecorations {
         editor.setDecorations(this.lineCoverageDecorations[index], decorations);
       }
     );
+  }
+
+  /**
+   * Determines whether a coverage segment should be displayed based on filtering rules
+   * This helps avoid displaying misleading coverage information from Rust macros
+   * @param {CoverageSegment} segment - The coverage segment to evaluate
+   * @param {vscode.TextEditor} editor - The text editor to examine line content
+   * @returns {boolean} True if the segment should be displayed, false otherwise
+   * @private
+   */
+  private shouldDisplaySegment(segment: CoverageSegment, editor: vscode.TextEditor): boolean {
+    if (!segment.has_count) {
+      return false;
+    }
+
+    // Check the actual line content for macro patterns
+    try {
+      const lineIndex = segment.line - 1;
+      if (lineIndex >= 0 && lineIndex < editor.document.lineCount) {
+        const lineContent = editor.document.lineAt(lineIndex).text.trim();
+        
+        // Filter out lines that start with #[ (attribute macros like #[derive], #[account], etc.)
+        if (lineContent.startsWith('#[')) {
+          return false;
+        }
+        
+        if (lineContent.includes('declare_id!')) {
+          return false;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to read line content for macro detection:', error);
+    }
+
+    return true;
   }
 
   /**

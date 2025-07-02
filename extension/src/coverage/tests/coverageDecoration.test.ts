@@ -24,6 +24,10 @@ class TestCoverageDecorations extends CoverageDecorations {
   ): void {
     return this["prepareAndDisplaySegments"](coverageFileData, editor);
   }
+
+  public testShouldDisplaySegment(segment: CoverageSegment, editor: vscode.TextEditor): boolean {
+    return this["shouldDisplaySegment"](segment, editor);
+  }
 }
 
 suite("Coverage Decoration Test Suite", () => {
@@ -371,6 +375,133 @@ suite("Coverage Decoration Test Suite", () => {
         true,
         "Should set decorations on editor"
       );
+    });
+  });
+
+  suite("Macro Filtering", () => {
+    test("should filter out derive macro lines", () => {
+      // Create a mock editor with a derive macro line
+      const mockEditor = {
+        document: {
+          uri: { fsPath: "/test/file.rs" },
+          lineCount: 100,
+          lineAt: (line: number) => ({
+            text: line === 24 ? "#[derive(Account)]" : "normal code line", // Line 25 (0-indexed 24) has derive macro
+            range: new vscode.Range(
+              new vscode.Position(line, 0),
+              new vscode.Position(line, 20)
+            ),
+            lineNumber: line,
+            firstNonWhitespaceCharacterIndex: 0,
+            isEmptyOrWhitespace: false,
+          }),
+        },
+        setDecorations: () => {},
+      } as any;
+
+      // Test segment on derive macro line (line 25, 0-indexed 24)
+      const macroSegment: CoverageSegment = {
+        line: 25,
+        column: 10,
+        execution_count: 1956,
+        has_count: true,
+        is_region_entry: true,
+        is_gap_region: false,
+      };
+
+      // Test segment on normal code line
+      const normalSegment: CoverageSegment = {
+        line: 10,
+        column: 5,
+        execution_count: 100,
+        has_count: true,
+        is_region_entry: true,
+        is_gap_region: false,
+      };
+
+      const macroResult = coverageDecorations.testShouldDisplaySegment(macroSegment, mockEditor);
+      const normalResult = coverageDecorations.testShouldDisplaySegment(normalSegment, mockEditor);
+
+      assert.strictEqual(macroResult, false, "Should filter out derive macro line");
+      assert.strictEqual(normalResult, true, "Should display normal code line");
+    });
+
+    test("should filter out attribute macro lines", () => {
+      const mockEditor = {
+        document: {
+          uri: { fsPath: "/test/file.rs" },
+          lineCount: 100,
+          lineAt: (line: number) => {
+            switch (line) {
+              case 9: return { text: "#[account]", lineNumber: line };
+              case 14: return { text: "#[program]", lineNumber: line };
+              default: return { text: "normal code", lineNumber: line };
+            }
+          },
+        },
+        setDecorations: () => {},
+      } as any;
+
+      const accountMacroSegment: CoverageSegment = {
+        line: 10, // 0-indexed 9
+        column: 5,
+        execution_count: 500,
+        has_count: true,
+        is_region_entry: true,
+        is_gap_region: false,
+      };
+
+      const programMacroSegment: CoverageSegment = {
+        line: 15, // 0-indexed 14
+        column: 5,
+        execution_count: 200,
+        has_count: true,
+        is_region_entry: true,
+        is_gap_region: false,
+      };
+
+      const accountResult = coverageDecorations.testShouldDisplaySegment(accountMacroSegment, mockEditor);
+      const programResult = coverageDecorations.testShouldDisplaySegment(programMacroSegment, mockEditor);
+
+      assert.strictEqual(accountResult, false, "Should filter out #[account] line");
+      assert.strictEqual(programResult, false, "Should filter out #[program] line");
+    });
+
+    test("should still filter basic patterns", () => {
+      const mockEditor = {
+        document: {
+          uri: { fsPath: "/test/file.rs" },
+          lineCount: 100,
+          lineAt: (line: number) => ({ text: "normal code", lineNumber: line }),
+        },
+        setDecorations: () => {},
+      } as any;
+
+      // Test segment without has_count
+      const noCountSegment: CoverageSegment = {
+        line: 10,
+        column: 5,
+        execution_count: 0,
+        has_count: false,
+        is_region_entry: false,
+        is_gap_region: false,
+      };
+
+      // Test gap region
+      const gapSegment: CoverageSegment = {
+        line: 15,
+        column: 5,
+        execution_count: 0,
+        has_count: true,
+        is_region_entry: false,
+        is_gap_region: true,
+      };
+
+      const noCountResult = coverageDecorations.testShouldDisplaySegment(noCountSegment, mockEditor);
+      const gapResult = coverageDecorations.testShouldDisplaySegment(gapSegment, mockEditor);
+
+      assert.strictEqual(noCountResult, false, "Should filter out segments without has_count");
+      assert.strictEqual(gapResult, false, "Should filter out gap regions");
     });
   });
 });

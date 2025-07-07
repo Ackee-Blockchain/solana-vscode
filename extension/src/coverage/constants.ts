@@ -43,15 +43,16 @@ const TridentConstants = {
   LIVE_REPORT_FILE: "trident-live-coverage-report.json",
 };
 
-const CoverageConstants = {
-  DEFAULT_UPDATE_INTERVAL: 3000,
-  NOTIFICATION_FILE:
-    "trident-tests/target/coverage-extension-notification.json",
+const CoverageServerConstants = {
+  DEFAULT_COVERAGE_SERVER_PORT: 58432,
+  UPDATE_DECORATIONS: "/update-decorations",
+  SETUP_DYNAMIC_COVERAGE: "/setup-dynamic-coverage",
+  DISPLAY_FINAL_REPORT: "/display-final-report",
 };
 
 export {
   DecorationConstants,
   TestApiConstants,
   TridentConstants,
-  CoverageConstants,
+  CoverageServerConstants,
 };

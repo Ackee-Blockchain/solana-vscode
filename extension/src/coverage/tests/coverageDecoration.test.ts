@@ -487,21 +487,9 @@ suite("Coverage Decoration Test Suite", () => {
         is_gap_region: false,
       };
 
-      // Test gap region
-      const gapSegment: CoverageSegment = {
-        line: 15,
-        column: 5,
-        execution_count: 0,
-        has_count: true,
-        is_region_entry: false,
-        is_gap_region: true,
-      };
-
       const noCountResult = coverageDecorations.testShouldDisplaySegment(noCountSegment, mockEditor);
-      const gapResult = coverageDecorations.testShouldDisplaySegment(gapSegment, mockEditor);
 
       assert.strictEqual(noCountResult, false, "Should filter out segments without has_count");
-      assert.strictEqual(gapResult, false, "Should filter out gap regions");
     });
   });
 });

@@ -144,6 +144,23 @@ async function readProfrawList(profrawListPath: string): Promise<string[]> {
   }
 }
 
+/**
+ * Verifies the presence of the trident tests directory
+ * @throws {Error} If the trident tests directory is not found
+ */
+async function verifyTridentTestsDirectory() {
+  const workspaceRoot = getWorkspaceRoot();
+  try {
+    const tridentTestsPath = path.join(workspaceRoot, "trident-tests");
+    await vscode.workspace.fs.stat(vscode.Uri.file(tridentTestsPath));
+  } catch {
+    const errorMessage =
+      "Trident tests directory not found in the current workspace. Please navigate to the project's root directory.";
+    coverageErrorLog(errorMessage);
+    throw new Error(errorMessage);
+  }
+}
+
 export {
   coverageErrorLog,
   getWorkspaceRoot,
@@ -153,4 +170,5 @@ export {
   extractCorruptedFiles,
   removeFiles,
   readProfrawList,
+  verifyTridentTestsDirectory,
 };

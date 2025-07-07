@@ -68,10 +68,10 @@
           "description": "Color of the execution count display",
           "format": "color"
         },
-        "tridentCoverage.dynamicUpdateInterval": {
+        "tridentCoverage.coverageServerPort": {
           "type": "number",
-          "default": 3000,
-          "description": "Minimum time (in milliseconds) between coverage report generations. Actual update time may be longer depending on system performance"
+          "default": 58432,
+          "description": "Port for the coverage server"
         }
       }
     }

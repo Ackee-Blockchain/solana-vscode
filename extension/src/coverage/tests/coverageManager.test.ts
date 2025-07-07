@@ -4,9 +4,7 @@ import { CoverageManager } from "../coverageManager";
 import { CoverageType } from "../types";
 import {
   TridentConstants,
-  CoverageConstants,
 } from "../constants";
-const { DEFAULT_UPDATE_INTERVAL } = CoverageConstants;
 
 // Test-only subclass to access private methods
 class TestCoverageManager extends CoverageManager {
@@ -14,8 +12,8 @@ class TestCoverageManager extends CoverageManager {
     return this["setupCoverage"]();
   }
 
-  public testStartDynamicCoverage(): Promise<void> {
-    return this["startDynamicCoverage"]();
+  public testSetupDynamicCoverage(): Promise<void> {
+    return this["setupDynamicCoverage"]();
   }
 
   public testGetGenerateReportCommand(): Promise<string> {
@@ -28,10 +26,6 @@ class TestCoverageManager extends CoverageManager {
 
   public async testRemoveLeftOverProfrawFiles(): Promise<void> {
     await this["removeLeftOverProfrawFiles"]();
-  }
-
-  public async testCheckProfrawFiles(): Promise<boolean> {
-    return await this["checkProfrawFiles"]();
   }
 
   public async testGenerateReport(): Promise<void> {
@@ -147,39 +141,6 @@ suite("Coverage Manager Test Suite", () => {
         assert.ok(coverageDisplayed, "Should display new coverage");
       } finally {
         (coverageManager as any).setupCoverage = originalSetupCoverage;
-      }
-    });
-
-    test("should handle dynamic coverage", async () => {
-      let dynamicCoverageStarted = false;
-      let coverageCleared = false;
-
-      const originalSetupCoverage = (coverageManager as any).setupCoverage;
-      const originalStartDynamicCoverage = (coverageManager as any)
-      .startDynamicCoverage;
-
-      (coverageManager as any).setupCoverage = async () => {
-        (coverageManager as any).coverageType = CoverageType.Dynamic;
-      };
-
-      (coverageManager as any).startDynamicCoverage = async () => {
-        dynamicCoverageStarted = true;
-      };
-
-      (coverageManager as any).coverageDecorations = {
-        clearCoverage: () => {
-          coverageCleared = true;
-        },
-      };
-
-      try {
-        await coverageManager.showCoverage();
-        assert.ok(coverageCleared, "Should clear existing coverage");
-        assert.ok(dynamicCoverageStarted, "Should start dynamic coverage");
-      } finally {
-        (coverageManager as any).setupCoverage = originalSetupCoverage;
-        (coverageManager as any).startDynamicCoverage =
-        originalStartDynamicCoverage;
       }
     });
   });
@@ -344,76 +305,6 @@ suite("Coverage Manager Test Suite", () => {
       } finally {
         require("../utils").executeCommand = originalExecuteCommand;
         require("../utils").removeFiles = originalRemoveFiles;
-      }
-    });
-  });
-
-  suite("checkProfrawFiles", () => {
-    test("should detect profraw files in target directory", async () => {
-      let targetDirPathCalled = false;
-      let getDirContentsCalled = false;
-
-      const originalUtils = {
-        getTargetDirPath: require("../utils").getTargetDirPath,
-        getDirContents: require("../utils").getDirContents,
-      };
-
-      require("../utils").getTargetDirPath = async () => {
-        targetDirPathCalled = true;
-        return "/test/target/dir";
-      };
-
-      require("../utils").getDirContents = async () => {
-        getDirContentsCalled = true;
-        return [
-          ["test.profraw", vscode.FileType.File],
-          ["other.txt", vscode.FileType.File],
-        ];
-      };
-
-      try {
-        const result = await coverageManager.testCheckProfrawFiles();
-        assert.ok(targetDirPathCalled, "Should get target directory path");
-        assert.ok(getDirContentsCalled, "Should get directory contents");
-        assert.ok(result, "Should detect profraw files");
-      } finally {
-        Object.assign(require("../utils"), originalUtils);
-      }
-    });
-
-    test("should return false when no profraw files exist", async () => {
-      require("../utils").getDirContents = async () => {
-        return [
-          ["test.txt", vscode.FileType.File],
-          ["other.log", vscode.FileType.File],
-        ];
-      };
-
-      try {
-        const result = await coverageManager.testCheckProfrawFiles();
-        assert.strictEqual(
-          result,
-          false,
-          "Should not detect any profraw files"
-        );
-      } finally {
-        require("../utils").getDirContents = require("../utils").getDirContents;
-      }
-    });
-
-    test("should handle errors when checking files", async () => {
-      require("../utils").getDirContents = async () => {
-        throw new Error("Failed to read directory");
-      };
-
-      try {
-        await assert.rejects(
-          () => coverageManager.testCheckProfrawFiles(),
-          Error,
-          "Should throw error when directory read fails"
-        );
-      } finally {
-        require("../utils").getDirContents = require("../utils").getDirContents;
       }
     });
   });
@@ -599,146 +490,6 @@ suite("Coverage Manager Test Suite", () => {
           Object.defineProperty(vscode.workspace, "fs", originalFs);
         }
         Object.assign(require("../utils"), originalUtils);
-      }
-    });
-
-    test("should throw error when no profraw files found", async () => {
-      const originalShowQuickPick = Object.getOwnPropertyDescriptor(
-        vscode.window,
-        "showQuickPick"
-      );
-      const originalFs = Object.getOwnPropertyDescriptor(
-        vscode.workspace,
-        "fs"
-      );
-      const mockFs = {};
-      Object.defineProperty(vscode.workspace, "fs", {
-        value: mockFs,
-        configurable: true,
-      });
-      const originalStat = Object.getOwnPropertyDescriptor(
-        vscode.workspace.fs,
-        "stat"
-      );
-      const originalUtils = {
-        getWorkspaceRoot: require("../utils").getWorkspaceRoot,
-        getTargetDirPath: require("../utils").getTargetDirPath,
-        getDirContents: require("../utils").getDirContents,
-      };
-
-      Object.defineProperty(vscode.window, "showQuickPick", {
-        value: () => Promise.resolve(CoverageType.Dynamic),
-        configurable: true,
-      });
-
-      require("../utils").getWorkspaceRoot = () => "/test/workspace";
-      require("../utils").getTargetDirPath = async () => "/test/target/dir";
-      require("../utils").getDirContents = async () => [
-        ["test.txt", vscode.FileType.File],
-      ];
-
-      Object.defineProperty(vscode.workspace.fs, "stat", {
-        value: async () => ({} as vscode.FileStat),
-        configurable: true,
-      });
-
-      try {
-        await assert.rejects(
-          () => coverageManager.testSetupCoverage(),
-          /No profraw files found/,
-          "Should throw error when no profraw files found"
-        );
-      } finally {
-        if (originalShowQuickPick) {
-          Object.defineProperty(
-            vscode.window,
-            "showQuickPick",
-            originalShowQuickPick
-          );
-        }
-        if (originalStat) {
-          Object.defineProperty(vscode.workspace.fs, "stat", originalStat);
-        }
-        if (originalFs) {
-          Object.defineProperty(vscode.workspace, "fs", originalFs);
-        }
-        Object.assign(require("../utils"), originalUtils);
-      }
-    });
-  });
-
-  suite("startDynamicCoverage", () => {
-    test("should setup dynamic coverage updates", async () => {
-      let updateIntervalCalled = false;
-      let infoMessageShown = false;
-      let updateCoverageStarted = false;
-
-      const originalGetConfiguration = Object.getOwnPropertyDescriptor(
-        vscode.workspace,
-        "getConfiguration"
-      );
-      const originalShowInfoMessage = Object.getOwnPropertyDescriptor(
-        vscode.window,
-        "showInformationMessage"
-      );
-      const originalUpdateCoverage = (coverageManager as any)["updateCoverage"];
-
-      Object.defineProperty(vscode.workspace, "getConfiguration", {
-        value: () => ({
-          get: (key: string, defaultValue: any) => {
-            updateIntervalCalled = true;
-            return defaultValue;
-          },
-        }),
-        configurable: true,
-      });
-
-      Object.defineProperty(vscode.window, "showInformationMessage", {
-        value: async (message: string) => {
-          infoMessageShown = true;
-          assert.strictEqual(
-            message,
-            "Starting dynamic coverage generation. This could take a while...",
-            "Should show correct info message"
-          );
-          return undefined;
-        },
-        configurable: true,
-      });
-
-      (coverageManager as any)["updateCoverage"] = async (interval: number) => {
-        updateCoverageStarted = true;
-        assert.strictEqual(
-          interval,
-          DEFAULT_UPDATE_INTERVAL,
-          "Should use default update interval"
-        );
-      };
-
-      try {
-        await coverageManager.testStartDynamicCoverage();
-        assert.ok(
-          updateIntervalCalled,
-          "Should get update interval from configuration"
-        );
-        assert.ok(infoMessageShown, "Should show info message");
-        assert.ok(updateCoverageStarted, "Should start coverage updates");
-      } finally {
-        if (originalGetConfiguration) {
-          Object.defineProperty(
-            vscode.workspace,
-            "getConfiguration",
-            originalGetConfiguration
-          );
-        }
-        if (originalShowInfoMessage) {
-          Object.defineProperty(
-            vscode.window,
-            "showInformationMessage",
-            originalShowInfoMessage
-          );
-        }
-        (coverageManager as any)["updateCoverage"] = originalUpdateCoverage;
       }
     });
   });

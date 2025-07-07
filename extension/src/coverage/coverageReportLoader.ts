@@ -29,7 +29,7 @@ class CoverageReportLoader {
   }
 
   /**
-   * Searches for coverage report files in the target directory
+   * Searches for coverage report files in the parent directory of the target directory
    * @returns {Promise<vscode.Uri[]>} Array of URIs to found coverage report files, or empty array if none found
    */
   public async findCoverageFiles(): Promise<vscode.Uri[]> {
@@ -41,9 +41,9 @@ class CoverageReportLoader {
     try {
       const targetPath = await getTargetDirPath();
       const parentPath = path.dirname(targetPath);
-      const getTargetContents = await getDirContents(parentPath);
+      const parentContents = await getDirContents(parentPath);
       coverageFiles.push(
-        ...this.getFilteredCoverageFiles(parentPath, getTargetContents)
+        ...this.getFilteredCoverageFiles(parentPath, parentContents)
       );
     } catch (error) {
       console.error("Failed to find coverage files:", error);

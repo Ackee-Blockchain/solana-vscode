@@ -167,4 +167,17 @@ impl AnchorPatterns {
 
         parameters
     }
+
+    /// Check if a field type is AccountInfo or UncheckedAccount
+    pub fn is_unchecked_account_type(field: &syn::Field) -> Option<String> {
+        if let syn::Type::Path(syn::TypePath { path, .. }) = &field.ty {
+            if let Some(segment) = path.segments.last() {
+                let type_name = segment.ident.to_string();
+                if type_name == "AccountInfo" || type_name == "UncheckedAccount" {
+                    return Some(type_name);
+                }
+            }
+        }
+        None
+    }
 }

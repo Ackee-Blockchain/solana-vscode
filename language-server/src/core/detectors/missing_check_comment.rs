@@ -21,19 +21,6 @@ impl MissingCheckCommentDetector {
         }
     }
 
-    /// Check if a field type is AccountInfo or UncheckedAccount
-    fn is_unchecked_account_type(&self, field: &syn::Field) -> Option<String> {
-        if let Type::Path(TypePath { path, .. }) = &field.ty {
-            if let Some(segment) = path.segments.last() {
-                let type_name = segment.ident.to_string();
-                if type_name == "AccountInfo" || type_name == "UncheckedAccount" {
-                    return Some(type_name);
-                }
-            }
-        }
-        None
-    }
-
     /// Check if field has a /// CHECK: doc comment
     fn has_check_doc_comment(&self, field: &syn::Field) -> bool {
         for attr in &field.attrs {
@@ -106,7 +93,7 @@ impl<'ast> Visit<'ast> for MissingCheckCommentDetector {
         // Check each field for unchecked account types
         if let Fields::Named(fields) = &node.fields {
             for field in &fields.named {
-                if let Some(account_type) = self.is_unchecked_account_type(field) {
+                if let Some(account_type) = AnchorPatterns::is_unchecked_account_type(field) {
                     if !self.has_check_doc_comment(field) {
                         let field_name = field
                             .ident

@@ -1,9 +1,11 @@
 import * as vscode from "vscode";
 import { TestApiConstants, DecorationConstants } from "./constants";
+import { ExtensionConfigurationConstants } from "../constants";
 import { CoverageFileData, CoverageReport, CoverageSegment } from "./types";
 
 const { COVERAGE_LABEL, COVERAGE_TEST_RUN_NAME } = TestApiConstants;
 const { executionCountProperties } = DecorationConstants;
+const { CONFIG_ID, SHOW_EXECUTION_COUNT, EXECUTION_COUNT_COLOR } = ExtensionConfigurationConstants;
 
 /**
  * Manages code coverage decorations in the editor, including line coverage highlighting
@@ -282,10 +284,10 @@ class CoverageDecorations {
       hoverMessage: `Executed ${segment.execution_count} times`,
     };
 
-    const config = vscode.workspace.getConfiguration("tridentCoverage");
-    const showExecutionCount = config.get("showExecutionCount", true);
+    const config = vscode.workspace.getConfiguration(CONFIG_ID);
+    const showExecutionCount = config.get(SHOW_EXECUTION_COUNT, true);
     const selectedColor = config.get(
-      "executionCountColor",
+      EXECUTION_COUNT_COLOR,
       executionCountProperties.DEFAULT_COLOR
     ) as keyof typeof DecorationConstants.configColorOptions;
     const executionCountColor =

@@ -3,8 +3,10 @@ import * as vscode from "vscode";
 import { EventEmitter } from "events";
 
 import { CoverageServerConstants } from "./constants";
+import { ExtensionConfigurationConstants } from "../constants";
 
 const { DEFAULT_COVERAGE_SERVER_PORT, UPDATE_DECORATIONS, SETUP_DYNAMIC_COVERAGE, DISPLAY_FINAL_REPORT } = CoverageServerConstants;
+const { CONFIG_ID, COVERAGE_SERVER_PORT } = ExtensionConfigurationConstants;
 
 /**
  * HTTP server that receives coverage notifications from external processes
@@ -39,7 +41,7 @@ class CoverageServer extends EventEmitter {
      */
     constructor() {
         super();
-        this.port = vscode.workspace.getConfiguration("tridentCoverage").get("coverageServerPort", DEFAULT_COVERAGE_SERVER_PORT);
+        this.port = vscode.workspace.getConfiguration(CONFIG_ID).get(COVERAGE_SERVER_PORT, DEFAULT_COVERAGE_SERVER_PORT);
         this.server = this.setupServer();
     }
 

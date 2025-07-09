@@ -2,7 +2,7 @@ use super::detector::Detector;
 use super::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use std::path::PathBuf;
-use syn::{parse_str, visit::Visit, Fields, Meta};
+use syn::{Fields, Meta, parse_str, visit::Visit};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
 #[derive(Default)]
@@ -21,14 +21,18 @@ impl InstructionAttributeUnusedDetector {
     }
 
     /// Check if a parameter is used in account constraints
-    fn is_parameter_used_in_constraints(&self, param_name: &str, fields: &syn::FieldsNamed) -> bool {
+    fn is_parameter_used_in_constraints(
+        &self,
+        param_name: &str,
+        fields: &syn::FieldsNamed,
+    ) -> bool {
         for field in &fields.named {
             // Check account constraints in field attributes
             for attr in &field.attrs {
                 if attr.path().is_ident("account") {
                     if let Meta::List(meta_list) = &attr.meta {
                         let constraint_tokens = meta_list.tokens.to_string();
-                        
+
                         // Check if parameter is referenced in constraints
                         if constraint_tokens.contains(param_name) {
                             return true;
@@ -91,9 +95,9 @@ impl<'ast> Visit<'ast> for InstructionAttributeUnusedDetector {
 
         // Extract instruction parameters
         let instruction_params = AnchorPatterns::extract_instruction_parameters(node);
-        
+
         // Check each parameter for usage
-        for (param_name, _ ,param_span) in instruction_params {
+        for (param_name, _, param_span) in instruction_params {
             if !self.is_parameter_used(&param_name, node) {
                 let severity = self
                     .config

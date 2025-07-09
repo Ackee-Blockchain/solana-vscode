@@ -77,14 +77,16 @@ impl AnchorPatterns {
     }
 
     /// Extract parameter names and types from the #[instruction(...)] attribute
-    /// 
+    ///
     /// Returns a vector of tuples, where each tuple contains:
     /// - The parameter name
     /// - The parameter type
     /// - The span of the parameter
-    pub fn extract_instruction_parameters(item_struct: &syn::ItemStruct) -> Vec<(String, String, proc_macro2::Span)> {
+    pub fn extract_instruction_parameters(
+        item_struct: &syn::ItemStruct,
+    ) -> Vec<(String, String, proc_macro2::Span)> {
         let mut parameters = Vec::new();
-        
+
         for attr in &item_struct.attrs {
             if attr.path().is_ident("instruction") {
                 if let syn::Meta::List(meta_list) = &attr.meta {
@@ -95,7 +97,7 @@ impl AnchorPatterns {
                     let mut current_type = String::new();
                     let mut param_start_span: Option<proc_macro2::Span> = None;
                     let mut parsing_type = false;
-                    
+
                     while let Some(token) = token_iter.next() {
                         match token {
                             proc_macro2::TokenTree::Ident(ident) => {
@@ -109,12 +111,19 @@ impl AnchorPatterns {
                                 }
                             }
                             proc_macro2::TokenTree::Punct(punct) => {
-                                if punct.as_char() == ':' && !current_param.is_empty() && !parsing_type {
+                                if punct.as_char() == ':'
+                                    && !current_param.is_empty()
+                                    && !parsing_type
+                                {
                                     parsing_type = true;
                                 } else if punct.as_char() == ',' && parsing_type {
                                     // End of this parameter
                                     if let Some(span) = param_start_span {
-                                        parameters.push((current_param.clone(), current_type.trim().to_string(), span));
+                                        parameters.push((
+                                            current_param.clone(),
+                                            current_type.trim().to_string(),
+                                            span,
+                                        ));
                                     }
                                     current_param.clear();
                                     current_type.clear();
@@ -134,7 +143,8 @@ impl AnchorPatterns {
                                         proc_macro2::Delimiter::Bracket => ('[', ']'),
                                         proc_macro2::Delimiter::None => (' ', ' '),
                                     };
-                                    current_type.push_str(&format!("{}{}{}", 
+                                    current_type.push_str(&format!(
+                                        "{}{}{}",
                                         open_char,
                                         group.stream().to_string(),
                                         close_char
@@ -144,7 +154,7 @@ impl AnchorPatterns {
                             _ => {}
                         }
                     }
-                    
+
                     // Handle the last parameter if we ended without a comma
                     if !current_param.is_empty() && parsing_type {
                         if let Some(span) = param_start_span {
@@ -154,7 +164,7 @@ impl AnchorPatterns {
                 }
             }
         }
-        
+
         parameters
     }
 }

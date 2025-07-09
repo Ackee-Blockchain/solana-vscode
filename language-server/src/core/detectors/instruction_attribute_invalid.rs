@@ -1,10 +1,10 @@
 use super::detector::Detector;
 use super::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
-use std::path::PathBuf;
-use syn::{parse_str, visit::Visit, Meta, ItemFn, FnArg, PatType, Type, TypePath};
-use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 use std::collections::HashMap;
+use std::path::PathBuf;
+use syn::{FnArg, ItemFn, Meta, PatType, Type, TypePath, parse_str, visit::Visit};
+use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
 #[derive(Default)]
 pub struct InstructionAttributeInvalidDetector {
@@ -25,24 +25,34 @@ impl InstructionAttributeInvalidDetector {
     }
 
     /// Extract parameters from an instruction handler function and return (context_struct_name, parameters)
-    fn extract_handler_parameters(&self, item_fn: &ItemFn) -> Option<(String, Vec<(String, String)>)> {
+    fn extract_handler_parameters(
+        &self,
+        item_fn: &ItemFn,
+    ) -> Option<(String, Vec<(String, String)>)> {
         let mut parameters = Vec::new();
         let mut context_struct_name: Option<String> = None;
-        
+
         for input in &item_fn.sig.inputs {
             if let FnArg::Typed(PatType { pat, ty, .. }) = input {
                 if let syn::Pat::Ident(pat_ident) = &**pat {
                     let param_name = pat_ident.ident.to_string();
-                    
+
                     // Check if this is a Context parameter
                     if let Type::Path(TypePath { path, .. }) = &**ty {
                         if let Some(segment) = path.segments.first() {
                             if segment.ident == "Context" {
                                 // Extract the context struct name from Context<StructName>
-                                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                                    if let Some(syn::GenericArgument::Type(Type::Path(context_type))) = args.args.first() {
-                                        if let Some(context_segment) = context_type.path.segments.first() {
-                                            context_struct_name = Some(context_segment.ident.to_string());
+                                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+                                {
+                                    if let Some(syn::GenericArgument::Type(Type::Path(
+                                        context_type,
+                                    ))) = args.args.first()
+                                    {
+                                        if let Some(context_segment) =
+                                            context_type.path.segments.first()
+                                        {
+                                            context_struct_name =
+                                                Some(context_segment.ident.to_string());
                                         }
                                     }
                                 }
@@ -50,14 +60,14 @@ impl InstructionAttributeInvalidDetector {
                             }
                         }
                     }
-                    
+
                     // Extract type as string with better formatting
                     let type_str = self.extract_type_string(ty);
                     parameters.push((param_name, type_str));
                 }
             }
         }
-        
+
         // Only return if we found a context struct name
         context_struct_name.map(|struct_name| (struct_name, parameters))
     }
@@ -72,7 +82,7 @@ impl InstructionAttributeInvalidDetector {
                         result.push_str("::");
                     }
                     result.push_str(&segment.ident.to_string());
-                    
+
                     // Handle generic arguments
                     if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
                         result.push('<');
@@ -112,7 +122,11 @@ impl InstructionAttributeInvalidDetector {
                 format!("[{}]", self.extract_type_string(&type_slice.elem))
             }
             Type::Array(type_array) => {
-                format!("[{}; {:?}]", self.extract_type_string(&type_array.elem), type_array.len)
+                format!(
+                    "[{}; {:?}]",
+                    self.extract_type_string(&type_array.elem),
+                    type_array.len
+                )
             }
             Type::Tuple(type_tuple) => {
                 let mut result = String::from("(");
@@ -133,19 +147,28 @@ impl InstructionAttributeInvalidDetector {
     }
 
     /// Check if instruction attribute parameters match the handler parameters
-    fn validate_instruction_parameters(&self, struct_name: &str, instruction_params: &[(String, String, proc_macro2::Span)]) -> Vec<Diagnostic> {
+    fn validate_instruction_parameters(
+        &self,
+        struct_name: &str,
+        instruction_params: &[(String, String, proc_macro2::Span)],
+    ) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
-        
+
         // Find the corresponding handler function using the exact struct name
         if let Some(handler_params) = self.instruction_handlers.get(struct_name) {
-            
             // Check if instruction parameters are in the correct order and not skipping any
             for (i, (param_name, param_type, param_span)) in instruction_params.iter().enumerate() {
                 if i >= handler_params.len() {
                     // Too many parameters in instruction attribute
-                    let severity = self.config.severity_override.unwrap_or(self.default_severity());
-                    let message = format!("Instruction parameter '{}' not found in handler function", param_name);
-                    
+                    let severity = self
+                        .config
+                        .severity_override
+                        .unwrap_or(self.default_severity());
+                    let message = format!(
+                        "Instruction parameter '{}' not found in handler function",
+                        param_name
+                    );
+
                     diagnostics.push(DiagnosticBuilder::create(
                         DiagnosticBuilder::create_range_from_span(*param_span),
                         message,
@@ -155,15 +178,20 @@ impl InstructionAttributeInvalidDetector {
                     ));
                 } else {
                     let (expected_name, expected_type) = &handler_params[i];
-                    
+
                     // Check if parameter name matches
                     if param_name != expected_name {
-                        let severity = self.config.severity_override.unwrap_or(self.default_severity());
+                        let severity = self
+                            .config
+                            .severity_override
+                            .unwrap_or(self.default_severity());
                         let message = format!(
                             "Instruction parameter '{}' does not match handler parameter '{}' at position {}. Parameters must be in the same order as the handler function.",
-                            param_name, expected_name, i + 1
+                            param_name,
+                            expected_name,
+                            i + 1
                         );
-                        
+
                         diagnostics.push(DiagnosticBuilder::create(
                             DiagnosticBuilder::create_range_from_span(*param_span),
                             message,
@@ -175,14 +203,17 @@ impl InstructionAttributeInvalidDetector {
                         // Check if parameter type matches
                         let normalized_instruction_type = self.normalize_type(param_type);
                         let normalized_handler_type = self.normalize_type(expected_type);
-                        
+
                         if normalized_instruction_type != normalized_handler_type {
-                            let severity = self.config.severity_override.unwrap_or(self.default_severity());
+                            let severity = self
+                                .config
+                                .severity_override
+                                .unwrap_or(self.default_severity());
                             let message = format!(
                                 "Instruction parameter '{}' has type '{}' but handler function expects type '{}'",
                                 param_name, param_type, expected_type
                             );
-                            
+
                             diagnostics.push(DiagnosticBuilder::create(
                                 DiagnosticBuilder::create_range_from_span(*param_span),
                                 message,
@@ -195,7 +226,7 @@ impl InstructionAttributeInvalidDetector {
                 }
             }
         }
-        
+
         diagnostics
     }
 
@@ -249,9 +280,10 @@ impl<'ast> Visit<'ast> for InstructionAttributeInvalidDetector {
     fn visit_item_fn(&mut self, node: &'ast syn::ItemFn) {
         // Collect any function that has a Context<T> parameter (potential instruction handler)
         if let Some((context_struct_name, params)) = self.extract_handler_parameters(node) {
-            self.instruction_handlers.insert(context_struct_name, params);
+            self.instruction_handlers
+                .insert(context_struct_name, params);
         }
-        
+
         // Continue visiting children
         syn::visit::visit_item_fn(self, node);
     }
@@ -264,11 +296,12 @@ impl<'ast> Visit<'ast> for InstructionAttributeInvalidDetector {
 
         // Extract instruction parameters
         let instruction_params = AnchorPatterns::extract_instruction_parameters(node);
-        
+
         // Only validate if there are instruction parameters
         if !instruction_params.is_empty() {
             let struct_name = node.ident.to_string();
-            let validation_diagnostics = self.validate_instruction_parameters(&struct_name, &instruction_params);
+            let validation_diagnostics =
+                self.validate_instruction_parameters(&struct_name, &instruction_params);
             self.diagnostics.extend(validation_diagnostics);
         }
 

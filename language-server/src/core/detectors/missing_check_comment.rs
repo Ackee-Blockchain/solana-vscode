@@ -3,7 +3,7 @@ use super::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use std::path::PathBuf;
 use syn::spanned::Spanned;
-use syn::{parse_str, visit::Visit, Fields, Type, TypePath};
+use syn::{Fields, Type, TypePath, parse_str, visit::Visit};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
 #[derive(Default)]
@@ -136,4 +136,4 @@ impl<'ast> Visit<'ast> for MissingCheckCommentDetector {
         // Continue visiting children
         syn::visit::visit_item_struct(self, node);
     }
-} 
+}

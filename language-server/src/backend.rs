@@ -1,10 +1,9 @@
 use crate::core::{
     DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, FileScanner,
     ImmutableAccountMutatedDetector, InstructionAttributeInvalidDetector,
-    InstructionAttributeUnusedDetector, ManualLamportsZeroingDetector, MissingInitspaceDetector,
-    MissingSignerDetector,
-    ScanCompleteNotification, ScanResult, ScanSummary, SysvarAccountDetector, UnsafeMathDetector,
-    MissingCheckCommentDetector,
+    InstructionAttributeUnusedDetector, ManualLamportsZeroingDetector, MissingCheckCommentDetector,
+    MissingInitspaceDetector, MissingSignerDetector, ScanCompleteNotification, ScanResult,
+    ScanSummary, SysvarAccountDetector, UnsafeMathDetector,
 };
 use log::info;
 use std::sync::Arc;

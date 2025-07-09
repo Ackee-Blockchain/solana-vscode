@@ -75,4 +75,86 @@ impl AnchorPatterns {
             _ => false,
         }
     }
+
+    /// Extract parameter names and types from the #[instruction(...)] attribute
+    /// 
+    /// Returns a vector of tuples, where each tuple contains:
+    /// - The parameter name
+    /// - The parameter type
+    /// - The span of the parameter
+    pub fn extract_instruction_parameters(item_struct: &syn::ItemStruct) -> Vec<(String, String, proc_macro2::Span)> {
+        let mut parameters = Vec::new();
+        
+        for attr in &item_struct.attrs {
+            if attr.path().is_ident("instruction") {
+                if let syn::Meta::List(meta_list) = &attr.meta {
+                    // Parse the tokens to get individual parameter spans
+                    let tokens = &meta_list.tokens;
+                    let mut token_iter = tokens.clone().into_iter();
+                    let mut current_param = String::new();
+                    let mut current_type = String::new();
+                    let mut param_start_span: Option<proc_macro2::Span> = None;
+                    let mut parsing_type = false;
+                    
+                    while let Some(token) = token_iter.next() {
+                        match token {
+                            proc_macro2::TokenTree::Ident(ident) => {
+                                if current_param.is_empty() && !parsing_type {
+                                    // This is the start of a parameter name
+                                    current_param = ident.to_string();
+                                    param_start_span = Some(ident.span());
+                                } else if parsing_type {
+                                    // This is part of the type
+                                    current_type.push_str(&ident.to_string());
+                                }
+                            }
+                            proc_macro2::TokenTree::Punct(punct) => {
+                                if punct.as_char() == ':' && !current_param.is_empty() && !parsing_type {
+                                    parsing_type = true;
+                                } else if punct.as_char() == ',' && parsing_type {
+                                    // End of this parameter
+                                    if let Some(span) = param_start_span {
+                                        parameters.push((current_param.clone(), current_type.trim().to_string(), span));
+                                    }
+                                    current_param.clear();
+                                    current_type.clear();
+                                    param_start_span = None;
+                                    parsing_type = false;
+                                } else if parsing_type {
+                                    // Add punctuation to type (for things like &str, Vec<T>, etc.)
+                                    current_type.push(punct.as_char());
+                                }
+                            }
+                            proc_macro2::TokenTree::Group(group) => {
+                                if parsing_type {
+                                    // Add group content to type (for generics, etc.)
+                                    let (open_char, close_char) = match group.delimiter() {
+                                        proc_macro2::Delimiter::Parenthesis => ('(', ')'),
+                                        proc_macro2::Delimiter::Brace => ('{', '}'),
+                                        proc_macro2::Delimiter::Bracket => ('[', ']'),
+                                        proc_macro2::Delimiter::None => (' ', ' '),
+                                    };
+                                    current_type.push_str(&format!("{}{}{}", 
+                                        open_char,
+                                        group.stream().to_string(),
+                                        close_char
+                                    ));
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    
+                    // Handle the last parameter if we ended without a comma
+                    if !current_param.is_empty() && parsing_type {
+                        if let Some(span) = param_start_span {
+                            parameters.push((current_param, current_type.trim().to_string(), span));
+                        }
+                    }
+                }
+            }
+        }
+        
+        parameters
+    }
 }

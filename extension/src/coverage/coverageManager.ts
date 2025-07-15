@@ -303,6 +303,8 @@ class CoverageManager {
       " " +
       `--output-path ${liveReportFilePath}` +
       " " +
+      `--release` +
+      " " +
       `--ignore-filename-regex "${IGNORE_FILE_NAME_REGEX}"`
     );
   }

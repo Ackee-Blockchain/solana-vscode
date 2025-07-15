@@ -3,7 +3,7 @@ use super::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use syn::{FnArg, ItemFn, Meta, PatType, Type, TypePath, parse_str, visit::Visit};
+use syn::{FnArg, ItemFn, PatType, Type, TypePath, parse_str, visit::Visit};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
 #[derive(Default)]

@@ -149,10 +149,6 @@ export class AIDetectorsManager implements vscode.Disposable {
 
             this.outputChannel.appendLine(`Using workspace: ${activeWorkspace}`);
 
-            // Get configured Claude model
-            const config = vscode.workspace.getConfiguration('aiDetector');
-            const claudeModel = config.get<string>('claudeModel') || 'claude-3-opus-20240229';
-
             // Show progress indicator
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,

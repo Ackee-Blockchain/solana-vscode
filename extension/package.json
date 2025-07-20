@@ -84,16 +84,6 @@
           "type": "number",
           "default": 58432,
           "description": "Port for the coverage server"
-        },
-        "aiDetector.claudeModel": {
-          "type": "string",
-          "enum": [
-            "claude-3-opus-20240229",
-            "claude-3-sonnet-20240229",
-            "claude-3-haiku-20240307"
-          ],
-          "default": "claude-3-opus-20240229",
-          "description": "Claude model to use for AI-based detection"
         }
       }
     }

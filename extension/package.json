@@ -34,6 +34,18 @@
       {
         "command": "solana.show-scan-output",
         "title": "Show Security Scan Output"
+      },
+      {
+        "command": "solana.run-ai-missing-signer-detector",
+        "title": "Run AI Missing Signer Detector"
+      },
+      {
+        "command": "solana.set-ai-detector-description",
+        "title": "Set AI Detector Description"
+      },
+      {
+        "command": "solana.show-ai-detector-output",
+        "title": "Show AI Detector Output"
       }
     ],
     "configuration": {
@@ -72,6 +84,16 @@
           "type": "number",
           "default": 58432,
           "description": "Port for the coverage server"
+        },
+        "aiDetector.claudeModel": {
+          "type": "string",
+          "enum": [
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240307"
+          ],
+          "default": "claude-3-opus-20240229",
+          "description": "Claude model to use for AI-based detection"
         }
       }
     }

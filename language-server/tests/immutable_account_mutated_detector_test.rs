@@ -1,5 +1,5 @@
 use language_server::core::detectors::{
-    detector::Detector, immutable_account_mutated_detector::ImmutableAccountMutatedDetector,
+    detector::SynDetector, detector::Detector, immutable_account_mutated_detector::ImmutableAccountMutatedDetector,
 };
 use tower_lsp::lsp_types::DiagnosticSeverity;
 

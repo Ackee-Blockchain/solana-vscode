@@ -1,5 +1,5 @@
 use language_server::core::detectors::{
-    detector::Detector, manual_lamports_zeroing::ManualLamportsZeroingDetector,
+    detector::SynDetector, detector::Detector, manual_lamports_zeroing::ManualLamportsZeroingDetector,
 };
 use tower_lsp::lsp_types::DiagnosticSeverity;
 

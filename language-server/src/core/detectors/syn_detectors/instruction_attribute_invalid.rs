@@ -1,5 +1,5 @@
-use super::detector::Detector;
-use super::detector_config::DetectorConfig;
+use crate::core::detectors::detector::{SynDetector, Detector};
+use crate::core::detectors::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -261,7 +261,9 @@ impl Detector for InstructionAttributeInvalidDetector {
     fn default_severity(&self) -> DiagnosticSeverity {
         DiagnosticSeverity::ERROR
     }
+}
 
+impl SynDetector for InstructionAttributeInvalidDetector {
     fn analyze(&mut self, content: &str, _file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
         self.diagnostics.clear();
         self.instruction_handlers.clear();

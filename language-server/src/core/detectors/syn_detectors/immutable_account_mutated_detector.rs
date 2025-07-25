@@ -1,5 +1,5 @@
-use super::detector::Detector;
-use super::detector_config::DetectorConfig;
+use crate::core::detectors::detector::{SynDetector, Detector};
+use crate::core::detectors::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -255,7 +255,6 @@ impl ImmutableAccountMutatedDetector {
         }
     }
 }
-
 impl Detector for ImmutableAccountMutatedDetector {
     fn id(&self) -> &'static str {
         "IMMUTABLE_ACCOUNT_MUTATED"
@@ -276,7 +275,9 @@ impl Detector for ImmutableAccountMutatedDetector {
     fn default_severity(&self) -> DiagnosticSeverity {
         DiagnosticSeverity::ERROR
     }
+}
 
+impl SynDetector for ImmutableAccountMutatedDetector {
     fn analyze(&mut self, content: &str, file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
         self.diagnostics.clear();
         self.context_immutable_accounts.clear();

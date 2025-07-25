@@ -1,5 +1,5 @@
-use super::detector::Detector;
-use super::detector_config::DetectorConfig;
+use crate::core::detectors::detector::{SynDetector, Detector};
+use crate::core::detectors::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use std::path::PathBuf;
 use syn::spanned::Spanned;
@@ -77,7 +77,9 @@ impl Detector for SysvarAccountDetector {
     fn default_severity(&self) -> DiagnosticSeverity {
         DiagnosticSeverity::WARNING
     }
+}
 
+impl SynDetector for SysvarAccountDetector {
     fn analyze(&mut self, content: &str, _file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
         self.diagnostics.clear();
 
@@ -87,7 +89,7 @@ impl Detector for SysvarAccountDetector {
         }
 
         self.diagnostics.clone()
-    }
+    }    
 }
 
 impl<'ast> Visit<'ast> for SysvarAccountDetector {

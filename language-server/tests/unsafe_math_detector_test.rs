@@ -1,4 +1,4 @@
-use language_server::core::detectors::{detector::Detector, unsafe_math::UnsafeMathDetector};
+use language_server::core::detectors::{detector::SynDetector, detector::Detector, unsafe_math::UnsafeMathDetector};
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]

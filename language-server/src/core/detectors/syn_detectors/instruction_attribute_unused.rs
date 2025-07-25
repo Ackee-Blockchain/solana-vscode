@@ -1,5 +1,5 @@
-use super::detector::Detector;
-use super::detector_config::DetectorConfig;
+use crate::core::detectors::detector::{SynDetector, Detector};
+use crate::core::detectors::detector_config::DetectorConfig;
 use crate::core::utilities::{DiagnosticBuilder, anchor_patterns::AnchorPatterns};
 use std::path::PathBuf;
 use syn::{Fields, Meta, parse_str, visit::Visit};
@@ -73,7 +73,9 @@ impl Detector for InstructionAttributeUnusedDetector {
     fn default_severity(&self) -> DiagnosticSeverity {
         DiagnosticSeverity::WARNING
     }
+}
 
+impl SynDetector for InstructionAttributeUnusedDetector {
     fn analyze(&mut self, content: &str, _file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
         self.diagnostics.clear();
 

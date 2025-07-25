@@ -1,6 +1,6 @@
 use crate::core::{
-    DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, FileScanner,
-    ImmutableAccountMutatedDetector, InstructionAttributeInvalidDetector,
+    ClippyUncheckedArithmeticDetector, DetectorInfo, DetectorRegistry, DetectorRegistryBuilder,
+    FileScanner, ImmutableAccountMutatedDetector, InstructionAttributeInvalidDetector,
     InstructionAttributeUnusedDetector, ManualLamportsZeroingDetector, MissingCheckCommentDetector,
     MissingInitspaceDetector, MissingSignerDetector, ScanCompleteNotification, ScanResult,
     ScanSummary, SysvarAccountDetector, UnsafeMathDetector,
@@ -36,11 +36,14 @@ impl LanguageServer for Backend {
             if let Some(folder) = workspace_folders.first() {
                 if let Ok(path) = folder.uri.to_file_path() {
                     let mut scanner = self.file_scanner.lock().await;
-                    scanner.set_workspace_root(path);
+                    scanner.set_workspace_root(path.clone());
+
+                    // Set workspace root for clippy analysis
+                    let mut registry = self.detector_registry.lock().await;
+                    registry.set_workspace_root(path);
 
                     // Perform initial workspace scan
                     info!("Performing initial workspace scan...");
-                    let mut registry = self.detector_registry.lock().await;
                     let scan_result = scanner.scan_workspace(&mut registry).await;
 
                     // Log scan results
@@ -87,11 +90,14 @@ impl LanguageServer for Backend {
         } else if let Some(root_uri) = params.root_uri {
             if let Ok(path) = root_uri.to_file_path() {
                 let mut scanner = self.file_scanner.lock().await;
-                scanner.set_workspace_root(path);
+                scanner.set_workspace_root(path.clone());
+
+                // Set workspace root for clippy analysis
+                let mut registry = self.detector_registry.lock().await;
+                registry.set_workspace_root(path);
 
                 // Perform initial workspace scan
                 info!("Performing initial workspace scan...");
-                let mut registry = self.detector_registry.lock().await;
                 let scan_result = scanner.scan_workspace(&mut registry).await;
 
                 // Log scan results
@@ -243,17 +249,50 @@ impl Backend {
     }
 
     async fn on_change(&self, params: TextDocumentItem) {
-        // Run security analysis
-        let diagnostics = {
+        // Run immediate syn-based analysis first (fast)
+        let immediate_diagnostics = {
             let mut registry = self.detector_registry.lock().await;
             let file_path = params.uri.to_file_path().ok();
-            registry.analyze(&params.text, file_path.as_ref())
+            registry.analyze_immediate(&params.text, file_path.as_ref())
         };
 
-        // Publish diagnostics to the client
+        // Publish immediate diagnostics
         self.client
-            .publish_diagnostics(params.uri.clone(), diagnostics, Some(params.version))
+            .publish_diagnostics(
+                params.uri.clone(),
+                immediate_diagnostics,
+                Some(params.version),
+            )
             .await;
+
+        // Schedule background clippy analysis
+        let client = self.client.clone();
+        let registry = Arc::clone(&self.detector_registry);
+        let uri = params.uri.clone();
+        let text = params.text.clone();
+        let version = params.version;
+
+        tokio::spawn(async move {
+            if let Ok(file_path) = uri.to_file_path() {
+                let comprehensive_diagnostics = {
+                    let mut registry = registry.lock().await;
+                    registry.analyze_comprehensive(&file_path, &text).await
+                };
+
+                // Merge with immediate diagnostics and republish
+                let all_diagnostics = {
+                    let mut registry = registry.lock().await;
+                    let immediate = registry.analyze_immediate(&text, Some(&file_path));
+                    let mut combined = immediate;
+                    combined.extend(comprehensive_diagnostics);
+                    combined
+                };
+
+                client
+                    .publish_diagnostics(uri, all_diagnostics, Some(version))
+                    .await;
+            }
+        });
     }
 
     /// Get information about all registered detectors
@@ -281,6 +320,8 @@ impl Backend {
         DetectorStats {
             total_detectors: registry.count(),
             enabled_detectors: registry.enabled_count(),
+            syn_detectors: registry.count(), // TODO: separate counts
+            clippy_detectors: 0,             // TODO: get from clippy analyzer
         }
     }
 
@@ -291,6 +332,20 @@ impl Backend {
         let mut registry = self.detector_registry.lock().await;
         Some(scanner.scan_workspace(&mut registry).await)
     }
+
+    /// Invalidate cache for a specific file
+    #[allow(dead_code)]
+    pub async fn invalidate_file_cache(&self, file_path: &std::path::PathBuf) {
+        let registry = self.detector_registry.lock().await;
+        registry.invalidate_cache(file_path).await;
+    }
+
+    /// Clear all analysis caches
+    #[allow(dead_code)]
+    pub async fn clear_all_caches(&self) {
+        let registry = self.detector_registry.lock().await;
+        registry.clear_cache().await;
+    }
 }
 
 /// Statistics about the detector system
@@ -299,19 +354,24 @@ impl Backend {
 pub struct DetectorStats {
     pub total_detectors: usize,
     pub enabled_detectors: usize,
+    pub syn_detectors: usize,
+    pub clippy_detectors: usize,
 }
 
 /// Create a default detector registry with all available detectors
 fn create_default_registry() -> DetectorRegistry {
     DetectorRegistryBuilder::new()
-        .with_detector(UnsafeMathDetector::default())
-        .with_detector(MissingSignerDetector::default())
-        .with_detector(ManualLamportsZeroingDetector::default())
-        .with_detector(SysvarAccountDetector::default())
-        .with_detector(ImmutableAccountMutatedDetector::default())
-        .with_detector(MissingInitspaceDetector::default())
-        .with_detector(InstructionAttributeUnusedDetector::default())
-        .with_detector(InstructionAttributeInvalidDetector::default())
-        .with_detector(MissingCheckCommentDetector::default())
+        // Syn-based detectors (immediate analysis)
+        .with_syn_detector(UnsafeMathDetector::default())
+        .with_syn_detector(MissingSignerDetector::default())
+        .with_syn_detector(ManualLamportsZeroingDetector::default())
+        .with_syn_detector(SysvarAccountDetector::default())
+        .with_syn_detector(ImmutableAccountMutatedDetector::default())
+        .with_syn_detector(MissingInitspaceDetector::default())
+        .with_syn_detector(InstructionAttributeUnusedDetector::default())
+        .with_syn_detector(InstructionAttributeInvalidDetector::default())
+        .with_syn_detector(MissingCheckCommentDetector::default())
+        // Clippy-style detectors (comprehensive analysis)
+        .with_clippy_detector(ClippyUncheckedArithmeticDetector::new())
         .build()
 }

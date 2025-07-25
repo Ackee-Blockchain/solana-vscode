@@ -1,5 +1,5 @@
 use language_server::core::detectors::{
-    detector::Detector, sysvar_account_detector::SysvarAccountDetector,
+    detector::SynDetector, detector::Detector, sysvar_account_detector::SysvarAccountDetector,
 };
 use tower_lsp::lsp_types::DiagnosticSeverity;
 

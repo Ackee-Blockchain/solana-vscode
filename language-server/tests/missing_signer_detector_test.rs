@@ -1,4 +1,4 @@
-use language_server::core::detectors::{detector::Detector, missing_signer::MissingSignerDetector};
+use language_server::core::detectors::{detector::SynDetector, detector::Detector, missing_signer::MissingSignerDetector};
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
 #[test]

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use language_server::core::detectors::detector::Detector;
+    use language_server::core::detectors::detector::SynDetector;
     use language_server::core::detectors::missing_check_comment::MissingCheckCommentDetector;
     use tower_lsp::lsp_types::DiagnosticSeverity;
 

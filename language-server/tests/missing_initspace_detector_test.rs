@@ -1,5 +1,5 @@
 use language_server::core::detectors::{
-    detector::Detector, missing_initspace_detector::MissingInitspaceDetector,
+    detector::SynDetector, detector::Detector, missing_initspace_detector::MissingInitspaceDetector,
 };
 use tower_lsp::lsp_types::DiagnosticSeverity;
 

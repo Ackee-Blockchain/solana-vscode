@@ -1,19 +1,29 @@
-use crate::core::detector::Detector;
+use crate::core::detector::{ClippyDetector, DetectorType, DetectorWrapper, SynDetector};
 use crate::core::detector_config::DetectorConfig;
+use crate::core::detectors::ClippyAnalyzer;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tower_lsp::lsp_types::Diagnostic;
 
-/// Registry that manages all security detectors
+/// Registry that manages all security detectors (both syn-based and clippy-style)
 pub struct DetectorRegistry {
-    detectors: Vec<Box<dyn Detector>>,
+    /// All detectors stored in wrappers
+    detectors: Vec<DetectorWrapper>,
+    /// Clippy-style analyzer for background analysis
+    clippy_analyzer: ClippyAnalyzer,
+    /// Configuration for each detector
     configs: HashMap<String, DetectorConfig>,
 }
 
 impl std::fmt::Debug for DetectorRegistry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let syn_count = self.detectors.iter().filter(|d| d.is_syn()).count();
+        let clippy_count = self.detectors.iter().filter(|d| d.is_clippy()).count();
+
         f.debug_struct("DetectorRegistry")
-            .field("detector_count", &self.detectors.len())
+            .field("syn_detector_count", &syn_count)
+            .field("clippy_detector_count", &clippy_count)
+            .field("total_detectors", &self.detectors.len())
             .field("configs", &self.configs)
             .finish()
     }
@@ -24,15 +34,28 @@ impl DetectorRegistry {
     pub fn new() -> Self {
         Self {
             detectors: Vec::new(),
+            clippy_analyzer: ClippyAnalyzer::new(),
             configs: HashMap::new(),
         }
     }
 
-    /// Register a detector with the registry
-    pub fn register<D: Detector + 'static>(&mut self, detector: D) {
+    /// Register a syn detector with the registry
+    pub fn register_syn<D: SynDetector + 'static>(&mut self, detector: D) {
         let id = detector.id().to_string();
         self.configs.insert(id, DetectorConfig::default());
-        self.detectors.push(Box::new(detector));
+        self.detectors.push(DetectorWrapper::new_syn(detector));
+    }
+
+    /// Register a clippy-style detector specifically
+    pub fn register_clippy_detector<D: ClippyDetector + 'static>(&mut self, detector: D) {
+        let id = detector.id().to_string();
+        self.configs.insert(id, DetectorConfig::default());
+        self.detectors.push(DetectorWrapper::new_clippy(detector));
+    }
+
+    /// Set workspace root for clippy analysis
+    pub fn set_workspace_root(&mut self, root: PathBuf) {
+        self.clippy_analyzer.set_workspace_root(root);
     }
 
     /// Configure a specific detector
@@ -57,8 +80,12 @@ impl DetectorRegistry {
         }
     }
 
-    /// Run all enabled detectors on the given content
-    pub fn analyze(&mut self, content: &str, file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
+    /// Run immediate syn-based analysis (fast)
+    pub fn analyze_immediate(
+        &mut self,
+        content: &str,
+        file_path: Option<&PathBuf>,
+    ) -> Vec<Diagnostic> {
         let mut all_diagnostics = Vec::new();
 
         for detector in &mut self.detectors {
@@ -68,19 +95,66 @@ impl DetectorRegistry {
                 continue;
             }
 
-            let mut diagnostics = detector.analyze(content, file_path);
+            // Only run syn detectors for immediate analysis
+            if detector.is_syn() {
+                let mut diagnostics = detector.analyze_syn(content, file_path);
 
-            // Apply severity override if configured
-            if let Some(severity_override) = config.severity_override {
-                for diagnostic in &mut diagnostics {
-                    diagnostic.severity = Some(severity_override);
+                // Apply severity override if configured
+                if let Some(severity_override) = config.severity_override {
+                    for diagnostic in &mut diagnostics {
+                        diagnostic.severity = Some(severity_override);
+                    }
                 }
-            }
 
-            all_diagnostics.extend(diagnostics);
+                all_diagnostics.extend(diagnostics);
+            }
         }
 
         all_diagnostics
+    }
+
+    /// Run background clippy-style analysis (comprehensive but slower)
+    pub async fn analyze_comprehensive(
+        &mut self,
+        file_path: &PathBuf,
+        content: &str,
+    ) -> Vec<Diagnostic> {
+        let mut clippy_diagnostics = self.clippy_analyzer.analyze_file(file_path, content).await;
+
+        // Apply configurations to clippy diagnostics
+        for diagnostic in &mut clippy_diagnostics {
+            if let Some(detector_id) = &diagnostic.code {
+                let code_str = match detector_id {
+                    tower_lsp::lsp_types::NumberOrString::String(s) => Some(s.as_str()),
+                    tower_lsp::lsp_types::NumberOrString::Number(_) => None,
+                };
+                if let Some(code_str) = code_str {
+                    if let Some(config) = self.configs.get(code_str) {
+                        if let Some(severity_override) = config.severity_override {
+                            diagnostic.severity = Some(severity_override);
+                        }
+                    }
+                }
+            }
+        }
+
+        clippy_diagnostics
+    }
+
+    /// Legacy analyze method for backward compatibility
+    pub fn analyze(&mut self, content: &str, file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
+        // For backward compatibility, only run immediate analysis
+        self.analyze_immediate(content, file_path)
+    }
+
+    /// Invalidate clippy cache for a file
+    pub async fn invalidate_cache(&self, file_path: &PathBuf) {
+        self.clippy_analyzer.invalidate_cache(file_path).await;
+    }
+
+    /// Clear all caches
+    pub async fn clear_cache(&self) {
+        self.clippy_analyzer.clear_cache().await;
     }
 
     /// Get information about all registered detectors
@@ -97,6 +171,7 @@ impl DetectorRegistry {
                     description: detector.description().to_string(),
                     enabled: config.enabled,
                     default_severity: detector.default_severity(),
+                    detector_type: detector.detector_type(),
                 }
             })
             .collect()
@@ -138,6 +213,7 @@ pub struct DetectorInfo {
     pub description: String,
     pub enabled: bool,
     pub default_severity: tower_lsp::lsp_types::DiagnosticSeverity,
+    pub detector_type: DetectorType,
 }
 
 /// Builder for creating and configuring a detector registry
@@ -153,9 +229,15 @@ impl DetectorRegistryBuilder {
         }
     }
 
-    /// Add a detector to the registry
-    pub fn with_detector<D: Detector + 'static>(mut self, detector: D) -> Self {
-        self.registry.register(detector);
+    /// Add a syn-based detector to the registry
+    pub fn with_syn_detector<D: SynDetector + 'static>(mut self, detector: D) -> Self {
+        self.registry.register_syn(detector);
+        self
+    }
+
+    /// Add a clippy-style detector to the registry
+    pub fn with_clippy_detector<D: ClippyDetector + 'static>(mut self, detector: D) -> Self {
+        self.registry.register_clippy_detector(detector);
         self
     }
 
@@ -184,4 +266,6 @@ impl Default for DetectorRegistryBuilder {
 pub struct DetectorStats {
     pub total_detectors: usize,
     pub enabled_detectors: usize,
+    pub syn_detectors: usize,
+    pub clippy_detectors: usize,
 }

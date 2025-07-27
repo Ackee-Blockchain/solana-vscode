@@ -8,7 +8,6 @@ The hybrid system provides three types of analysis:
 
 1. **Immediate Syn-based Analysis** - Fast, syntax-only analysis for real-time feedback
 2. **Comprehensive Clippy-style Analysis** - Slower, type-aware analysis with compilation context
-3. **Hybrid Analysis** - Combines both approaches for optimal coverage
 
 ## Key Components
 
@@ -231,9 +230,6 @@ let syn_results = registry.analyze_immediate(code, Some(&file_path));
 
 // For comprehensive analysis
 let clippy_results = registry.analyze_comprehensive(&file_path, code).await;
-
-// For both combined
-let hybrid_results = registry.analyze_hybrid(code, Some(&file_path)).await;
 ```
 
 ## Example: Unchecked Arithmetic Detection
@@ -282,27 +278,6 @@ The system includes an example comparing syn vs clippy approaches:
 - Provide syn fallback for clippy detectors
 - Handle compilation failures gracefully
 - Clear caches on significant changes
-
-## Running the Demo
-
-```bash
-cd language-server
-cargo run --example hybrid_detector_demo
-```
-
-This demonstrates:
-- Immediate syn-based analysis
-- Background clippy-style analysis  
-- Hybrid approach combining both
-- Performance and accuracy differences
-
-## Future Enhancements
-
-1. **Full rustc Integration**: Direct HIR/MIR access
-2. **Incremental Compilation**: Faster clippy analysis
-3. **Smart Caching**: Content-aware cache invalidation
-4. **Parallel Analysis**: Multiple detectors simultaneously
-5. **Custom Lint Integration**: Load external clippy lints
 
 ## Troubleshooting
 

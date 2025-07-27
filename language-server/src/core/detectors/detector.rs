@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
+use clippy_utils;
 
 /// Base trait for all security detectors in Anchor programs
 /// Contains common functionality shared by both syn and clippy detectors
@@ -128,21 +129,23 @@ impl DetectorWrapper {
     }
 }
 
-/// Analysis context for clippy-style detectors
+/// Analysis context for clippy-style detectors with essential compilation information
 #[derive(Debug)]
 pub struct ClippyAnalysisContext {
     pub file_path: PathBuf,
     pub source_code: String,
-    pub compilation_result: CompilationResult,
+    /// Whether the compilation was successful
+    pub compilation_successful: bool,
 }
 
-/// Result of compilation for clippy analysis
-#[derive(Debug)]
-pub struct CompilationResult {
-    pub success: bool,
-    pub hir_available: bool,
-    pub type_info_available: bool,
-    pub temp_dir: Option<PathBuf>,
+impl Default for ClippyAnalysisContext {
+    fn default() -> Self {
+        Self {
+            file_path: PathBuf::new(),
+            source_code: String::new(),
+            compilation_successful: false,
+        }
+    }
 }
 
 /// Type of detector for optimization and scheduling
@@ -152,6 +155,4 @@ pub enum DetectorType {
     Syn,
     /// Slower clippy-style analysis with type information
     Clippy,
-    /// Hybrid detector that can do both
-    Hybrid,
 }

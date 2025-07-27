@@ -3,26 +3,22 @@ name = "language-server"
 version = "0.2.0"
 edition = "2024"
 
-[[example]]
-name = "hybrid_detector_demo"
-path = "examples/hybrid_detector_demo.rs"
-
 [dependencies]
-tower-lsp = "0.20.0"
-tokio = { version = "1.45.1", features = ["full"] }
-log = "0.4"
-env_logger = "0.11.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-syn = { version = "2.0.101", features = [
-    "full",
-    "extra-traits",
-    "visit",
-    "parsing",
-] }
+syn = { version = "2.0", features = ["full", "extra-traits", "visit"] }
+tokio = { version = "1.0", features = ["full"] }
+tower-lsp = "0.20"
+log = "0.4"
+env_logger = "0.11.8"
 proc-macro2 = { version = "1.0.95", features = ["span-locations"] }
 tempfile = "3.8"
 clippy_utils = "0.1.90"
+rustc_lint = { git = "https://github.com/rust-lang/rust", tag = "1.88.0" }
+rustc_hir = { git = "https://github.com/rust-lang/rust", tag = "1.88.0" }
+rustc_span = { git = "https://github.com/rust-lang/rust", tag = "1.88.0" }
+rustc_driver = { git = "https://github.com/rust-lang/rust", tag = "1.88.0" }
+rustc_ast = { git = "https://github.com/rust-lang/rust", tag = "1.88.0" }
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -2,7 +2,7 @@ use crate::core::{DetectorRegistry, file_scanner::types::*};
 use log::{debug, info, warn};
 use std::fs;
 use std::path::{Path, PathBuf};
-use tower_lsp::Client;
+use tower_lsp::{lsp_types::Diagnostic, Client};
 
 /// File scanner for analyzing workspace files on startup
 #[derive(Default, Debug)]
@@ -84,12 +84,14 @@ impl FileScanner {
                     debug!("Analyzing Rust file: {:?}", file_path);
 
                     // Run security analysis
-                    let diagnostics = detector_registry.analyze(&content, Some(&file_path));
+                    let mut all_diagnostics: Vec<Diagnostic> = Vec::new();
+                    all_diagnostics.extend(detector_registry.analyze_immediate(&content, Some(&file_path)));
+                    all_diagnostics.extend(detector_registry.analyze_comprehensive(&file_path, &content).await);
 
-                    if !diagnostics.is_empty() {
+                    if !all_diagnostics.is_empty() {
                         info!(
                             "Found {} issues in file: {:?}",
-                            diagnostics.len(),
+                            all_diagnostics.len(),
                             file_path
                         );
                     }
@@ -99,7 +101,7 @@ impl FileScanner {
 
                     result.rust_files.push(RustFileInfo {
                         path: file_path,
-                        diagnostics,
+                        diagnostics: all_diagnostics,
                         is_anchor_program,
                         is_test_file,
                     });

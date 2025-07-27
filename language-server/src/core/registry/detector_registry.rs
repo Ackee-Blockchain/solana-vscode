@@ -119,32 +119,7 @@ impl DetectorRegistry {
         file_path: &PathBuf,
         content: &str,
     ) -> Vec<Diagnostic> {
-        let mut clippy_diagnostics = self.clippy_analyzer.analyze_file(file_path, content).await;
-
-        // Apply configurations to clippy diagnostics
-        for diagnostic in &mut clippy_diagnostics {
-            if let Some(detector_id) = &diagnostic.code {
-                let code_str = match detector_id {
-                    tower_lsp::lsp_types::NumberOrString::String(s) => Some(s.as_str()),
-                    tower_lsp::lsp_types::NumberOrString::Number(_) => None,
-                };
-                if let Some(code_str) = code_str {
-                    if let Some(config) = self.configs.get(code_str) {
-                        if let Some(severity_override) = config.severity_override {
-                            diagnostic.severity = Some(severity_override);
-                        }
-                    }
-                }
-            }
-        }
-
-        clippy_diagnostics
-    }
-
-    /// Legacy analyze method for backward compatibility
-    pub fn analyze(&mut self, content: &str, file_path: Option<&PathBuf>) -> Vec<Diagnostic> {
-        // For backward compatibility, only run immediate analysis
-        self.analyze_immediate(content, file_path)
+        self.clippy_analyzer.analyze_file(file_path, content, &mut self.detectors, &self.configs).await
     }
 
     /// Invalidate clippy cache for a file

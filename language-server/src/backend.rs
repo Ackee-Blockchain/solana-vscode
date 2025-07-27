@@ -265,34 +265,30 @@ impl Backend {
             )
             .await;
 
-        // Schedule background clippy analysis
-        let client = self.client.clone();
-        let registry = Arc::clone(&self.detector_registry);
-        let uri = params.uri.clone();
-        let text = params.text.clone();
-        let version = params.version;
+        // // Schedule background clippy analysis
+        // let client = self.client.clone();
+        // let registry = Arc::clone(&self.detector_registry);
 
-        tokio::spawn(async move {
-            if let Ok(file_path) = uri.to_file_path() {
-                let comprehensive_diagnostics = {
-                    let mut registry = registry.lock().await;
-                    registry.analyze_comprehensive(&file_path, &text).await
-                };
+        // tokio::spawn(async move {
+        //     if let Ok(file_path) = params.uri.to_file_path() {
+        //         let comprehensive_diagnostics = {
+        //             let mut registry = registry.lock().await;
+        //             registry.analyze_comprehensive(&file_path, &params.text).await
+        //         };
 
-                // Merge with immediate diagnostics and republish
-                let all_diagnostics = {
-                    let mut registry = registry.lock().await;
-                    let immediate = registry.analyze_immediate(&text, Some(&file_path));
-                    let mut combined = immediate;
-                    combined.extend(comprehensive_diagnostics);
-                    combined
-                };
+        //         // Merge with immediate diagnostics and republish
+        //         let all_diagnostics = {
+        //             let mut registry = registry.lock().await;
+        //             let mut diagnostics = registry.analyze_immediate(&params.text, Some(&file_path));
+        //             diagnostics.extend(comprehensive_diagnostics);
+        //             diagnostics
+        //         };
 
-                client
-                    .publish_diagnostics(uri, all_diagnostics, Some(version))
-                    .await;
-            }
-        });
+        //         client
+        //             .publish_diagnostics(params.uri.clone(), all_diagnostics, Some(params.version))
+        //             .await;
+        //     }
+        // });
     }
 
     /// Get information about all registered detectors
@@ -362,7 +358,7 @@ pub struct DetectorStats {
 fn create_default_registry() -> DetectorRegistry {
     DetectorRegistryBuilder::new()
         // Syn-based detectors (immediate analysis)
-        .with_syn_detector(UnsafeMathDetector::default())
+        // .with_syn_detector(UnsafeMathDetector::default())
         .with_syn_detector(MissingSignerDetector::default())
         .with_syn_detector(ManualLamportsZeroingDetector::default())
         .with_syn_detector(SysvarAccountDetector::default())

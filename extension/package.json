@@ -30,6 +30,28 @@
       {
         "command": "solana.show-scan-output",
         "title": "Show Security Scan Output"
+      },
+      {
+        "command": "solana.scanWorkspace",
+        "title": "Scan Workspace for Security Issues"
+      },
+      {
+        "command": "solana.reloadDetectors",
+        "title": "Reload Security Detectors"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "solana.scanWorkspace",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s",
+        "when": "editorLangId == rust"
+      },
+      {
+        "command": "solana.reloadDetectors",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "editorLangId == rust"
       }
     ],
     "configuration": {

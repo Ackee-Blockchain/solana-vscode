@@ -240,21 +240,6 @@ export class DetectorsManager {
         this.outputChannel.dispose();
     }
 
-    // Add method to trigger manual workspace scan
-    async triggerWorkspaceScan() {
-        this.outputChannel.appendLine('Scan request sent to language server\n\n\n');
-        this.outputChannel.appendLine('=== Manual Workspace Scan Triggered ===');
-        try {
-            // Send a custom request to trigger workspace scan
-            await this.client?.sendRequest('workspace/executeCommand', {
-                command: 'workspace.scan',
-                arguments: []
-            });
-        } catch (error) {
-            this.outputChannel.appendLine(`Failed to trigger scan: ${error}`);
-        }
-    }
-
     // Method to show the output channel
     showOutput() {
         this.outputChannel.show();

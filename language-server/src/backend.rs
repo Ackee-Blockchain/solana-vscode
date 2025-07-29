@@ -206,33 +206,15 @@ impl LanguageServer for Backend {
         params: tower_lsp::lsp_types::ExecuteCommandParams,
     ) -> JsonRpcResult<Option<serde_json::Value>> {
         match params.command.as_str() {
-            "workspace.scan" => {
-                info!("Manual workspace scan requested");
-
-                // Perform workspace scan
+            "solana.scanWorkspace" => {
+                info!("Manual workspace scan triggered");
                 let scan_result = {
                     let scanner = self.file_scanner.lock().await;
                     let mut registry = self.detector_registry.lock().await;
                     scanner.scan_workspace(&mut registry).await
                 };
 
-                // Log scan results
-                info!("Manual scan completed:");
-                info!("  - {} Rust files found", scan_result.rust_files.len());
-                info!(
-                    "  - {} Anchor programs found",
-                    scan_result.anchor_program_files().len()
-                );
-                info!(
-                    "  - {} files with security issues",
-                    scan_result.files_with_issues().len()
-                );
-                info!(
-                    "  - {} total security issues found",
-                    scan_result.total_issues()
-                );
-
-                // Publish diagnostics for files with issues
+                // Publish diagnostics for all files with issues
                 for file_info in scan_result.files_with_issues() {
                     if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path) {
                         self.client
@@ -251,6 +233,45 @@ impl LanguageServer for Backend {
                     "success": true,
                     "total_files": scan_result.rust_files.len(),
                     "total_issues": scan_result.total_issues()
+                })))
+            }
+            "solana.reloadDetectors" => {
+                info!("Reloading all detectors");
+
+                // Create a new detector registry with fresh detector instances
+                let mut new_registry = create_default_registry();
+
+                // Replace the existing registry
+                {
+                    let mut registry = self.detector_registry.lock().await;
+                    *registry = new_registry;
+                }
+
+                // Trigger a full workspace scan with the new detectors
+                let scan_result = {
+                    let scanner = self.file_scanner.lock().await;
+                    let mut registry = self.detector_registry.lock().await;
+                    scanner.scan_workspace(&mut registry).await
+                };
+
+                // Publish diagnostics for all files with issues
+                for file_info in scan_result.files_with_issues() {
+                    if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path) {
+                        self.client
+                            .publish_diagnostics(uri, file_info.diagnostics.clone(), None)
+                            .await;
+                    }
+                }
+
+                // Send scan results to extension
+                let scan_summary = ScanSummary::from_scan_result(&scan_result);
+                self.client
+                    .send_notification::<ScanCompleteNotification>(scan_summary)
+                    .await;
+
+                Ok(Some(serde_json::json!({
+                    "success": true,
+                    "message": "Detectors reloaded and workspace rescanned"
                 })))
             }
             _ => Ok(None),
@@ -328,9 +349,10 @@ pub struct DetectorStats {
 
 /// Create a default detector registry with all available detectors
 fn create_default_registry() -> DetectorRegistry {
-    DetectorRegistryBuilder::new()
+    info!("Creating new detector registry with all detectors");
+    let registry = DetectorRegistryBuilder::new()
         .with_detector(UnsafeMathDetector::default())
-        .with_detector(MissingSignerDetector::default())
+        .with_detector(MissingSignerDetector::default()) // Ensure MissingSignerDetector is included
         .with_detector(ManualLamportsZeroingDetector::default())
         .with_detector(SysvarAccountDetector::default())
         .with_detector(ImmutableAccountMutatedDetector::default())
@@ -338,5 +360,11 @@ fn create_default_registry() -> DetectorRegistry {
         .with_detector(InstructionAttributeUnusedDetector::default())
         .with_detector(InstructionAttributeInvalidDetector::default())
         .with_detector(MissingCheckCommentDetector::default())
-        .build()
+        .build();
+
+    info!(
+        "Detector registry created with {} detectors",
+        registry.count()
+    );
+    registry
 }

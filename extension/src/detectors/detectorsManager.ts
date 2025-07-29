@@ -157,7 +157,7 @@ export class DetectorsManager {
 
         const serverOptions: ServerOptions = {
             run: { command: serverPath, transport: TransportKind.stdio },
-            debug: { command: serverPath, transport: TransportKind.stdio }
+            debug: { command: serverPath, transport: TransportKind.stdio, options: { env: { RUST_LOG: 'debug' } } }
         };
 
         // Options to control the language client

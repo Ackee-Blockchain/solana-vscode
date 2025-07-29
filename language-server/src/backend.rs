@@ -173,7 +173,32 @@ impl LanguageServer for Backend {
             version: params.text_document.version,
             text: params.content_changes[0].text.clone(),
         };
+
+        // First, analyze the changed file to provide immediate feedback
         self.on_change(text_document).await;
+
+        // Then trigger a full workspace scan to update all diagnostics
+        info!("File change detected, performing full workspace scan...");
+        let scan_result = {
+            let scanner = self.file_scanner.lock().await;
+            let mut registry = self.detector_registry.lock().await;
+            scanner.scan_workspace(&mut registry).await
+        };
+
+        // Publish diagnostics for all files with issues
+        for file_info in scan_result.files_with_issues() {
+            if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path) {
+                self.client
+                    .publish_diagnostics(uri, file_info.diagnostics.clone(), None)
+                    .await;
+            }
+        }
+
+        // Send scan results to extension
+        let scan_summary = ScanSummary::from_scan_result(&scan_result);
+        self.client
+            .send_notification::<ScanCompleteNotification>(scan_summary)
+            .await;
     }
 
     async fn execute_command(

@@ -244,4 +244,48 @@ export class DetectorsManager {
     showOutput() {
         this.outputChannel.show();
     }
+
+    // Method to manually trigger a workspace scan
+    async scanWorkspace(): Promise<void> {
+        if (!this.client) {
+            window.showErrorMessage('Language server not running');
+            return;
+        }
+
+        this.outputChannel.appendLine('Manually triggering workspace scan...');
+
+        try {
+            const result = await this.client.sendRequest('workspace/executeCommand', {
+                command: 'solana.scanWorkspace',
+                arguments: []
+            });
+
+            this.outputChannel.appendLine(`Scan request result: ${JSON.stringify(result)}`);
+        } catch (error) {
+            this.outputChannel.appendLine(`Error triggering scan: ${error}`);
+            window.showErrorMessage(`Failed to scan workspace: ${error}`);
+        }
+    }
+
+    // Method to reload all detectors
+    async reloadDetectors(): Promise<void> {
+        if (!this.client) {
+            window.showErrorMessage('Language server not running');
+            return;
+        }
+
+        this.outputChannel.appendLine('Reloading security detectors...');
+
+        try {
+            const result = await this.client.sendRequest('workspace/executeCommand', {
+                command: 'solana.reloadDetectors',
+                arguments: []
+            });
+
+            this.outputChannel.appendLine(`Reload detectors result: ${JSON.stringify(result)}`);
+        } catch (error) {
+            this.outputChannel.appendLine(`Error reloading detectors: ${error}`);
+            window.showErrorMessage(`Failed to reload detectors: ${error}`);
+        }
+    }
 }

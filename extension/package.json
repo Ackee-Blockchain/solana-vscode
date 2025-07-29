@@ -28,10 +28,6 @@
         "title": "Close Code Coverage"
       },
       {
-        "command": "solana.scan-workspace",
-        "title": "Scan Workspace for Security Issues"
-      },
-      {
         "command": "solana.show-scan-output",
         "title": "Show Security Scan Output"
       }

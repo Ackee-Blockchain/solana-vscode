@@ -23,7 +23,7 @@ impl AnchorPatterns {
     }
 
     // Check if a field is a Signer type
-    fn is_signer_field(&self, field: &syn::Field) -> bool {
+    pub fn is_signer_field(field: &syn::Field) -> bool {
         if let syn::Type::Path(type_path) = &field.ty {
             if let Some(segment) = type_path.path.segments.last() {
                 return segment.ident == "Signer";

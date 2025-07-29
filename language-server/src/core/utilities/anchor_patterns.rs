@@ -22,6 +22,24 @@ impl AnchorPatterns {
             .any(|attr| attr.path().is_ident("account"))
     }
 
+    // Check if a field is a Signer type
+    fn is_signer_field(&self, field: &syn::Field) -> bool {
+        if let syn::Type::Path(type_path) = &field.ty {
+            if let Some(segment) = type_path.path.segments.last() {
+                return segment.ident == "Signer";
+            }
+        }
+        false
+    }
+
+    /// Check if a module has the #[program] attribute
+    pub fn is_program_module(item_mod: &syn::ItemMod) -> bool {
+        item_mod
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("program"))
+    }
+
     /// Check if a function has the #[access_control] attribute
     #[allow(dead_code)]
     pub fn has_access_control(item_fn: &syn::ItemFn) -> bool {
@@ -179,5 +197,43 @@ impl AnchorPatterns {
             }
         }
         None
+    }
+
+    /// Extract the inner type from a Context<T> parameter in an Anchor function
+    pub fn extract_context_type(param: &syn::FnArg) -> Option<&syn::PathSegment> {
+        // Extract the pattern-typed parameter
+        let pat_type = match param {
+            syn::FnArg::Typed(pt) => pt,
+            _ => return None,
+        };
+
+        // Extract the type path
+        let type_path = match &*pat_type.ty {
+            syn::Type::Path(tp) => tp,
+            _ => return None,
+        };
+
+        // Get the first segment (should be Context)
+        let segment = type_path.path.segments.first()?;
+        if segment.ident != "Context" {
+            return None;
+        }
+
+        // Extract the angle-bracketed arguments
+        let args = match &segment.arguments {
+            syn::PathArguments::AngleBracketed(a) => a,
+            _ => return None,
+        };
+
+        // Get the first argument
+        let arg = args.args.first()?;
+
+        // Extract the inner path
+        match arg {
+            syn::GenericArgument::Type(syn::Type::Path(inner_path)) => {
+                inner_path.path.segments.first()
+            }
+            _ => None,
+        }
     }
 }

@@ -21,23 +21,23 @@
     "commands": [
       {
         "command": "tridentCoverage.show-coverage",
-        "title": "Show Code Coverage"
+        "title": "solana: Show Code Coverage"
       },
       {
         "command": "tridentCoverage.close-coverage",
-        "title": "Close Code Coverage"
+        "title": "solana: Close Code Coverage"
       },
       {
         "command": "solana.show-scan-output",
-        "title": "Show Security Scan Output"
+        "title": "solana: Show Security Scan Output"
       },
       {
         "command": "solana.scanWorkspace",
-        "title": "Scan Workspace for Security Issues"
+        "title": "solana: Scan Workspace for Security Issues"
       },
       {
         "command": "solana.reloadDetectors",
-        "title": "Reload Security Detectors"
+        "title": "solana: Reload Security Detectors"
       }
     ],
     "keybindings": [

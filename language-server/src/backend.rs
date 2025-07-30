@@ -358,7 +358,7 @@ pub struct DetectorStats {
 fn create_default_registry() -> DetectorRegistry {
     DetectorRegistryBuilder::new()
         // Syn-based detectors (immediate analysis)
-        // .with_syn_detector(UnsafeMathDetector::default())
+        .with_syn_detector(UnsafeMathDetector::default())
         .with_syn_detector(MissingSignerDetector::default())
         .with_syn_detector(ManualLamportsZeroingDetector::default())
         .with_syn_detector(SysvarAccountDetector::default())
@@ -368,6 +368,6 @@ fn create_default_registry() -> DetectorRegistry {
         .with_syn_detector(InstructionAttributeInvalidDetector::default())
         .with_syn_detector(MissingCheckCommentDetector::default())
         // Clippy-style detectors (comprehensive analysis)
-        .with_clippy_detector(ClippyUncheckedArithmeticDetector::new())
+        .with_clippy_detector(ClippyUncheckedArithmeticDetector::default())
         .build()
 }

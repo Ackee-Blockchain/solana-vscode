@@ -128,10 +128,6 @@ impl DetectorWrapper {
     }
 }
 
-/// Analysis context for clippy-style detectors with type information from cargo check
-/// This is now defined in clippy_analyzer.rs and re-exported here for convenience
-pub use crate::core::detectors::clippy_analyzer::ClippyAnalysisContext;
-
 /// Type of detector for optimization and scheduling
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetectorType {
@@ -139,4 +135,23 @@ pub enum DetectorType {
     Syn,
     /// Slower clippy-style analysis with type information
     Clippy,
+}
+
+
+#[derive(Debug)]
+pub struct ClippyAnalysisContext {
+    pub file_path: PathBuf,
+    pub source_code: String,
+    /// Whether the compilation was successful
+    pub compilation_successful: bool,
+}
+
+impl Default for ClippyAnalysisContext {
+    fn default() -> Self {
+        Self {
+            file_path: PathBuf::new(),
+            source_code: String::new(),
+            compilation_successful: false,
+        }
+    }
 }

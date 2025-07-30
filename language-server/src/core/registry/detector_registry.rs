@@ -55,7 +55,8 @@ impl DetectorRegistry {
 
     /// Set workspace root for clippy analysis
     pub fn set_workspace_root(&mut self, root: PathBuf) {
-        self.clippy_analyzer.set_workspace_root(root);
+        // self.clippy_analyzer.set_workspace_root(root);
+        todo!()
     }
 
     /// Configure a specific detector
@@ -119,17 +120,20 @@ impl DetectorRegistry {
         file_path: &PathBuf,
         content: &str,
     ) -> Vec<Diagnostic> {
-        self.clippy_analyzer.analyze_file(file_path, content, &mut self.detectors, &self.configs).await
+        // self.clippy_analyzer.analyze_file(file_path, content, &mut self.detectors, &self.configs).await
+        todo!()
     }
 
     /// Invalidate clippy cache for a file
     pub async fn invalidate_cache(&self, file_path: &PathBuf) {
-        self.clippy_analyzer.invalidate_cache(file_path).await;
+        // self.clippy_analyzer.invalidate_cache(file_path).await;
+        todo!()
     }
 
     /// Clear all caches
     pub async fn clear_cache(&self) {
-        self.clippy_analyzer.clear_cache().await;
+        // self.clippy_analyzer.clear_cache().await;
+        todo!()
     }
 
     /// Get information about all registered detectors

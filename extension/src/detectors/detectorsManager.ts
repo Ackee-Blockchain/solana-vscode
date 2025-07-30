@@ -29,7 +29,7 @@ export class DetectorsManager {
 
     constructor() {
         console.log('Security Server initialized');
-        this.outputChannel = window.createOutputChannel('Security Server');
+        this.outputChannel = window.createOutputChannel('Solana Extension');
         this.outputChannel.show(true);
 
         // Improved server path resolution
@@ -164,7 +164,7 @@ export class DetectorsManager {
         const clientOptions: LanguageClientOptions = {
             // Register the server for Rust files
             documentSelector: [{ scheme: 'file', language: 'rust' }],
-		    diagnosticCollectionName: 'securityServer',
+		    diagnosticCollectionName: 'solana',
 		    revealOutputChannelOn: RevealOutputChannelOn.Debug,
 		    progressOnInitialization: true,
             synchronize: {
@@ -175,8 +175,8 @@ export class DetectorsManager {
 
         // Create the language client and start the client.
         this.client = new LanguageClient(
-            'securityServer',
-            'Security Server',
+            'solana-language-server',
+            'Solana Language Server',
             serverOptions,
             clientOptions
         );

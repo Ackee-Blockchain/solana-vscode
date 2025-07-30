@@ -98,7 +98,7 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01667f6f40216b9a0b2945e05fed5f1ad0ab6470e69cb9378001e37b1c0668e4"
 dependencies = [
- "object",
+ "object 0.36.7",
 ]
 
 [[package]]
@@ -173,7 +173,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "miniz_oxide",
- "object",
+ "object 0.36.7",
  "rustc-demangle",
  "windows-targets 0.52.6",
 ]
@@ -253,8 +253,7 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 [[package]]
 name = "clippy_utils"
 version = "0.1.90"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6443d6730aa762fa493b267f6e024b6823c1d6ea6dae35a2580e2f5052838810"
+source = "git+https://github.com/rust-lang/rust-clippy?branch=master#18e8ac3778a2859d412c34b0ff7a1f15c07c9103"
 dependencies = [
  "arrayvec",
  "itertools",
@@ -522,16 +521,16 @@ dependencies = [
 
 [[package]]
 name = "fluent-bundle"
-version = "0.15.3"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fe0a21ee80050c678013f82edf4b705fe2f26f1f9877593d13198612503f493"
+checksum = "01203cb8918f5711e73891b347816d932046f95f54207710bda99beaeb423bf4"
 dependencies = [
  "fluent-langneg",
  "fluent-syntax",
  "intl-memoizer",
  "intl_pluralrules",
- "rustc-hash 1.1.0",
- "self_cell 0.10.3",
+ "rustc-hash 2.1.1",
+ "self_cell",
  "smallvec",
  "unic-langid",
 ]
@@ -547,10 +546,11 @@ dependencies = [
 
 [[package]]
 name = "fluent-syntax"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a530c4694a6a8d528794ee9bbd8ba0122e779629ac908d15ad5a7ae7763a33d"
+checksum = "54f0d287c53ffd184d04d8677f590f4ac5379785529e5e08b1c8083acdd5c198"
 dependencies = [
+ "memchr",
  "thiserror",
 ]
 
@@ -1039,6 +1039,7 @@ dependencies = [
  "rustc_ast",
  "rustc_driver",
  "rustc_hir",
+ "rustc_interface",
  "rustc_lint",
  "rustc_span",
  "serde",
@@ -1075,7 +1076,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.53.2",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -1236,7 +1237,19 @@ dependencies = [
  "indexmap",
  "memchr",
  "ruzstd",
- "wasmparser 0.222.1",
+]
+
+[[package]]
+name = "object"
+version = "0.37.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "03fd943161069e1768b4b3d050890ba48730e590f57e56d4aa04e7e090e61b4a"
+dependencies = [
+ "crc32fast",
+ "hashbrown 0.15.4",
+ "indexmap",
+ "memchr",
+ "wasmparser 0.234.0",
 ]
 
 [[package]]
@@ -1569,19 +1582,9 @@ checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
 
 [[package]]
 name = "rustc-literal-escaper"
-version = "0.0.2"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0041b6238913c41fe704213a4a9329e2f685a156d1781998128b4149c230ad04"
-
-[[package]]
-name = "rustc-rayon-core"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f42932dcd3bcbe484b38a3ccf79b7906fac41c02d408b5b1bac26da3416efdb"
-dependencies = [
- "crossbeam-deque",
- "crossbeam-utils",
-]
+checksum = "e4ee29da77c5a54f42697493cd4c9b9f31b74df666a6c04dfc4fde77abe0438b"
 
 [[package]]
 name = "rustc-stable-hash"
@@ -1592,7 +1595,7 @@ checksum = "781442f29170c5c93b7185ad559492601acdc71d5bb0706f5868094f45cfcd08"
 [[package]]
 name = "rustc_abi"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "bitflags 2.9.1",
  "rand",
@@ -1619,7 +1622,7 @@ dependencies = [
 [[package]]
 name = "rustc_arena"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "smallvec",
 ]
@@ -1627,7 +1630,7 @@ dependencies = [
 [[package]]
 name = "rustc_ast"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "bitflags 2.9.1",
  "memchr",
@@ -1646,7 +1649,7 @@ dependencies = [
 [[package]]
 name = "rustc_ast_ir"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_data_structures",
  "rustc_macros",
@@ -1656,11 +1659,12 @@ dependencies = [
 [[package]]
 name = "rustc_ast_lowering"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_abi",
  "rustc_ast",
  "rustc_ast_pretty",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -1681,7 +1685,7 @@ dependencies = [
 [[package]]
 name = "rustc_ast_passes"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "itertools",
  "rustc_abi",
@@ -1696,13 +1700,14 @@ dependencies = [
  "rustc_parse",
  "rustc_session",
  "rustc_span",
+ "rustc_target",
  "thin-vec",
 ]
 
 [[package]]
 name = "rustc_ast_pretty"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "itertools",
  "rustc_ast",
@@ -1713,7 +1718,7 @@ dependencies = [
 [[package]]
 name = "rustc_attr_data_structures"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_abi",
  "rustc_ast",
@@ -1728,7 +1733,7 @@ dependencies = [
 [[package]]
 name = "rustc_attr_parsing"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_abi",
  "rustc_ast",
@@ -1748,7 +1753,7 @@ dependencies = [
 [[package]]
 name = "rustc_baked_icu_data"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "icu_list",
  "icu_locid",
@@ -1760,7 +1765,7 @@ dependencies = [
 [[package]]
 name = "rustc_borrowck"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "either",
  "itertools",
@@ -1788,10 +1793,11 @@ dependencies = [
 [[package]]
 name = "rustc_builtin_macros"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_ast",
  "rustc_ast_pretty",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -1805,6 +1811,7 @@ dependencies = [
  "rustc_macros",
  "rustc_parse",
  "rustc_parse_format",
+ "rustc_proc_macro",
  "rustc_session",
  "rustc_span",
  "rustc_target",
@@ -1816,22 +1823,21 @@ dependencies = [
 [[package]]
 name = "rustc_codegen_ssa"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "ar_archive_writer",
- "arrayvec",
  "bitflags 2.9.1",
  "bstr",
  "cc",
- "either",
  "itertools",
  "libc",
- "object",
+ "object 0.37.1",
  "pathdiff",
  "regex",
  "rustc_abi",
  "rustc_arena",
  "rustc_ast",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -1864,13 +1870,13 @@ dependencies = [
 [[package]]
 name = "rustc_const_eval"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "either",
  "rustc_abi",
  "rustc_apfloat",
  "rustc_ast",
- "rustc_attr_parsing",
+ "rustc_attr_data_structures",
  "rustc_data_structures",
  "rustc_errors",
  "rustc_fluent_macro",
@@ -1890,7 +1896,7 @@ dependencies = [
 [[package]]
 name = "rustc_data_structures"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "arrayvec",
  "bitflags 2.9.1",
@@ -1906,7 +1912,6 @@ dependencies = [
  "parking_lot",
  "portable-atomic",
  "rustc-hash 2.1.1",
- "rustc-rayon-core",
  "rustc-stable-hash",
  "rustc_arena",
  "rustc_graphviz",
@@ -1914,6 +1919,7 @@ dependencies = [
  "rustc_index",
  "rustc_macros",
  "rustc_serialize",
+ "rustc_thread_pool",
  "smallvec",
  "stacker",
  "tempfile",
@@ -1925,7 +1931,7 @@ dependencies = [
 [[package]]
 name = "rustc_driver"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_driver_impl",
 ]
@@ -1933,7 +1939,7 @@ dependencies = [
 [[package]]
 name = "rustc_driver_impl"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "ctrlc",
  "jiff",
@@ -1973,6 +1979,7 @@ dependencies = [
  "rustc_passes",
  "rustc_pattern_analysis",
  "rustc_privacy",
+ "rustc_public",
  "rustc_query_system",
  "rustc_resolve",
  "rustc_session",
@@ -1982,7 +1989,6 @@ dependencies = [
  "rustc_ty_utils",
  "serde_json",
  "shlex",
- "stable_mir",
  "tracing",
  "windows",
 ]
@@ -1990,12 +1996,12 @@ dependencies = [
 [[package]]
 name = "rustc_error_codes"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 
 [[package]]
 name = "rustc_error_messages"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "fluent-bundle",
  "fluent-syntax",
@@ -2015,7 +2021,7 @@ dependencies = [
 [[package]]
 name = "rustc_errors"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "annotate-snippets",
  "derive_setters",
@@ -2048,11 +2054,12 @@ dependencies = [
 [[package]]
 name = "rustc_expand"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_ast",
  "rustc_ast_passes",
  "rustc_ast_pretty",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -2063,6 +2070,7 @@ dependencies = [
  "rustc_lint_defs",
  "rustc_macros",
  "rustc_parse",
+ "rustc_proc_macro",
  "rustc_serialize",
  "rustc_session",
  "rustc_span",
@@ -2074,8 +2082,9 @@ dependencies = [
 [[package]]
 name = "rustc_feature"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
+ "rustc_attr_data_structures",
  "rustc_data_structures",
  "rustc_span",
  "serde",
@@ -2085,7 +2094,7 @@ dependencies = [
 [[package]]
 name = "rustc_fluent_macro"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "annotate-snippets",
  "fluent-bundle",
@@ -2099,7 +2108,7 @@ dependencies = [
 [[package]]
 name = "rustc_fs_util"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "tempfile",
 ]
@@ -2107,12 +2116,12 @@ dependencies = [
 [[package]]
 name = "rustc_graphviz"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 
 [[package]]
 name = "rustc_hashes"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc-stable-hash",
 ]
@@ -2120,7 +2129,7 @@ dependencies = [
 [[package]]
 name = "rustc_hir"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "odht",
  "rustc_abi",
@@ -2142,12 +2151,13 @@ dependencies = [
 [[package]]
 name = "rustc_hir_analysis"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "itertools",
  "rustc_abi",
  "rustc_arena",
  "rustc_ast",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -2161,6 +2171,7 @@ dependencies = [
  "rustc_middle",
  "rustc_session",
  "rustc_span",
+ "rustc_target",
  "rustc_trait_selection",
  "smallvec",
  "tracing",
@@ -2169,7 +2180,7 @@ dependencies = [
 [[package]]
 name = "rustc_hir_pretty"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_abi",
  "rustc_ast",
@@ -2182,11 +2193,12 @@ dependencies = [
 [[package]]
 name = "rustc_hir_typeck"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "itertools",
  "rustc_abi",
  "rustc_ast",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -2210,7 +2222,7 @@ dependencies = [
 [[package]]
 name = "rustc_incremental"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rand",
  "rustc_ast",
@@ -2233,7 +2245,7 @@ dependencies = [
 [[package]]
 name = "rustc_index"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_index_macros",
  "rustc_macros",
@@ -2244,7 +2256,7 @@ dependencies = [
 [[package]]
 name = "rustc_index_macros"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2254,7 +2266,7 @@ dependencies = [
 [[package]]
 name = "rustc_infer"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_data_structures",
  "rustc_errors",
@@ -2273,9 +2285,8 @@ dependencies = [
 [[package]]
 name = "rustc_interface"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
- "rustc-rayon-core",
  "rustc_ast",
  "rustc_ast_lowering",
  "rustc_ast_passes",
@@ -2312,6 +2323,7 @@ dependencies = [
  "rustc_span",
  "rustc_symbol_mangling",
  "rustc_target",
+ "rustc_thread_pool",
  "rustc_trait_selection",
  "rustc_traits",
  "rustc_ty_utils",
@@ -2321,7 +2333,7 @@ dependencies = [
 [[package]]
 name = "rustc_lexer"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "memchr",
  "unicode-properties",
@@ -2331,11 +2343,12 @@ dependencies = [
 [[package]]
 name = "rustc_lint"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_abi",
  "rustc_ast",
  "rustc_ast_pretty",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -2359,7 +2372,7 @@ dependencies = [
 [[package]]
 name = "rustc_lint_defs"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_abi",
  "rustc_ast",
@@ -2375,7 +2388,7 @@ dependencies = [
 [[package]]
 name = "rustc_log"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "tracing",
  "tracing-core",
@@ -2386,7 +2399,7 @@ dependencies = [
 [[package]]
 name = "rustc_macros"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2397,7 +2410,7 @@ dependencies = [
 [[package]]
 name = "rustc_metadata"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "bitflags 2.9.1",
  "libc",
@@ -2405,6 +2418,7 @@ dependencies = [
  "odht",
  "rustc_abi",
  "rustc_ast",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -2414,9 +2428,11 @@ dependencies = [
  "rustc_fs_util",
  "rustc_hir",
  "rustc_hir_pretty",
+ "rustc_incremental",
  "rustc_index",
  "rustc_macros",
  "rustc_middle",
+ "rustc_proc_macro",
  "rustc_serialize",
  "rustc_session",
  "rustc_span",
@@ -2428,13 +2444,12 @@ dependencies = [
 [[package]]
 name = "rustc_middle"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "bitflags 2.9.1",
  "either",
  "gsgdt",
  "polonius-engine",
- "rustc-rayon-core",
  "rustc_abi",
  "rustc_apfloat",
  "rustc_arena",
@@ -2458,6 +2473,7 @@ dependencies = [
  "rustc_session",
  "rustc_span",
  "rustc_target",
+ "rustc_thread_pool",
  "rustc_type_ir",
  "smallvec",
  "thin-vec",
@@ -2467,13 +2483,14 @@ dependencies = [
 [[package]]
 name = "rustc_mir_build"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "itertools",
  "rustc_abi",
  "rustc_apfloat",
  "rustc_arena",
  "rustc_ast",
+ "rustc_attr_data_structures",
  "rustc_data_structures",
  "rustc_errors",
  "rustc_fluent_macro",
@@ -2493,7 +2510,7 @@ dependencies = [
 [[package]]
 name = "rustc_mir_dataflow"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "polonius-engine",
  "regex",
@@ -2515,14 +2532,14 @@ dependencies = [
 [[package]]
 name = "rustc_mir_transform"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "either",
  "itertools",
  "rustc_abi",
  "rustc_arena",
  "rustc_ast",
- "rustc_attr_parsing",
+ "rustc_attr_data_structures",
  "rustc_const_eval",
  "rustc_data_structures",
  "rustc_errors",
@@ -2545,11 +2562,11 @@ dependencies = [
 [[package]]
 name = "rustc_monomorphize"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_abi",
  "rustc_ast",
- "rustc_attr_parsing",
+ "rustc_attr_data_structures",
  "rustc_data_structures",
  "rustc_errors",
  "rustc_fluent_macro",
@@ -2568,7 +2585,7 @@ dependencies = [
 [[package]]
 name = "rustc_next_trait_solver"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "derive-where",
  "rustc_data_structures",
@@ -2582,12 +2599,13 @@ dependencies = [
 [[package]]
 name = "rustc_parse"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "bitflags 2.9.1",
  "rustc-literal-escaper",
  "rustc_ast",
  "rustc_ast_pretty",
+ "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
  "rustc_feature",
@@ -2606,7 +2624,7 @@ dependencies = [
 [[package]]
 name = "rustc_parse_format"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc-literal-escaper",
  "rustc_lexer",
@@ -2615,12 +2633,13 @@ dependencies = [
 [[package]]
 name = "rustc_passes"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_abi",
  "rustc_ast",
  "rustc_ast_lowering",
  "rustc_ast_pretty",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -2642,7 +2661,7 @@ dependencies = [
 [[package]]
 name = "rustc_pattern_analysis"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc-hash 2.1.1",
  "rustc_abi",
@@ -2664,10 +2683,10 @@ dependencies = [
 [[package]]
 name = "rustc_privacy"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_ast",
- "rustc_attr_parsing",
+ "rustc_attr_data_structures",
  "rustc_data_structures",
  "rustc_errors",
  "rustc_fluent_macro",
@@ -2681,9 +2700,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustc_proc_macro"
+version = "0.0.0"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
+dependencies = [
+ "rustc-literal-escaper",
+]
+
+[[package]]
+name = "rustc_public"
+version = "0.1.0-preview"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
+dependencies = [
+ "rustc_abi",
+ "rustc_hir",
+ "rustc_middle",
+ "rustc_public_bridge",
+ "rustc_session",
+ "rustc_span",
+ "rustc_target",
+ "scoped-tls",
+ "serde",
+ "tracing",
+]
+
+[[package]]
+name = "rustc_public_bridge"
+version = "0.0.0"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
+dependencies = [
+ "rustc_abi",
+ "rustc_data_structures",
+ "rustc_hir",
+ "rustc_hir_pretty",
+ "rustc_middle",
+ "rustc_session",
+ "rustc_span",
+ "rustc_target",
+]
+
+[[package]]
 name = "rustc_query_impl"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "measureme",
  "rustc_data_structures",
@@ -2701,11 +2760,10 @@ dependencies = [
 [[package]]
 name = "rustc_query_system"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "hashbrown 0.15.4",
  "parking_lot",
- "rustc-rayon-core",
  "rustc_abi",
  "rustc_ast",
  "rustc_attr_data_structures",
@@ -2720,6 +2778,7 @@ dependencies = [
  "rustc_serialize",
  "rustc_session",
  "rustc_span",
+ "rustc_thread_pool",
  "smallvec",
  "tracing",
 ]
@@ -2727,7 +2786,7 @@ dependencies = [
 [[package]]
 name = "rustc_resolve"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "bitflags 2.9.1",
  "itertools",
@@ -2735,6 +2794,7 @@ dependencies = [
  "rustc_arena",
  "rustc_ast",
  "rustc_ast_pretty",
+ "rustc_attr_data_structures",
  "rustc_attr_parsing",
  "rustc_data_structures",
  "rustc_errors",
@@ -2742,6 +2802,7 @@ dependencies = [
  "rustc_feature",
  "rustc_fluent_macro",
  "rustc_hir",
+ "rustc_index",
  "rustc_macros",
  "rustc_metadata",
  "rustc_middle",
@@ -2756,7 +2817,7 @@ dependencies = [
 [[package]]
 name = "rustc_serialize"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "indexmap",
  "rustc_hashes",
@@ -2767,7 +2828,7 @@ dependencies = [
 [[package]]
 name = "rustc_session"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "bitflags 2.9.1",
  "getopts",
@@ -2787,34 +2848,15 @@ dependencies = [
  "rustc_serialize",
  "rustc_span",
  "rustc_target",
- "smallvec",
  "termize",
  "tracing",
  "windows",
 ]
 
 [[package]]
-name = "rustc_smir"
-version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
-dependencies = [
- "rustc_abi",
- "rustc_data_structures",
- "rustc_hir",
- "rustc_hir_pretty",
- "rustc_middle",
- "rustc_session",
- "rustc_span",
- "rustc_target",
- "scoped-tls",
- "serde",
- "tracing",
-]
-
-[[package]]
 name = "rustc_span"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "blake3",
  "derive-where",
@@ -2837,7 +2879,7 @@ dependencies = [
 [[package]]
 name = "rustc_symbol_mangling"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "punycode",
  "rustc-demangle",
@@ -2855,28 +2897,42 @@ dependencies = [
 [[package]]
 name = "rustc_target"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "bitflags 2.9.1",
- "object",
+ "object 0.37.1",
  "rustc_abi",
  "rustc_data_structures",
  "rustc_fs_util",
  "rustc_macros",
  "rustc_serialize",
  "rustc_span",
+ "serde",
+ "serde_derive",
  "serde_json",
+ "serde_path_to_error",
  "tracing",
+]
+
+[[package]]
+name = "rustc_thread_pool"
+version = "0.0.0"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
+dependencies = [
+ "crossbeam-deque",
+ "crossbeam-utils",
+ "smallvec",
 ]
 
 [[package]]
 name = "rustc_trait_selection"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "itertools",
  "rustc_abi",
  "rustc_ast",
+ "rustc_attr_data_structures",
  "rustc_data_structures",
  "rustc_errors",
  "rustc_fluent_macro",
@@ -2897,7 +2953,7 @@ dependencies = [
 [[package]]
 name = "rustc_traits"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_data_structures",
  "rustc_hir",
@@ -2911,7 +2967,7 @@ dependencies = [
 [[package]]
 name = "rustc_transmute"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "rustc_abi",
  "rustc_data_structures",
@@ -2925,7 +2981,7 @@ dependencies = [
 [[package]]
 name = "rustc_ty_utils"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "itertools",
  "rustc_abi",
@@ -2948,13 +3004,13 @@ dependencies = [
 [[package]]
 name = "rustc_type_ir"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "bitflags 2.9.1",
  "derive-where",
  "ena",
  "indexmap",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.1",
  "rustc_ast_ir",
  "rustc_data_structures",
  "rustc_index",
@@ -2970,7 +3026,7 @@ dependencies = [
 [[package]]
 name = "rustc_type_ir_macros"
 version = "0.0.0"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
+source = "git+https://github.com/rust-lang/rust?branch=master#72716b134ac26b837703e46cbda99a453ae92c42"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3020,15 +3076,6 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "self_cell"
-version = "0.10.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e14e4d63b804dc0c7ec4a1e52bcb63f02c7ac94476755aa579edac21e01f915d"
-dependencies = [
- "self_cell 1.2.0",
-]
-
-[[package]]
-name = "self_cell"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f7d95a54511e0c7be3f51e8867aa8cf35148d7b9445d44de2f943e2b206e749"
@@ -3062,6 +3109,16 @@ dependencies = [
  "itoa",
  "memchr",
  "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_path_to_error"
+version = "0.1.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59fab13f937fa393d08645bf3a84bdfe86e296747b506ada67bb15f10f218b2a"
+dependencies = [
+ "itoa",
  "serde",
 ]
 
@@ -3151,14 +3208,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
-name = "stable_mir"
-version = "0.1.0-preview"
-source = "git+https://github.com/rust-lang/rust?tag=1.88.0#6b00bc3880198600130e1cf62b8f8a93494488cc"
-dependencies = [
- "rustc_smir",
-]
-
-[[package]]
 name = "stacker"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3229,12 +3278,12 @@ dependencies = [
 
 [[package]]
 name = "termize"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1706be6b564323ce7092f5f7e6b118a14c8ef7ed0e69c8c5329c914a9f101295"
+checksum = "6a8da106d1a19c5b9c53c03311936568a0439926a7607815bd3461139cbab1cc"
 dependencies = [
  "libc",
- "winapi",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3245,18 +3294,18 @@ checksum = "144f754d318415ac792f9d69fc87abbbfc043ce2ef041c60f16ad828f638717d"
 
 [[package]]
 name = "thiserror"
-version = "1.0.69"
+version = "2.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
+checksum = "567b8a2dae586314f7be2a752ec7474332959c6460e02bde30d702a66d488708"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.69"
+version = "2.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+checksum = "7f7cf42b4507d8ea322120659672cf1b9dbb93f8f2d4ecfd6e51350ff5b17a1d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3271,7 +3320,7 @@ checksum = "9e9c1e705f82a260173f3eec93f2ff6d7807f23ad5a8cc2e7316a891733ea7a1"
 dependencies = [
  "gimli",
  "hashbrown 0.15.4",
- "object",
+ "object 0.36.7",
  "tracing",
 ]
 
@@ -3717,9 +3766,9 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.222.1"
+version = "0.234.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa210fd1788e6b37a1d1930f3389c48e1d6ebd1a013d34fa4b7f9e3e3bf03146"
+checksum = "be22e5a8f600afce671dd53c8d2dd26b4b7aa810fd18ae27dfc49737f3e02fc5"
 dependencies = [
  "bitflags 2.9.1",
 ]
@@ -3757,32 +3806,55 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "windows"
-version = "0.59.0"
+version = "0.61.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f919aee0a93304be7f62e8e5027811bbba96bcb1de84d6618be56e43f8a32a1"
+checksum = "9babd3a767a4c1aef6900409f85f5d53ce2544ccdfaa86dad48c91782c6d6893"
+dependencies = [
+ "windows-collections",
+ "windows-core",
+ "windows-future",
+ "windows-link",
+ "windows-numerics",
+]
+
+[[package]]
+name = "windows-collections"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3beeceb5e5cfd9eb1d76b381630e82c4241ccd0d27f1a39ed41b2760b255c5e8"
 dependencies = [
  "windows-core",
- "windows-targets 0.53.2",
 ]
 
 [[package]]
 name = "windows-core"
-version = "0.59.0"
+version = "0.61.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "810ce18ed2112484b0d4e15d022e5f598113e220c53e373fb31e67e21670c1ce"
+checksum = "c0fdd3ddb90610c7638aa2b3a3ab2904fb9e5cdbecc643ddb3647212781c4ae3"
 dependencies = [
  "windows-implement",
  "windows-interface",
+ "windows-link",
  "windows-result",
  "windows-strings",
- "windows-targets 0.53.2",
+]
+
+[[package]]
+name = "windows-future"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc6a41e98427b19fe4b73c550f060b59fa592d7d686537eebf9385621bfbad8e"
+dependencies = [
+ "windows-core",
+ "windows-link",
+ "windows-threading",
 ]
 
 [[package]]
 name = "windows-implement"
-version = "0.59.0"
+version = "0.60.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83577b051e2f49a058c308f17f273b570a6a758386fc291b5f6a934dd84e48c1"
+checksum = "a47fddd13af08290e67f4acabf4b459f647552718f683a7b415d290ac744a836"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3807,6 +3879,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e6ad25900d524eaabdbbb96d20b4311e1e7ae1699af4fb28c17ae66c80d798a"
 
 [[package]]
+name = "windows-numerics"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9150af68066c4c5c07ddc0ce30421554771e528bde427614c61038bc2c92c2b1"
+dependencies = [
+ "windows-core",
+ "windows-link",
+]
+
+[[package]]
 name = "windows-result"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3817,9 +3899,9 @@ dependencies = [
 
 [[package]]
 name = "windows-strings"
-version = "0.3.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87fa48cc5d406560701792be122a10132491cff9d0aeb23583cc2dcafc847319"
+checksum = "56e6c93f3a0c3b36176cb1327a4958a0353d5d166c2a35cb268ace15e91d3b57"
 dependencies = [
  "windows-link",
 ]
@@ -3881,6 +3963,15 @@ dependencies = [
  "windows_x86_64_gnu 0.53.0",
  "windows_x86_64_gnullvm 0.53.0",
  "windows_x86_64_msvc 0.53.0",
+]
+
+[[package]]
+name = "windows-threading"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b66463ad2e0ea3bbf808b7f1d371311c80e115c0b71d60efc142cafbcfb057a6"
+dependencies = [
+ "windows-link",
 ]
 
 [[package]]

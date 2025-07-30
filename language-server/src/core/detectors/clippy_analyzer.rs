@@ -1,59 +1,30 @@
+use anyhow::{Context, Result};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tokio::sync::Mutex as TokioMutex;
-use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
+use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range};
 
 use crate::core::detector_config::DetectorConfig;
-use crate::core::detectors::detector::{ClippyAnalysisContext, DetectorWrapper};
+use crate::core::detectors::detector::DetectorWrapper;
 
-// Callbacks for rustc_driver
-struct AnalyzerCallbacks {
-    detectors: Arc<Mutex<Vec<DetectorWrapper>>>,
-    configs: HashMap<String, DetectorConfig>,
-    diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
+/// Information extracted from cargo check output
+#[derive(Debug, Clone)]
+pub struct TypeInfo {
+    pub file_path: PathBuf,
+    pub line: u32,
+    pub column: u32,
+    pub expr_type: String,
+    pub span_start: u32,
+    pub span_end: u32,
 }
 
-impl Callbacks for AnalyzerCallbacks {
-    fn config(&mut self, config: &mut rustc_interface::Config) {
-        config.opts.edition = Edition::Edition2021;
-    }
-
-    fn after_analysis<'tcx>(
-        &mut self,
-        _compiler: &Compiler,
-        queries: &'tcx Queries<'tcx>,
-    ) -> Compilation {
-        queries.global_ctxt().unwrap().enter(|tcx| {
-            let mut lint_store = LintStore::new();
-
-            let detectors = self.detectors.lock().unwrap();
-            for detector in detectors.iter() {
-                if let DetectorWrapper::Clippy(det) = detector {
-                    if self.configs.get(det.id()).map_or(true, |c| c.enabled) {
-                        lint_store.register_late_pass(|_| Box::new(det.clone()));
-                    }
-                }
-            }
-            rustc_lint::late::check_crate(tcx, &lint_store);
-
-            let mut all_diagnostics = Vec::new();
-            for detector in detectors.iter() {
-                if let DetectorWrapper::Clippy(det) = detector {
-                    all_diagnostics.extend(det.get_diagnostics());
-                }
-            }
-            *self.diagnostics.lock().unwrap() = all_diagnostics;
-        });
-        Compilation::Stop
-    }
-}
-
-/// ClippyAnalyzer using rustc_driver
 pub struct ClippyAnalyzer {
     cache: Arc<TokioMutex<HashMap<PathBuf, Vec<Diagnostic>>>>,
     workspace_root: Option<PathBuf>,
+    type_info_cache: Arc<TokioMutex<HashMap<PathBuf, Vec<TypeInfo>>>>,
 }
 
 impl ClippyAnalyzer {
@@ -61,6 +32,7 @@ impl ClippyAnalyzer {
         Self {
             cache: Arc::new(TokioMutex::new(HashMap::new())),
             workspace_root: None,
+            type_info_cache: Arc::new(TokioMutex::new(HashMap::new())),
         }
     }
 
@@ -71,18 +43,20 @@ impl ClippyAnalyzer {
     pub async fn analyze_file(
         &mut self,
         file_path: &Path,
-        _content: &str, // May not need if compiling whole crate
+        content: &str,
         detectors: &mut Vec<DetectorWrapper>,
         configs: &HashMap<String, DetectorConfig>,
     ) -> Vec<Diagnostic> {
-        // Simplified caching; improve with content hash
+        // Check cache first
         let cache = self.cache.lock().await;
         if let Some(cached) = cache.get(file_path) {
             return cached.clone();
         }
         drop(cache);
 
-        let diagnostics = self.perform_analysis(file_path, detectors, configs).await;
+        let diagnostics = self
+            .perform_analysis(file_path, content, detectors, configs)
+            .await;
 
         let mut cache = self.cache.lock().await;
         cache.insert(file_path.to_path_buf(), diagnostics.clone());
@@ -92,37 +66,94 @@ impl ClippyAnalyzer {
     async fn perform_analysis(
         &self,
         file_path: &Path,
+        content: &str,
         detectors: &mut Vec<DetectorWrapper>,
         configs: &HashMap<String, DetectorConfig>,
     ) -> Vec<Diagnostic> {
-        let crate_root = self.workspace_root.as_ref().unwrap(); // Assume set
-        let args = Self::build_compiler_args(crate_root, file_path);
-
-        let diagnostics_arc = Arc::new(Mutex::new(Vec::new()));
-        let detectors_arc = Arc::new(Mutex::new(detectors.clone()));
-        let mut callbacks = AnalyzerCallbacks {
-            detectors: detectors_arc,
-            configs: configs.clone(),
-            diagnostics: diagnostics_arc.clone(),
+        let workspace_root = match &self.workspace_root {
+            Some(root) => root,
+            None => return vec![],
         };
 
-        if RunCompiler::new(&args, &mut callbacks).run().is_err() {
-            return vec![];
+        // First, run cargo check to get type information
+        let type_info = match self.extract_type_info(workspace_root, file_path).await {
+            Ok(info) => info,
+            Err(e) => {
+                log::warn!(
+                    "Failed to extract type info for {}: {}",
+                    file_path.display(),
+                    e
+                );
+                return vec![];
+            }
+        };
+
+        // Cache the type information
+        let mut type_cache = self.type_info_cache.lock().await;
+        type_cache.insert(file_path.to_path_buf(), type_info.clone());
+        drop(type_cache);
+
+        // Now run our detectors with the type information
+        let mut all_diagnostics = Vec::new();
+
+        for detector in detectors.iter_mut() {
+            if let DetectorWrapper::Clippy(det) = detector {
+                if configs.get(det.id()).map_or(true, |c| c.enabled) {
+                    let context = ClippyAnalysisContext {
+                        file_path: file_path.to_path_buf(),
+                        content: content.to_string(),
+                        type_info: type_info.clone(),
+                        workspace_root: workspace_root.clone(),
+                    };
+
+                    let diagnostics = det.analyze_with_context(&context);
+                    all_diagnostics.extend(diagnostics);
+                }
+            }
         }
 
-        diagnostics_arc.lock().unwrap().clone()
+        all_diagnostics
     }
 
-    fn build_compiler_args(crate_root: &Path, file_path: &Path) -> Vec<String> {
-        // Build args: sysroot, externs, target, etc.
-        vec![
-            "rustc".to_string(),
-            file_path.to_str().unwrap().to_string(),
-            "--crate-type".to_string(),
-            "lib".to_string(),
-            "--target".to_string(),
-            "sbf-unknown-unknown".to_string(),
-            // Add more from Cargo check or similar
-        ]
+    /// Extract type information using cargo check
+    async fn extract_type_info(
+        &self,
+        workspace_root: &Path,
+        file_path: &Path,
+    ) -> Result<Vec<TypeInfo>> {
+        let mut cmd = Command::new("cargo");
+        cmd.current_dir(workspace_root)
+            .args(&["check", "--message-format=json", "--quiet"]);
+
+        // If we have a specific file, try to check just that crate
+        if let Some(relative_path) = file_path.strip_prefix(workspace_root).ok() {
+            if let Some(src_dir) = relative_path.parent() {
+                if src_dir.join("Cargo.toml").exists() {
+                    cmd.current_dir(workspace_root.join(src_dir));
+                }
+            }
+        }
+
+        let output = cmd.output().context("Failed to execute cargo check")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            log::warn!("Cargo check failed: {}", stderr);
+            return Ok(vec![]);
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let mut type_info = Vec::new();
+
+        // extract type info
+        todo!();
+
+        Ok(type_info)
+    }
+
+    /// Get cached type information for a file
+    pub async fn get_type_info(&self, file_path: &Path) -> Vec<TypeInfo> {
+        let cache = self.type_info_cache.lock().await;
+        cache.get(file_path).cloned().unwrap_or_default()
     }
 }

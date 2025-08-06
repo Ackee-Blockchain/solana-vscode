@@ -2,7 +2,7 @@
 
 A Visual Studio Code extension for Solana development that provides security scanning and code coverage visualization for Solana programs.
 
-![Solana Extension](assets/icon.png)
+![Solana Extension](extension/assets/icon.png)
 
 ## Security Scanning
 

@@ -1,142 +1,57 @@
-# Solana VSCode Extension
+# Solana
 
-A VSCode extension for Solana development that provides security scanning and code coverage visualization for Solana programs.
+A Visual Studio Code extension for Solana development that provides security scanning and code coverage visualization for Solana programs.
 
-## Features
+![Solana Extension](assets/icon.png)
 
-### Security Scanning
+## Security Scanning
 
-The extension provides security scanning for Solana programs with the following detectors:
+Enhance your Solana development workflow with built-in security scanning. The extension automatically detects common security issues in your Solana programs:
 
-- **Immutable Account Mutated**: Detects when an immutable account is being mutated
-- **Instruction Attribute Invalid**: Detects invalid instruction attributes
-- **Instruction Attribute Unused**: Detects unused instruction attributes
-- **Manual Lamports Zeroing**: Detects manual lamports zeroing which can lead to security issues
-- **Missing Check Comment**: Detects missing check comments in critical code sections
-- **Missing InitSpace**: Detects missing initialization space in account creation
-- **Missing Signer**: Detects missing signer verification
-- **Sysvar Account**: Detects improper sysvar account access
-- **Unsafe Math**: Detects unsafe mathematical operations that could lead to overflows
+- **Immutable Account Mutated**: Identifies when code attempts to modify an account marked as immutable
+- **Instruction Attribute Invalid**: Detects invalid instruction attributes that could cause runtime errors
+- **Instruction Attribute Unused**: Finds unused instruction attributes that might indicate logic errors
+- **Manual Lamports Zeroing**: Detects unsafe manual lamports zeroing patterns
+- **Missing Check Comment**: Identifies critical code sections lacking security check comments
+- **Missing InitSpace**: Catches account creation without proper space initialization
+- **Missing Signer**: Alerts when code fails to verify required signers
+- **Sysvar Account**: Detects improper sysvar account access methods
+- **Unsafe Math**: Identifies mathematical operations that could lead to overflows
 
-### Code Coverage
+## Code Coverage
 
-The extension provides code coverage visualization for Trident tests, helping you identify untested code in your Solana programs.
+Visualize your test coverage directly in the editor:
 
-### Commands
+- See which lines are covered by your Trident tests
+- View execution counts for each line
+- Quickly identify untested code paths
+- Customize the appearance of coverage indicators
 
-- `solana: Scan Workspace for Security Issues` (Ctrl+Alt+S / Cmd+Alt+S): Scans your workspace for security issues
-- `solana: Reload Security Detectors` (Ctrl+Alt+R / Cmd+Alt+R): Reloads security detectors
-- `solana: Show Code Coverage`: Shows code coverage for Trident tests
-- `solana: Close Code Coverage`: Closes code coverage visualization
-- `solana: Show Security Scan Output`: Shows security scan output
+## Quick Access Commands
 
-## Running the Extension Locally
+- `solana: Scan Workspace for Security Issues` (Ctrl+Alt+S / Cmd+Alt+S)
+- `solana: Reload Security Detectors` (Ctrl+Alt+R / Cmd+Alt+R)
+- `solana: Show Code Coverage`
+- `solana: Close Code Coverage`
+- `solana: Show Security Scan Output`
 
-1. Clone this repository
+## Requirements
 
-```bash
-git clone git@github.com:Ackee-Blockchain/solana-vscode.git
-cd solana-vscode
-```
+- Visual Studio Code 1.96.0 or newer
+- Rust and Cargo (latest stable) for Solana program security scanning
+- Trident tests in your workspace for code coverage features
 
-2. Install dependencies
+## Getting Started
 
-```bash
-cd extension && npm i
-```
+1. Install the extension from the Visual Studio Code Marketplace
+2. Open a Solana project in VS Code
+3. Use the command palette (Ctrl+Shift+P / Cmd+Shift+P) to run:
+   - `solana: Scan Workspace for Security Issues` to scan for security vulnerabilities
+   - `solana: Show Code Coverage` to visualize code coverage from Trident tests
 
-3. Open the project in Cursor
+## Extension Settings
 
-```bash
-cursor .
-```
-
-4. Press F5 to start the Extension Development Host
-
-This will:
-
-- Open a new VS Code Extension Development Host window
-- Load your extension
-- Enable you to test all features
-- Allow you to set breakpoints and debug the extension
-
-Note: Make sure you have Node.js and npm installed on your system before starting.
-
-## Development
-
-This extension consists of two main components:
-
-1. The VSCode extension (TypeScript)
-2. The Language Server (Rust)
-
-### Prerequisites
-
-- Node.js (v20 or later)
-- Rust and Cargo (latest stable)
-- VSCode
-
-### Project Structure
-
-```
-solana-vscode/
-├── extension/          # TypeScript extension code
-│   ├── src/           # Source code
-│   ├── bin/           # Language server binary
-│   └── package.json   # Extension manifest
-└── language-server/   # Rust language server code
-    └── src/          # Server source code
-```
-
-### Development Workflow
-
-The extension supports several development workflows:
-
-1. **Standard Development**:
-
-   ```bash
-   # One-time build
-   F5 or "Run Extension" configuration
-   ```
-
-2. **Watch Mode**:
-
-   ```bash
-   # Command Palette > Tasks: Run Task > Watch Extension and Build Language Server
-   # or
-   cd extension && npm run watch
-   ```
-
-3. **Language Server Development**:
-   ```bash
-   # Build language server only
-   cd extension && ./build-language-server.sh
-   ```
-
-### Available Tasks
-
-- `Build Extension and Language Server`: One-time build
-- `Watch Extension and Build Language Server`: Build server once and watch extension
-- `Build Extension and Language Server (Debug)`: Debug builds
-
-### Testing
-
-```bash
-# Extension tests
-cd extension && npm test
-
-# Language server tests
-cd language-server && cargo test
-```
-
-### Packaging
-
-The extension is packaged per platform with its corresponding language server binary. GitHub Actions workflow handles this automatically for releases.
-
-Local packaging:
-
-```bash
-cd extension
-./build-language-server.sh
-npm run build
-vsce package
-```
+- `server.path`: Path to the Solana language server binary (leave empty to use bundled version)
+- `tridentCoverage.showExecutionCount`: Show execution count numbers next to covered statements
+- `tridentCoverage.executionCountColor`: Color of the execution count display
+- `tridentCoverage.coverageServerPort`: Port for the coverage server

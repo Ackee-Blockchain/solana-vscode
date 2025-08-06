@@ -1,12 +1,19 @@
+use clippy_utils::sym::diagnostics;
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
+use crate::core::detectors::clippy_analyzer::ClippyAnalyzer;
 use crate::core::detectors::detector::{
     ClippyAnalysisContext, ClippyDetector, Detector, DetectorType,
 };
 
-#[derive(Default, Clone)]
 pub struct ClippyUncheckedArithmeticDetector {
-    diagnostics: Vec<Diagnostic>,
+    analyzer: Option<ClippyAnalyzer>,
+}
+
+impl Default for ClippyUncheckedArithmeticDetector {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Detector for ClippyUncheckedArithmeticDetector {
@@ -27,12 +34,26 @@ impl Detector for ClippyUncheckedArithmeticDetector {
     }
 }
 
+impl ClippyUncheckedArithmeticDetector {
+    pub fn new() -> Self {
+        Self {
+            analyzer: Some(ClippyAnalyzer::new()),
+        }
+    }
+
+    pub fn with_analyzer(analyzer: ClippyAnalyzer) -> Self {
+        Self {
+            analyzer: Some(analyzer),
+        }
+    }
+}
+
 impl ClippyDetector for ClippyUncheckedArithmeticDetector {
     fn detector_type(&self) -> DetectorType {
         DetectorType::Clippy
     }
 
     fn analyze_with_context(&mut self, context: &ClippyAnalysisContext) -> Vec<Diagnostic> {
-        todo!()
+        self.analyzer.unwrap().analyze_with_clippy(context)
     }
 }

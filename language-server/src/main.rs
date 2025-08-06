@@ -1,3 +1,4 @@
+#![feature(rustc_private)]
 mod backend;
 mod core;
 mod server;

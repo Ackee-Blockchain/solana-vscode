@@ -1,3 +1,4 @@
+#![feature(rustc_private)]
 use tokio::io::{Stdin, Stdout};
 use tower_lsp::{ClientSocket, LspService, Server};
 

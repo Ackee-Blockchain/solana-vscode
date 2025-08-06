@@ -1,3 +1,4 @@
+#![feature(rustc_private)]
 pub mod backend_stats;
 pub mod detectors;
 pub mod file_scanner;

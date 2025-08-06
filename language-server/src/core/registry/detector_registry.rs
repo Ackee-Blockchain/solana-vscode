@@ -1,6 +1,8 @@
-use crate::core::detector::{ClippyDetector, DetectorType, DetectorWrapper, SynDetector};
-use crate::core::detector_config::DetectorConfig;
-use crate::core::detectors::ClippyAnalyzer;
+use crate::core::detectors::clippy_analyzer::ClippyAnalyzer;
+use crate::core::detectors::detector::{
+    ClippyAnalysisContext, ClippyDetector, DetectorType, DetectorWrapper, SynDetector,
+};
+use crate::core::detectors::detector_config::DetectorConfig;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tower_lsp::lsp_types::Diagnostic;
@@ -55,8 +57,7 @@ impl DetectorRegistry {
 
     /// Set workspace root for clippy analysis
     pub fn set_workspace_root(&mut self, root: PathBuf) {
-        // self.clippy_analyzer.set_workspace_root(root);
-        todo!()
+        self.clippy_analyzer.set_workspace_root(root);
     }
 
     /// Configure a specific detector
@@ -120,20 +121,48 @@ impl DetectorRegistry {
         file_path: &PathBuf,
         content: &str,
     ) -> Vec<Diagnostic> {
-        // self.clippy_analyzer.analyze_file(file_path, content, &mut self.detectors, &self.configs).await
-        todo!()
+        let mut all_diagnostics = Vec::new();
+
+        // Create analysis context
+        let context = ClippyAnalysisContext {
+            file_path: file_path.clone(),
+            source_code: content.to_string(),
+            compilation_successful: true, // We'll assume compilation is successful for now
+        };
+
+        // Run clippy detectors
+        for detector in &mut self.detectors {
+            if detector.is_clippy() {
+                let config = self.configs.get(detector.id()).cloned().unwrap_or_default();
+
+                if !config.enabled {
+                    continue;
+                }
+
+                let mut diagnostics = detector.analyze_clippy(&context);
+
+                // Apply severity override if configured
+                if let Some(severity_override) = config.severity_override {
+                    for diagnostic in &mut diagnostics {
+                        diagnostic.severity = Some(severity_override);
+                    }
+                }
+
+                all_diagnostics.extend(diagnostics);
+            }
+        }
+
+        all_diagnostics
     }
 
     /// Invalidate clippy cache for a file
     pub async fn invalidate_cache(&self, file_path: &PathBuf) {
-        // self.clippy_analyzer.invalidate_cache(file_path).await;
-        todo!()
+        self.clippy_analyzer.clear_cache(file_path).await;
     }
 
     /// Clear all caches
     pub async fn clear_cache(&self) {
-        // self.clippy_analyzer.clear_cache().await;
-        todo!()
+        self.clippy_analyzer.clear_all_cache().await;
     }
 
     /// Get information about all registered detectors

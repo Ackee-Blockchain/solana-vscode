@@ -1,8 +1,34 @@
 # Solana VSCode Extension
 
-Currently under development 🚧
+A VSCode extension for Solana development that provides security scanning and code coverage visualization for Solana programs.
 
-How to run the extension locally:
+## Features
+
+### Security Scanning
+
+The extension provides security scanning for Solana programs with the following detectors:
+
+- **Immutable Account Mutated**: Detects when an immutable account is being mutated
+- **Instruction Attribute Invalid**: Detects invalid instruction attributes
+- **Instruction Attribute Unused**: Detects unused instruction attributes
+- **Manual Lamports Zeroing**: Detects manual lamports zeroing which can lead to security issues
+- **Missing Check Comment**: Detects missing check comments in critical code sections
+- **Missing InitSpace**: Detects missing initialization space in account creation
+- **Missing Signer**: Detects missing signer verification
+- **Sysvar Account**: Detects improper sysvar account access
+- **Unsafe Math**: Detects unsafe mathematical operations that could lead to overflows
+
+### Code Coverage
+
+The extension provides code coverage visualization for Trident tests, helping you identify untested code in your Solana programs.
+
+### Commands
+
+- `solana: Scan Workspace for Security Issues` (Ctrl+Alt+S / Cmd+Alt+S): Scans your workspace for security issues
+- `solana: Reload Security Detectors` (Ctrl+Alt+R / Cmd+Alt+R): Reloads security detectors
+- `solana: Show Code Coverage`: Shows code coverage for Trident tests
+- `solana: Close Code Coverage`: Closes code coverage visualization
+- `solana: Show Security Scan Output`: Shows security scan output
 
 ## Running the Extension Locally
 

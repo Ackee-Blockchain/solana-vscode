@@ -2,6 +2,12 @@ name: Release Build
 
 on:
   workflow_dispatch:
+    inputs:
+      preRelease:
+        description: "Pre-release"
+        type: boolean
+        default: false
+        required: false
 
 jobs:
   build-and-package:
@@ -66,6 +72,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Ensure we get the latest changes
+          ref: ${{ github.ref }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -151,10 +160,49 @@ jobs:
       - name: Build VSIX Package
         run: |
           cd extension
-          vsce package --target ${{ matrix.vscode_target }} --no-dependencies
+          if [ "${{ github.event.inputs.preRelease }}" = "true" ]; then
+            vsce package --target ${{ matrix.vscode_target }} --no-dependencies --pre-release
+          else
+            vsce package --target ${{ matrix.vscode_target }} --no-dependencies
+          fi
+        shell: bash
 
       - name: Upload VSIX Package
         uses: actions/upload-artifact@v4
         with:
           name: solana-${{ matrix.vscode_target }}.vsix
           path: extension/*.vsix
+
+  publish-extension:
+    needs: [build-and-package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All VSIX Packages
+        uses: actions/download-artifact@v4
+        with:
+          path: ./vsix-files
+          pattern: solana-*.vsix
+          merge-multiple: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: List VSIX Files
+        run: |
+          find ./vsix-files -name "*.vsix" | sort
+
+      - name: Publish Extension
+        run: |
+          for vsix in $(find ./vsix-files -name "*.vsix" | sort); do
+            echo "Publishing $vsix"
+            if [ "${{ github.event.inputs.preRelease }}" = "true" ]; then
+              vsce publish --pre-release -p ${{ secrets.VSCE_PAT }} --packagePath "$vsix"
+            else
+              vsce publish -p ${{ secrets.VSCE_PAT }} --packagePath "$vsix"
+            fi
+          done

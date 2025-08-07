@@ -35,21 +35,21 @@ pub struct TypeInfo {
     pub span_end: u32,
 }
 
-static MY_LINT: &Lint = &Lint {
-    name: "my_lint",
-    default_level: rustc_lint::Level::Warn,
-    desc: "example lint for demonstration",
-    report_in_external_macro: false,
-};
+// static MY_LINT: &Lint = &Lint {
+//     name: "my_lint",
+//     default_level: rustc_lint::Level::Warn,
+//     desc: "example lint for demonstration",
+//     report_in_external_macro: false,
+// };
 
 #[derive(Copy, Clone)]
 struct MyLint;
 
-impl<'tcx> LateLintPass<'tcx> for MyLint {
-    fn check_expr(&mut self, cx: &LateContext<'tcx>, expr: &'tcx rustc_hir::Expr<'_>) {
-        span_lint(cx, MY_LINT, expr.span, "found an expression!");
-    }
-}
+// impl<'tcx> LateLintPass<'tcx> for MyLint {
+//     fn check_expr(&mut self, cx: &LateContext<'tcx>, expr: &'tcx rustc_hir::Expr<'_>) {
+//         span_lint(cx, MY_LINT, expr.span, "found an expression!");
+//     }
+// }
 
 /// Global diagnostics collector for rustc callbacks
 static COLLECTED_DIAGNOSTICS: Mutex<Vec<Diagnostic>> = Mutex::new(Vec::new());
@@ -60,7 +60,7 @@ struct ClippyCallbacks;
 impl Callbacks for ClippyCallbacks {
     fn config(&mut self, config: &mut rustc_interface::Config) {
         config.register_lints = Some(Box::new(|_sess, lint_store: &mut LintStore| {
-            lint_store.register_late_pass(|_| Box::new(MyLint));
+            // lint_store.register_late_pass(|_| Box::new(MyLint));
         }));
     }
 }
@@ -92,7 +92,7 @@ impl ClippyAnalyzer {
 
 
             // Clear previous diagnostics
-            DIAGNOSTICS.lock().unwrap().clear();
+            // DIAGNOSTICS.lock().unwrap().clear();
 
             // Run rustc with custom callbacks
             let args = vec![
@@ -100,17 +100,17 @@ impl ClippyAnalyzer {
                 "--edition=2021".to_string(),
                 file_path.to_str().unwrap().to_string(),
             ];
-            rustc_driver::RunCompiler::new(&args, &mut MyCallbacks).run().ok();
+            // rustc_driver::RunCompiler::new(&args, &mut MyCallbacks).run().ok();
 
             // Collect diagnostics
-            let mut lint_diagnostics = DIAGNOSTICS.lock().unwrap().drain(..).collect::<Vec<_>>();
-            if let Some(severity_override) = config.severity_override {
-                for diagnostic in &mut lint_diagnostics {
-                    diagnostic.severity = Some(severity_override.clone());
-                }
-            }
-            diagnostics.extend(lint_diagnostics);
-        }
+            // let mut lint_diagnostics = DIAGNOSTICS.lock().unwrap().drain(..).collect::<Vec<_>>();
+            // if let Some(severity_override) = config.severity_override {
+            //     for diagnostic in &mut lint_diagnostics {
+            //         diagnostic.severity = Some(severity_override.clone());
+            //     }
+            // }
+            // diagnostics.extend(lint_diagnostics);
+        
 
         diagnostics
     }

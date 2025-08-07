@@ -54,6 +54,7 @@ impl ClippyDetector for ClippyUncheckedArithmeticDetector {
     }
 
     fn analyze_with_context(&mut self, context: &ClippyAnalysisContext) -> Vec<Diagnostic> {
-        self.analyzer.unwrap().analyze_with_clippy(context)
+        // self.analyzer.unwrap().analyze_with_clippy(context)
+        vec![]
     }
 }

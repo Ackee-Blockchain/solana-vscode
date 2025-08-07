@@ -467,7 +467,7 @@ dependencies = [
 
 [[package]]
 name = "language-server"
-version = "0.2.0"
+version = "0.0.3-beta.2"
 dependencies = [
  "env_logger",
  "log",

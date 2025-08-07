@@ -20,6 +20,8 @@ Enhance your Solana development workflow with built-in security scanning. The ex
 
 ## Code Coverage
 
+![Demo](extension/assets/code-coverage.gif)
+
 Visualize your test coverage directly in the editor:
 
 - See which lines are covered by your Trident tests

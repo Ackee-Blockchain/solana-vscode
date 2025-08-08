@@ -10,7 +10,20 @@
     "vscode": "^1.96.0"
   },
   "categories": [
+    "Programming Languages",
+    "Linters",
+    "Testing",
     "Other"
+  ],
+  "keywords": [
+    "solana",
+    "blockchain",
+    "security",
+    "smart-contract",
+    "audit",
+    "svm",
+    "coverage",
+    "rust"
   ],
   "icon": "assets/icon.png",
   "activationEvents": [

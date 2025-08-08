@@ -157,6 +157,11 @@ jobs:
           cd extension
           npm run build
 
+      - name: Copy README for packaging
+        run: |
+          cp README.md extension/
+        shell: bash
+
       - name: Build VSIX Package
         run: |
           cd extension

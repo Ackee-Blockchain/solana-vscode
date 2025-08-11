@@ -2,6 +2,8 @@
 
 Thank you for participating in the beta testing of our Solana VSCode Extension! Your feedback is invaluable in helping us improve the extension before its official release.
 
+Make sure you are testing the `pre-release` version.
+
 ## What to Focus On
 
 ### 1. Core Functionality

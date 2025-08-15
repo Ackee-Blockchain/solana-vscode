@@ -222,7 +222,7 @@ impl FileScanner {
                 if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
                     if matches!(
                         dir_name,
-                        "target" | "node_modules" | ".git" | ".vscode" | "out"
+                        "target" | "node_modules" | ".git" | ".vscode" | "out" | ".anchor"
                     ) {
                         continue;
                     }

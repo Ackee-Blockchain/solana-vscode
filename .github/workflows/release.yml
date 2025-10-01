@@ -131,12 +131,6 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install Extension Dependencies
-        run: |
-          cd extension
-          npm ci
-          npm install -g @vscode/vsce
-
       - name: Build Language Server
         if: matrix.platform != 'win32'
         run: |
@@ -194,20 +188,31 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install vsce
-        run: npm install -g @vscode/vsce
+      - name: Install publishing tools
+        run: npm install -g @vscode/vsce ovsx
 
       - name: List VSIX Files
         run: |
           find ./vsix-files -name "*.vsix" | sort
 
-      - name: Publish Extension
+      - name: Publish Extension to VS Code Marketplace
         run: |
           for vsix in $(find ./vsix-files -name "*.vsix" | sort); do
-            echo "Publishing $vsix"
+            echo "Publishing $vsix to VS Code Marketplace"
             if [ "${{ github.event.inputs.preRelease }}" = "true" ]; then
               vsce publish --pre-release -p ${{ secrets.VSCE_PAT }} --packagePath "$vsix"
             else
               vsce publish -p ${{ secrets.VSCE_PAT }} --packagePath "$vsix"
+            fi
+          done
+
+      - name: Publish Extension to Open VSX Registry
+        run: |
+          for vsix in $(find ./vsix-files -name "*.vsix" | sort); do
+            echo "Publishing $vsix to Open VSX Registry"
+            if [ "${{ github.event.inputs.preRelease }}" = "true" ]; then
+              ovsx publish "$vsix" -p ${{ secrets.OPEN_VSX_TOKEN }} --pre-release
+            else
+              ovsx publish "$vsix" -p ${{ secrets.OPEN_VSX_TOKEN }}
             fi
           done

@@ -131,6 +131,13 @@ jobs:
         with:
           node-version: "20"
 
+
+      - name: Install Extension Dependencies
+        run: |
+          cd extension
+          npm ci
+          npm install -g @vscode/vsce ovsx
+
       - name: Build Language Server
         if: matrix.platform != 'win32'
         run: |

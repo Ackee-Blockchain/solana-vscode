@@ -4,8 +4,7 @@
 [![Visual Studio Marketplace Badge](https://img.shields.io/visual-studio-marketplace/d/AckeeBlockchain.solana?colorA=21262d&colorB=0000FF&style=flat)](https://marketplace.visualstudio.com/items?itemName=AckeeBlockchain.solana)
 [![Follow on X Badge](https://img.shields.io/badge/Follow%20on%20X-for%20release%20updates-0000FF?colorA=21262d&style=flat)](https://x.com/TridentSolana)
 
-
-![Solana Extension](extension/assets/icon.png)
+<img src="extension/assets/icon.png" alt="drawing" width="200" height="200"/>
 
 The first VS Code extension for Solana developers offering real-time security analysis and Trident fuzz coverage visualization.
 

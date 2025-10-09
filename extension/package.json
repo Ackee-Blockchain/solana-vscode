@@ -23,7 +23,9 @@
     "audit",
     "svm",
     "coverage",
-    "rust"
+    "rust",
+    "vulnerability",
+    "ide"
   ],
   "icon": "assets/icon.png",
   "activationEvents": [

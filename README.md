@@ -1,8 +1,17 @@
-# Solana
+# Solana by Ackee Blockchain Security
 
-A Visual Studio Code extension for Solana development that provides security scanning and code coverage visualization for Solana programs.
+[![Discord Badge](https://img.shields.io/discord/867746290678104064?colorA=21262d&colorB=0000FF&style=flat)](https://discord.gg/x7qXXnGCsa)
+[![Visual Studio Marketplace Badge](https://img.shields.io/visual-studio-marketplace/d/AckeeBlockchain.solana?colorA=21262d&colorB=0000FF&style=flat)](https://marketplace.visualstudio.com/items?itemName=AckeeBlockchain.solana)
+[![Follow on X Badge](https://img.shields.io/badge/Follow%20on%20X-for%20release%20updates-0000FF?colorA=21262d&style=flat)](https://x.com/TridentSolana)
+
 
 ![Solana Extension](extension/assets/icon.png)
+
+The first VS Code extension for Solana developers offering real-time security analysis and Trident fuzz coverage visualization.
+
+Even experienced developers miss things. Code reviews miss things. Tests miss edge cases.
+This extension adds an extra pair of eyes - catching common issues in real-time and showing you which paths your fuzz tests actually covered.
+Part of professional development workflow, not a replacement for good practices.
 
 ## Security Scanning
 
@@ -18,7 +27,7 @@ Enhance your Solana development workflow with built-in security scanning. The ex
 - **Sysvar Account**: Detects improper sysvar account access methods
 - **Unsafe Math**: Identifies mathematical operations that could lead to overflows
 
-## Code Coverage
+## Code Coverage Visualization
 
 ![Demo](extension/assets/code-coverage.gif)
 

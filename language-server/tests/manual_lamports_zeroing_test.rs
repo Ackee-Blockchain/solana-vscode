@@ -351,3 +351,82 @@ fn test_real_world_vulnerability_patterns() {
         );
     }
 }
+
+#[test]
+fn test_detects_borrow_mut_chain_zero() {
+    let mut detector = ManualLamportsZeroingDetector::default();
+
+    let code = r#"
+        use anchor_lang::prelude::*;
+
+        pub fn bad(ctx: Context<'_>) -> Result<()> {
+            // **acct.lamports.borrow_mut() = 0;
+            **ctx.accounts.victim.lamports.borrow_mut() = 0;
+            Ok(())
+        }
+
+        #[derive(Accounts)]
+        pub struct _Ctx<'info> {
+            #[account(mut)]
+            pub victim: AccountInfo<'info>,
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code, None);
+    assert_eq!(diagnostics.len(), 1);
+    assert!(diagnostics[0].message.contains("Manual lamports zeroing detected"));
+}
+
+#[test]
+fn test_detects_try_borrow_mut_lamports_zero() {
+    let mut detector = ManualLamportsZeroingDetector::default();
+
+    let code = r#"
+        use anchor_lang::prelude::*;
+
+        pub fn bad(ctx: Context<'_>) -> Result<()> {
+            // **ctx.accounts.victim.try_borrow_mut_lamports()? = 0;
+            **ctx.accounts.victim.try_borrow_mut_lamports()? = 0;
+            Ok(())
+        }
+
+        #[derive(Accounts)]
+        pub struct _Ctx<'info> {
+            #[account(mut)]
+            pub victim: AccountInfo<'info>,
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code, None);
+    assert_eq!(diagnostics.len(), 1);
+    assert!(diagnostics[0].message.contains("Manual lamports zeroing detected"));
+}
+
+#[test]
+fn test_set_lamports_non_zero_is_ok() {
+    let mut d = ManualLamportsZeroingDetector::default();
+    let src = r#"
+        use solana_program::prelude::*;
+        pub fn f(accounts: &[AccountInfo]) -> ProgramResult {
+            accounts[0].set_lamports(1);
+            Ok(())
+        }
+    "#;
+    assert!(d.analyze(src, None).is_empty());
+}
+
+#[test]
+fn test_to_account_info_chain_zero() {
+    let mut d = ManualLamportsZeroingDetector::default();
+    let src = r#"
+        use anchor_lang::prelude::*;
+        pub fn f(ctx: Context<'_>) -> Result<()> {
+            **ctx.accounts.victim.to_account_info().lamports.borrow_mut() = 0;
+            Ok(())
+        }
+        #[derive(Accounts)]
+        pub struct _C<'info> { #[account(mut)] pub victim: AccountInfo<'info> }
+    "#;
+    let diags = d.analyze(src, None);
+    assert_eq!(diags.len(), 1);
+}

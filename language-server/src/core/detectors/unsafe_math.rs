@@ -114,7 +114,14 @@ impl Detector for UnsafeMathDetector {
 impl<'ast> Visit<'ast> for UnsafeMathDetector {
     fn visit_expr_binary(&mut self, node: &'ast syn::ExprBinary) {
         match node.op {
-            BinOp::Add(_) | BinOp::Sub(_) | BinOp::Mul(_) | BinOp::Div(_) => {
+            BinOp::Add(_) 
+            | BinOp::Sub(_) 
+            | BinOp::Mul(_) 
+            | BinOp::Div(_) 
+            | BinOp::AddAssign(_) 
+            | BinOp::SubAssign(_) 
+            | BinOp::MulAssign(_) 
+            | BinOp::DivAssign(_) => {
                 // Check if operands have explicit type annotations or are literals
                 let is_type_safe = self.check_operand_types(&node.left, &node.right);
 

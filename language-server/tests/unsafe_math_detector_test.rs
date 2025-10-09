@@ -350,3 +350,108 @@ fn test_detector_state_isolation() {
     assert_eq!(diagnostics1.len(), diagnostics2.len());
     assert_eq!(diagnostics1.len(), 1);
 }
+
+#[test]
+fn test_detects_assign_addition_in_instruction() {
+    let mut detector = UnsafeMathDetector::default();
+
+    let code_with_assign_addition = r#"
+        use anchor_lang::prelude::*;
+
+        #[program]
+        pub mod vault_program {
+            use super::*;
+
+            pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+                ctx.accounts.vault.balance += amount;
+                Ok(())
+            }
+        }
+
+        #[derive(Accounts)]
+        pub struct Deposit<'info> {
+            #[account(mut)]
+            pub vault: Account<'info, Vault>,
+            pub user: Signer<'info>,
+        }
+
+        #[account]
+        pub struct Vault {
+            pub balance: u64,
+            pub authority: Pubkey,
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code_with_assign_addition, None);
+    assert_eq!(diagnostics.len(), 1);
+
+    let diagnostic = &diagnostics[0];
+    assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
+    assert!(
+        diagnostic
+            .message
+            .contains("Unchecked arithmetic operation detected")
+    );
+    assert!(diagnostic.message.contains("checked_add()"));
+}
+
+#[test]
+fn test_detects_multiple_assign_arithmetic_operations_including_division() {
+    let mut detector = UnsafeMathDetector::default();
+
+    let code_with_assign_operations = r#"
+        use anchor_lang::prelude::*;
+
+        #[program]
+        pub mod defi_program {
+            use super::*;
+
+            pub fn calculate_rewards(ctx: Context<CalculateRewards>, stake_amount: u64, duration: u64) -> Result<()> {
+                let mut base_reward = stake_amount;
+                base_reward += ctx.accounts.pool.base_rate;
+
+                let mut time_bonus = duration;
+                time_bonus -= ctx.accounts.pool.time_multiplier;
+
+                let mut total_reward = base_reward;
+                total_reward *= time_bonus;
+                total_reward /= ctx.accounts.pool.divisor;
+
+                ctx.accounts.user.rewards = total_reward;
+                Ok(())
+            }
+        }
+
+        #[derive(Accounts)]
+        pub struct CalculateRewards<'info> {
+            #[account(mut)]
+            pub user: Account<'info, User>,
+            pub pool: Account<'info, Pool>,
+        }
+
+        #[account]
+        pub struct User {
+            pub rewards: u64,
+            pub stake_amount: u64,
+        }
+
+        #[account]
+        pub struct Pool {
+            pub base_rate: u64,
+            pub time_multiplier: u64,
+            pub divisor: u64,
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code_with_assign_operations, None);
+    assert_eq!(diagnostics.len(), 4);
+
+    for diagnostic in &diagnostics {
+        assert_eq!(diagnostic.severity, Some(DiagnosticSeverity::ERROR));
+        assert!(
+            diagnostic
+                .message
+                .contains("Unchecked arithmetic operation detected")
+        );
+    }
+}

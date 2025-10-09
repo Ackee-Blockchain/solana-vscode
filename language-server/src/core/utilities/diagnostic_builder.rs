@@ -23,7 +23,7 @@ impl DiagnosticBuilder {
             severity: Some(severity),
             code: Some(tower_lsp::lsp_types::NumberOrString::String(code)),
             message,
-            source: source.or_else(|| Some("anchor-security".to_string())),
+            source: source.or_else(|| Some("solana-vscode".to_string())),
             ..Default::default()
         }
     }

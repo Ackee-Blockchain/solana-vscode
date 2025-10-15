@@ -4,9 +4,9 @@
 [![Visual Studio Marketplace Badge](https://img.shields.io/visual-studio-marketplace/d/AckeeBlockchain.solana?colorA=21262d&colorB=0000FF&style=flat)](https://marketplace.visualstudio.com/items?itemName=AckeeBlockchain.solana)
 [![Follow on X Badge](https://img.shields.io/badge/Follow%20on%20X-for%20release%20updates-0000FF?colorA=21262d&style=flat)](https://x.com/TridentSolana)
 
-<img src="extension/assets/icon.png" align="right" alt="drawing" width="250" height="250"/>
+<img src="extension/assets/icon.png" align="left" alt="drawing" width="250" height="250"/>
 
-The first VS Code extension for Solana developers offering real-time security analysis and Trident fuzz coverage visualization.
+The first Solana extension with built-in static analysis detectors and fuzzing coverage visualization. Catch common security vulnerabilities as you code and see exactly which lines Trident fuzz tests cover, without leaving your IDE.
 
 Even experienced developers miss things. Code reviews miss things. Tests miss edge cases.
 This extension adds an extra pair of eyes - catching common issues in real-time and showing you which paths your fuzz tests actually covered.
@@ -14,28 +14,81 @@ Part of professional development workflow, not a replacement for good practices.
 
 ## Security Scanning
 
-Enhance your Solana development workflow with built-in security scanning. The extension automatically detects common security issues in your Solana programs:
+Enhance your Solana development workflow with built-in security scanning. The extension automatically detects common security issues in your Solana programs.
 
-- **Immutable Account Mutated**: Identifies when code attempts to modify an account marked as immutable
-- **Instruction Attribute Invalid**: Detects invalid instruction attributes that could cause runtime errors
-- **Instruction Attribute Unused**: Finds unused instruction attributes that might indicate logic errors
-- **Manual Lamports Zeroing**: Detects unsafe manual lamports zeroing patterns
-- **Missing Check Comment**: Identifies critical code sections lacking security check comments
-- **Missing InitSpace**: Catches account creation without proper space initialization
-- **Missing Signer**: Alerts when code fails to verify required signers
-- **Sysvar Account**: Detects improper sysvar account access methods
-- **Unsafe Math**: Identifies mathematical operations that could lead to overflows
+**Manual Lamports Zeroing**: Detects unsafe manual lamports zeroing patterns
 
-## Code Coverage Visualization
+**Missing Check Comment**: Identifies critical code sections lacking security check comments
 
-![Demo](extension/assets/code-coverage.gif)
+**Immutable Account Mutated**: Identifies when code attempts to modify an account marked as immutable
 
-Visualize your test coverage directly in the editor:
+**Instruction Attribute Invalid**: Detects invalid instruction attributes that could cause runtime errors
+
+**Instruction Attribute Unused**: Finds unused instruction attributes that might indicate logic errors
+
+![Unused Instruction Parameter](extension/assets/unused_instruction_parameter.gif)
+
+**Missing InitSpace Macro**: Catches account creation without proper space initialization
+
+![Missing InitSpace](extension/assets/init_space_missing.gif)
+
+**Missing Signer**: Alerts when code fails to verify required signers
+
+![Missing Signer](extension/assets/missing_signer.gif)
+
+**Sysvar Account**: Detects improper sysvar account access methods
+
+![Sysvar Account Usage](extension/assets/sysvar_usage.gif)
+
+**Unsafe Math**: Identifies mathematical operations that could lead to overflows
+
+![Unsafe Math](extension/assets/uncheked_math.gif)
+
+## Trident Fuzzing Coverage Visualization
+
+### 1. How to Integrate with Trident
+
+The integration is automatic once you have the proper structure:
+
+- **Directory Structure**: The extension activates when it detects a `trident-tests` directory in your workspace
+- **Coverage Data Location**: The extension looks for coverage reports in `trident-tests` directory
+- **Coverage Format**: Uses `cargo llvm-cov` to generate JSON coverage reports
+
+**Commands available:**
+
+- `solana: Show Code Coverage` - Opens coverage visualization
+- `solana: Close Code Coverage` - Closes coverage display
+
+The extension offers two coverage modes:
+
+- **Static**: Load an existing coverage report file
+- **Dynamic**: Real-time coverage updates while Trident fuzzers are running
+
+### 2. How to Enable Code Coverage Visualization
+
+The extension activates when:
+
+- Your workspace contains a `trident-tests` directory
+- You open the project in VS Code
+
+**Configuration options** (in VS Code Settings):
+
+```json
+"tridentCoverage.showExecutionCount": true,  // Show execution counts
+"tridentCoverage.executionCountColor": "CYAN",  // Choose color
+"tridentCoverage.coverageServerPort": 58432  // Server port for dynamic coverage
+```
+
+To display coverage, use the guidance on [this page](https://ackee.xyz/trident/docs/latest/trident-advanced/code-coverage/).
+
+The extension will automatically find coverage reports in `trident-tests` and visualize which lines are covered by your tests with color-coded highlighting based on execution frequency, directly in your editor:
 
 - See which lines are covered by your Trident tests
 - View execution counts for each line
 - Quickly identify untested code paths
 - Customize the appearance of coverage indicators
+
+![Demo](extension/assets/code-coverage.gif)
 
 ## Quick Access Commands
 

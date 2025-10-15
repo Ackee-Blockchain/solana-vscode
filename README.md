@@ -12,7 +12,7 @@ Even experienced developers miss things. Code reviews miss things. Tests miss ed
 This extension adds an extra pair of eyes - catching common issues in real-time and showing you which paths your fuzz tests actually covered.
 Part of professional development workflow, not a replacement for good practices.
 
-## Security Scanning
+## Built-in Static Analysis Detectors
 
 Enhance your Solana development workflow with built-in security scanning. The extension automatically detects common security issues in your Solana programs.
 

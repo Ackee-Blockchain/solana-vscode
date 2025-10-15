@@ -4,7 +4,7 @@
 [![Visual Studio Marketplace Badge](https://img.shields.io/visual-studio-marketplace/d/AckeeBlockchain.solana?colorA=21262d&colorB=0000FF&style=flat)](https://marketplace.visualstudio.com/items?itemName=AckeeBlockchain.solana)
 [![Follow on X Badge](https://img.shields.io/badge/Follow%20on%20X-for%20release%20updates-0000FF?colorA=21262d&style=flat)](https://x.com/TridentSolana)
 
-<img src="extension/assets/icon.png" align="left" alt="drawing" width="250" height="250"/>
+<img src="extension/assets/icon.png" align="left" alt="drawing" width="240" height="240"/>
 
 The first Solana extension with built-in static analysis detectors and fuzzing coverage visualization. Catch common security vulnerabilities as you code and see exactly which lines Trident fuzz tests cover, without leaving your IDE.
 

@@ -7,3 +7,4 @@
 export const SHOW_SCAN_OUTPUT = "solana.show-scan-output";
 export const SCAN_WORKSPACE = "solana.scanWorkspace";
 export const RELOAD_DETECTORS = "solana.reloadDetectors";
+export const RUN_DYLINT_LINTS = "solana.runDylintLints";

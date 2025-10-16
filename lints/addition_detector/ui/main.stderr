@@ -1,0 +1,16 @@
+warning: addition operation detected
+  --> $DIR/main.rs:2:13
+   |
+LL |     let x = 1 + 2; // Should trigger warning
+   |             ^^^^^
+   |
+   = note: `#[warn(addition_detector)]` on by default
+
+warning: addition operation detected
+  --> $DIR/main.rs:3:13
+   |
+LL |     let y = x + 3; // Should trigger warning
+   |             ^^^^^
+
+warning: 2 warnings emitted
+

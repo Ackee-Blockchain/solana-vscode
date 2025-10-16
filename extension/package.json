@@ -55,6 +55,10 @@
       {
         "command": "solana.reloadDetectors",
         "title": "solana: Reload Security Detectors"
+      },
+      {
+        "command": "solana.runDylintLints",
+        "title": "solana: Run Dylint Lints"
       }
     ],
     "keybindings": [
@@ -68,6 +72,12 @@
         "command": "solana.reloadDetectors",
         "key": "ctrl+alt+r",
         "mac": "cmd+alt+r",
+        "when": "editorLangId == rust"
+      },
+      {
+        "command": "solana.runDylintLints",
+        "key": "ctrl+alt+d",
+        "mac": "cmd+alt+d",
         "when": "editorLangId == rust"
       }
     ],

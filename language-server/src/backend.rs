@@ -5,7 +5,9 @@ use crate::core::{
     MissingInitspaceDetector, MissingSignerDetector, ScanCompleteNotification, ScanResult,
     ScanSummary, SysvarAccountDetector, UnsafeMathDetector,
 };
-use log::info;
+use crate::dylint_runner::DylintRunner;
+use log::{info, warn};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tower_lsp::{
@@ -23,6 +25,8 @@ pub struct Backend {
     client: Client,
     detector_registry: Arc<Mutex<DetectorRegistry>>,
     file_scanner: Arc<Mutex<FileScanner>>,
+    dylint_runner: Arc<Mutex<Option<DylintRunner>>>,
+    workspace_root: Arc<Mutex<Option<PathBuf>>>,
 }
 
 #[tower_lsp::async_trait]
@@ -35,8 +39,43 @@ impl LanguageServer for Backend {
         if let Some(workspace_folders) = params.workspace_folders {
             if let Some(folder) = workspace_folders.first() {
                 if let Ok(path) = folder.uri.to_file_path() {
+                    // Store workspace root
+                    {
+                        let mut root = self.workspace_root.lock().await;
+                        *root = Some(path.clone());
+                    }
+
                     let mut scanner = self.file_scanner.lock().await;
-                    scanner.set_workspace_root(path);
+                    scanner.set_workspace_root(path.clone());
+
+                    // Try to initialize DylintRunner
+                    // Get project root from the language server binary location
+                    // Binary is at: <project>/extension/bin/language-server
+                    // Project root is: <project>/
+                    let project_root = std::env::current_exe()
+                        .ok()
+                        .and_then(|exe| exe.parent().map(|p| p.to_path_buf())) // extension/bin/
+                        .and_then(|bin| bin.parent().map(|p| p.to_path_buf())) // extension/
+                        .and_then(|ext| ext.parent().map(|p| p.to_path_buf())) // project root/
+                        .unwrap_or_else(|| path.clone());
+
+                    info!("🔍 Looking for dylint lints in: {:?}", project_root);
+                    match DylintRunner::new(&project_root) {
+                        Ok(runner) => {
+                            info!("✅ DylintRunner initialized successfully");
+                            let mut dylint = self.dylint_runner.lock().await;
+                            *dylint = Some(runner);
+                        }
+                        Err(e) => {
+                            warn!(
+                                "⚠️ Failed to initialize DylintRunner: {}. Dylint lints will not be available.",
+                                e
+                            );
+                            warn!(
+                                "   To enable dylint lints, build them by running: cd lints && ./build_all_lints.sh"
+                            );
+                        }
+                    }
 
                     // Perform initial workspace scan
                     info!("Performing initial workspace scan...");
@@ -239,7 +278,7 @@ impl LanguageServer for Backend {
                 info!("Reloading all detectors");
 
                 // Create a new detector registry with fresh detector instances
-                let mut new_registry = create_default_registry();
+                let new_registry = create_default_registry();
 
                 // Replace the existing registry
                 {
@@ -274,6 +313,101 @@ impl LanguageServer for Backend {
                     "message": "Detectors reloaded and workspace rescanned"
                 })))
             }
+            "solana.runDylintLints" => {
+                info!("Running dylint lints on workspace");
+
+                // Check if DylintRunner is initialized
+                let dylint_runner = self.dylint_runner.lock().await;
+                let Some(runner) = dylint_runner.as_ref() else {
+                    warn!("DylintRunner not initialized. Cannot run lints.");
+                    return Ok(Some(serde_json::json!({
+                        "success": false,
+                        "error": "DylintRunner not initialized. Make sure lints are built."
+                    })));
+                };
+
+                // Get workspace root
+                let workspace_root = self.workspace_root.lock().await;
+                let Some(workspace_path) = workspace_root.as_ref() else {
+                    warn!("No workspace root set");
+                    return Ok(Some(serde_json::json!({
+                        "success": false,
+                        "error": "No workspace root set"
+                    })));
+                };
+
+                // Run dylint
+                match runner.run_lints(workspace_path).await {
+                    Ok(diagnostics) => {
+                        info!("✅ Dylint found {} diagnostics", diagnostics.len());
+
+                        // Group diagnostics by file
+                        let mut diagnostics_by_file: std::collections::HashMap<
+                            PathBuf,
+                            Vec<tower_lsp::lsp_types::Diagnostic>,
+                        > = std::collections::HashMap::new();
+
+                        for diag in diagnostics {
+                            // Convert relative path to absolute by joining with workspace path
+                            let file_path = if PathBuf::from(&diag.file_name).is_absolute() {
+                                PathBuf::from(&diag.file_name)
+                            } else {
+                                workspace_path.join(&diag.file_name)
+                            };
+
+                            diagnostics_by_file
+                                .entry(file_path)
+                                .or_insert_with(Vec::new)
+                                .push(diag.to_lsp_diagnostic());
+                        }
+
+                        let total_diagnostics: usize =
+                            diagnostics_by_file.values().map(|v| v.len()).sum();
+                        let total_files = diagnostics_by_file.len();
+
+                        // Publish diagnostics for each file
+                        for (file_path, file_diagnostics) in diagnostics_by_file {
+                            if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_path) {
+                                info!(
+                                    "📍 Publishing {} diagnostics for: {}",
+                                    file_diagnostics.len(),
+                                    uri
+                                );
+                                for diag in &file_diagnostics {
+                                    info!(
+                                        "   - Line {}: {}",
+                                        diag.range.start.line + 1,
+                                        diag.message
+                                    );
+                                }
+                                self.client
+                                    .publish_diagnostics(uri, file_diagnostics, None)
+                                    .await;
+                            } else {
+                                warn!("❌ Failed to convert path to URI: {}", file_path.display());
+                            }
+                        }
+
+                        info!(
+                            "📤 Published {} diagnostics across {} files",
+                            total_diagnostics, total_files
+                        );
+
+                        Ok(Some(serde_json::json!({
+                            "success": true,
+                            "total_diagnostics": total_diagnostics,
+                            "total_files": total_files
+                        })))
+                    }
+                    Err(e) => {
+                        warn!("Failed to run dylint: {}", e);
+                        Ok(Some(serde_json::json!({
+                            "success": false,
+                            "error": format!("{}", e)
+                        })))
+                    }
+                }
+            }
             _ => Ok(None),
         }
     }
@@ -285,6 +419,8 @@ impl Backend {
             client,
             detector_registry: Arc::new(Mutex::new(create_default_registry())),
             file_scanner: Arc::new(Mutex::new(FileScanner::default())),
+            dylint_runner: Arc::new(Mutex::new(None)),
+            workspace_root: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -351,7 +487,7 @@ pub struct DetectorStats {
 fn create_default_registry() -> DetectorRegistry {
     info!("Creating new detector registry with all detectors");
     let registry = DetectorRegistryBuilder::new()
-        .with_detector(UnsafeMathDetector::default())
+        // .with_detector(UnsafeMathDetector::default())
         .with_detector(MissingSignerDetector::default()) // Ensure MissingSignerDetector is included
         .with_detector(ManualLamportsZeroingDetector::default())
         .with_detector(SysvarAccountDetector::default())

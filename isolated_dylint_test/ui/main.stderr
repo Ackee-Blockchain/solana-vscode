@@ -1,0 +1,16 @@
+warning: found an addition operation
+  --> $DIR/main.rs:3:13
+   |
+LL |     let x = 5 + 10;
+   |             ^^^^^^
+   |
+   = note: `#[warn(no_addition)]` on by default
+
+warning: found an addition operation
+  --> $DIR/main.rs:7:13
+   |
+LL |     let c = a + b;
+   |             ^^^^^
+
+warning: 2 warnings emitted
+

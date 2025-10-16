@@ -1,7 +1,12 @@
 import * as vscode from "vscode";
 import { ExtensionFeatureManagers } from "./extensionFeatureManagers";
 import { CLOSE_COVERAGE, SHOW_COVERAGE } from "./coverage/commands";
-import { RELOAD_DETECTORS, SCAN_WORKSPACE, SHOW_SCAN_OUTPUT } from "./detectors/commands";
+import {
+  RELOAD_DETECTORS,
+  RUN_DYLINT_LINTS,
+  SCAN_WORKSPACE,
+  SHOW_SCAN_OUTPUT,
+} from "./detectors/commands";
 
 function registerCommands(
   context: vscode.ExtensionContext,
@@ -27,7 +32,9 @@ function registerCommands(
   // Add command to manually scan workspace
   context.subscriptions.push(
     vscode.commands.registerCommand(SCAN_WORKSPACE, async () => {
-      vscode.window.showInformationMessage("Scanning workspace for security issues...");
+      vscode.window.showInformationMessage(
+        "Scanning workspace for security issues..."
+      );
       await extensionFeatureManagers.detectorsManager.scanWorkspace();
     })
   );
@@ -37,6 +44,14 @@ function registerCommands(
     vscode.commands.registerCommand(RELOAD_DETECTORS, async () => {
       vscode.window.showInformationMessage("Reloading security detectors...");
       await extensionFeatureManagers.detectorsManager.reloadDetectors();
+    })
+  );
+
+  // Add command to run dylint lints
+  context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_DYLINT_LINTS, async () => {
+      vscode.window.showInformationMessage("Running dylint lints...");
+      await extensionFeatureManagers.detectorsManager.runDylintLints();
     })
   );
 }

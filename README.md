@@ -124,5 +124,7 @@ The extension will automatically find coverage reports in `trident-tests` and vi
 ## Feedback, help, and news
 
 Enjoy the extension? Consider [giving it a review](https://marketplace.visualstudio.com/items?itemName=AckeeBlockchain.solana&ssr=false#review-details)!
+
 Get help and give feedback in our [Discord](https://discord.gg/abAuRXJWZx)
+
 Follow Trident on [X](https://x.com/TridentSolana)

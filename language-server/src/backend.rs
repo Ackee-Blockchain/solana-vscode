@@ -77,8 +77,8 @@ impl LanguageServer for Backend {
                         }
                     }
 
-                    // Send scan results to extension
-                    let scan_summary = ScanSummary::from_scan_result(&scan_result);
+                    // Send scan results to extension (initial scan, not manual)
+                    let scan_summary = ScanSummary::from_scan_result(&scan_result, false);
                     self.client
                         .send_notification::<ScanCompleteNotification>(scan_summary)
                         .await;
@@ -127,8 +127,8 @@ impl LanguageServer for Backend {
                     }
                 }
 
-                // Send scan results to extension
-                let scan_summary = ScanSummary::from_scan_result(&scan_result);
+                // Send scan results to extension (initial scan, not manual)
+                let scan_summary = ScanSummary::from_scan_result(&scan_result, false);
                 self.client
                     .send_notification::<ScanCompleteNotification>(scan_summary)
                     .await;
@@ -194,8 +194,8 @@ impl LanguageServer for Backend {
             }
         }
 
-        // Send scan results to extension
-        let scan_summary = ScanSummary::from_scan_result(&scan_result);
+        // Send scan results to extension (automatic scan on file change)
+        let scan_summary = ScanSummary::from_scan_result(&scan_result, false);
         self.client
             .send_notification::<ScanCompleteNotification>(scan_summary)
             .await;
@@ -223,8 +223,8 @@ impl LanguageServer for Backend {
                     }
                 }
 
-                // Send scan results to extension
-                let scan_summary = ScanSummary::from_scan_result(&scan_result);
+                // Send scan results to extension (manual scan, show notification)
+                let scan_summary = ScanSummary::from_scan_result(&scan_result, true);
                 self.client
                     .send_notification::<ScanCompleteNotification>(scan_summary)
                     .await;
@@ -239,7 +239,7 @@ impl LanguageServer for Backend {
                 info!("Reloading all detectors");
 
                 // Create a new detector registry with fresh detector instances
-                let mut new_registry = create_default_registry();
+                let new_registry = create_default_registry();
 
                 // Replace the existing registry
                 {
@@ -263,8 +263,8 @@ impl LanguageServer for Backend {
                     }
                 }
 
-                // Send scan results to extension
-                let scan_summary = ScanSummary::from_scan_result(&scan_result);
+                // Send scan results to extension (manual reload, show notification)
+                let scan_summary = ScanSummary::from_scan_result(&scan_result, true);
                 self.client
                     .send_notification::<ScanCompleteNotification>(scan_summary)
                     .await;

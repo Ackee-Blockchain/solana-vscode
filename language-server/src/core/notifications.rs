@@ -40,10 +40,11 @@ pub struct ScanSummary {
     pub anchor_configs: usize,
     pub cargo_files: usize,
     pub issues_by_file: Vec<FileIssueInfo>,
+    pub is_manual_scan: bool,
 }
 
 impl ScanSummary {
-    pub fn from_scan_result(scan_result: &ScanResult) -> Self {
+    pub fn from_scan_result(scan_result: &ScanResult, is_manual_scan: bool) -> Self {
         let issues_by_file = scan_result
             .files_with_issues()
             .iter()
@@ -63,6 +64,7 @@ impl ScanSummary {
             anchor_configs: scan_result.anchor_configs.len(),
             cargo_files: scan_result.cargo_files.len(),
             issues_by_file,
+            is_manual_scan,
         }
     }
 }

@@ -14,6 +14,7 @@ interface ScanSummary {
     anchor_configs: number;
     cargo_files: number;
     issues_by_file: FileIssueInfo[];
+    is_manual_scan: boolean;
 }
 
 interface FileIssueInfo {
@@ -30,7 +31,6 @@ export class DetectorsManager {
     constructor() {
         console.log('Security Server initialized');
         this.outputChannel = window.createOutputChannel('Solana Extension');
-        this.outputChannel.show(true);
 
         // Improved server path resolution
         const serverPath = this.resolveServerPath();
@@ -218,20 +218,22 @@ export class DetectorsManager {
             });
         }
 
-        // Show information message to user
-        if (scanSummary.total_issues > 0) {
-            window.showWarningMessage(
-                `Solana security scan found ${scanSummary.total_issues} issues in ${scanSummary.files_with_issues} files. Check the Security Server output for details.`,
-                'Show Output'
-            ).then(selection => {
-                if (selection === 'Show Output') {
-                    this.outputChannel.show();
-                }
-            });
-        } else {
-            window.showInformationMessage(
-                `Solana security scan completed. No issues found in ${scanSummary.total_rust_files} Rust files.`
-            );
+        // Only show notification popups for manual scans
+        if (scanSummary.is_manual_scan) {
+            if (scanSummary.total_issues > 0) {
+                window.showWarningMessage(
+                    `Solana security scan found ${scanSummary.total_issues} issues in ${scanSummary.files_with_issues} files. Check the Security Server output for details.`,
+                    'Show Output'
+                ).then(selection => {
+                    if (selection === 'Show Output') {
+                        this.outputChannel.show();
+                    }
+                });
+            } else {
+                window.showInformationMessage(
+                    `Solana security scan completed. No issues found in ${scanSummary.total_rust_files} Rust files.`
+                );
+            }
         }
     }
 

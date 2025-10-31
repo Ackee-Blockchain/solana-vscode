@@ -12,9 +12,10 @@ use tower_lsp::{
     Client, LanguageServer,
     jsonrpc::Result as JsonRpcResult,
     lsp_types::{
-        DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams, InitializeResult,
-        PositionEncodingKind, ServerCapabilities, ServerInfo, TextDocumentItem,
-        TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
+        DidChangeTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
+        InitializeParams, InitializeResult, PositionEncodingKind, SaveOptions, ServerCapabilities,
+        ServerInfo, TextDocumentItem, TextDocumentSyncCapability, TextDocumentSyncKind,
+        TextDocumentSyncOptions, TextDocumentSyncSaveOptions,
     },
 };
 
@@ -67,8 +68,8 @@ impl LanguageServer for Backend {
                         scan_result.cargo_files.len()
                     );
 
-                    // Optionally publish diagnostics for files with issues
-                    for file_info in scan_result.files_with_issues() {
+                    // Publish diagnostics for ALL scanned files (including empty diagnostics for fixed files)
+                    for file_info in &scan_result.rust_files {
                         if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path)
                         {
                             self.client
@@ -118,8 +119,8 @@ impl LanguageServer for Backend {
                     scan_result.cargo_files.len()
                 );
 
-                // Optionally publish diagnostics for files with issues
-                for file_info in scan_result.files_with_issues() {
+                // Publish diagnostics for ALL scanned files (including empty diagnostics for fixed files)
+                for file_info in &scan_result.rust_files {
                     if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path) {
                         self.client
                             .publish_diagnostics(uri, file_info.diagnostics.clone(), None)
@@ -146,6 +147,9 @@ impl LanguageServer for Backend {
                     TextDocumentSyncOptions {
                         open_close: Some(true),
                         change: Some(TextDocumentSyncKind::FULL),
+                        save: Some(TextDocumentSyncSaveOptions::SaveOptions(SaveOptions {
+                            include_text: Some(true),
+                        })),
                         ..Default::default()
                     },
                 )),
@@ -163,30 +167,35 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        // Run detectors on file open
         self.on_change(params.text_document).await;
     }
 
-    async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        let text_document = TextDocumentItem {
-            uri: params.text_document.uri,
-            language_id: "rust".to_string(),
-            version: params.text_document.version,
-            text: params.content_changes[0].text.clone(),
-        };
+    async fn did_change(&self, _params: DidChangeTextDocumentParams) {
+        // Don't run detectors on change - only on save (consistent with rust-analyzer)
+    }
 
-        // First, analyze the changed file to provide immediate feedback
-        self.on_change(text_document).await;
+    async fn did_save(&self, _params: DidSaveTextDocumentParams) {
+        info!("File saved, reloading detectors and performing full workspace scan...");
 
-        // Then trigger a full workspace scan to update all diagnostics
-        info!("File change detected, performing full workspace scan...");
+        // Create a new detector registry with fresh detector instances
+        let new_registry = create_default_registry();
+
+        // Replace the existing registry
+        {
+            let mut registry = self.detector_registry.lock().await;
+            *registry = new_registry;
+        }
+
+        // Trigger a full workspace scan with the reloaded detectors
         let scan_result = {
             let scanner = self.file_scanner.lock().await;
             let mut registry = self.detector_registry.lock().await;
             scanner.scan_workspace(&mut registry).await
         };
 
-        // Publish diagnostics for all files with issues
-        for file_info in scan_result.files_with_issues() {
+        // Publish diagnostics for ALL scanned files (including empty diagnostics for fixed files)
+        for file_info in &scan_result.rust_files {
             if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path) {
                 self.client
                     .publish_diagnostics(uri, file_info.diagnostics.clone(), None)
@@ -194,7 +203,7 @@ impl LanguageServer for Backend {
             }
         }
 
-        // Send scan results to extension (automatic scan on file change)
+        // Send scan results to extension (automatic scan on file save)
         let scan_summary = ScanSummary::from_scan_result(&scan_result, false);
         self.client
             .send_notification::<ScanCompleteNotification>(scan_summary)
@@ -214,8 +223,8 @@ impl LanguageServer for Backend {
                     scanner.scan_workspace(&mut registry).await
                 };
 
-                // Publish diagnostics for all files with issues
-                for file_info in scan_result.files_with_issues() {
+                // Publish diagnostics for ALL scanned files (including empty diagnostics for fixed files)
+                for file_info in &scan_result.rust_files {
                     if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path) {
                         self.client
                             .publish_diagnostics(uri, file_info.diagnostics.clone(), None)
@@ -254,8 +263,8 @@ impl LanguageServer for Backend {
                     scanner.scan_workspace(&mut registry).await
                 };
 
-                // Publish diagnostics for all files with issues
-                for file_info in scan_result.files_with_issues() {
+                // Publish diagnostics for ALL scanned files (including empty diagnostics for fixed files)
+                for file_info in &scan_result.rust_files {
                     if let Ok(uri) = tower_lsp::lsp_types::Url::from_file_path(&file_info.path) {
                         self.client
                             .publish_diagnostics(uri, file_info.diagnostics.clone(), None)

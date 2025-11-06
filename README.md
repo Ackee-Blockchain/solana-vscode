@@ -78,7 +78,6 @@ The extension activates when:
 ```json
 "tridentCoverage.showExecutionCount": true,  // Show execution counts
 "tridentCoverage.executionCountColor": "CYAN",  // Choose color
-"tridentCoverage.coverageServerPort": 58432  // Server port for dynamic coverage
 ```
 
 To display coverage, use the guidance on [this page](https://ackee.xyz/trident/docs/latest/trident-advanced/code-coverage/).
@@ -119,7 +118,6 @@ The extension will automatically find coverage reports in `trident-tests` and vi
 - `server.path`: Path to the Solana language server binary (leave empty to use bundled version)
 - `tridentCoverage.showExecutionCount`: Show execution count numbers next to covered statements
 - `tridentCoverage.executionCountColor`: Color of the execution count display
-- `tridentCoverage.coverageServerPort`: Port for the coverage server
 
 ## Feedback, help, and news
 

@@ -62,7 +62,9 @@ impl<'tcx> LateLintPass<'tcx> for UncheckedMath {
             }
             // Check compound assignment operators (+=, -=, *=, /=)
             ExprKind::AssignOp(op, left, right) => {
-                if let Some((msg, help)) = check_arithmetic_op(cx, op.node, left, right, true) {
+                if let Some((msg, help)) =
+                    check_arithmetic_op(cx, op.node.into(), left, right, true)
+                {
                     clippy_utils::diagnostics::span_lint_and_help(
                         cx,
                         UNCHECKED_MATH,

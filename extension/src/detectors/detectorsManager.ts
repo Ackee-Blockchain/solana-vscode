@@ -160,7 +160,7 @@ export class DetectorsManager {
         // Otherwise the run options are used
 
         const serverOptions: ServerOptions = {
-            run: { command: serverPath, transport: TransportKind.stdio },
+            run: { command: serverPath, transport: TransportKind.stdio, options: { env: { RUST_LOG: 'info' } } },
             debug: { command: serverPath, transport: TransportKind.stdio, options: { env: { RUST_LOG: 'debug' } } }
         };
 

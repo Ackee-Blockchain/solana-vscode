@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as vscode from 'vscode';
+import { SOLANA_OUTPUT_CHANNEL } from '../output';
 
 // Interface for scan summary data from language server
 interface ScanSummary {
@@ -30,7 +31,7 @@ export class DetectorsManager {
 
     constructor() {
         console.log('Security Server initialized');
-        this.outputChannel = window.createOutputChannel('Solana Extension');
+        this.outputChannel = SOLANA_OUTPUT_CHANNEL;
 
         // Improved server path resolution
         const serverPath = this.resolveServerPath();

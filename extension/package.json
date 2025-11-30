@@ -102,11 +102,6 @@
           "default": "CYAN",
           "description": "Color of the execution count display",
           "format": "color"
-        },
-        "tridentCoverage.coverageServerPort": {
-          "type": "number",
-          "default": 58432,
-          "description": "Port for the coverage server"
         }
       }
     }

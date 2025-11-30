@@ -70,10 +70,14 @@ impl DylintRunner {
 
     /// Run lints on a workspace
     pub async fn run_lints(&self, workspace_path: &Path) -> Result<Vec<DylintDiagnostic>> {
-        let lint_libs = self.lint_libs.lock().unwrap();
-        if lint_libs.is_empty() {
-            return Ok(Vec::new());
-        }
+        // Clone the lint libs list while holding the lock, then release it
+        let lint_libs: Vec<PathBuf> = {
+            let libs = self.lint_libs.lock().unwrap();
+            if libs.is_empty() {
+                return Ok(Vec::new());
+            }
+            libs.clone()
+        };
 
         debug!(
             "Running dylint lints on workspace: {}",
@@ -107,13 +111,12 @@ impl DylintRunner {
         debug!("Using dylint-driver: {}", dylint_driver.display());
 
         // Build DYLINT_LIBS JSON array with absolute paths
-        let lint_libs_clone: Vec<String> = lint_libs
-            .iter()
-            .map(|p| p.to_string_lossy().to_string())
-            .collect();
-        drop(lint_libs); // Release lock before async operation
-        
-        let dylint_libs_json = serde_json::to_string(&lint_libs_clone)?;
+        let dylint_libs_json = serde_json::to_string(
+            &lint_libs
+                .iter()
+                .map(|p| p.to_string_lossy().to_string())
+                .collect::<Vec<_>>(),
+        )?;
 
         debug!("DYLINT_LIBS: {}", dylint_libs_json);
 
@@ -133,7 +136,6 @@ impl DylintRunner {
 
         // Extract lint names from loaded libraries
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let lint_libs = self.lint_libs.lock().unwrap();
         let lint_codes: Vec<String> = lint_libs
             .iter()
             .filter_map(|path| {

@@ -406,9 +406,13 @@ impl Backend {
                             // Add compiled detectors to dylint_runner
                             if let Some(dylint_runner) = &self.dylint_runner {
                                 dylint_runner.add_workspace_detectors(compiled_paths);
-                                info!("[Workspace Dylint] Workspace detectors integrated with dylint runner");
+                                info!(
+                                    "[Workspace Dylint] Workspace detectors integrated with dylint runner"
+                                );
                             } else {
-                                warn!("[Workspace Dylint] Dylint runner not available, cannot add workspace detectors");
+                                warn!(
+                                    "[Workspace Dylint] Dylint runner not available, cannot add workspace detectors"
+                                );
                             }
                         } else {
                             info!("[Workspace Dylint] No workspace detectors found");

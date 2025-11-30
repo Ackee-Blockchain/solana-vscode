@@ -63,10 +63,6 @@
       {
         "command": "solana.installNightly",
         "title": "solana: Install Nightly Rust Toolchain"
-      },
-      {
-        "command": "solana.showStatusMenu",
-        "title": "solana: Show Status Menu"
       }
     ],
     "keybindings": [

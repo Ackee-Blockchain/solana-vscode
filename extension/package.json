@@ -55,6 +55,14 @@
       {
         "command": "solana.reloadDetectors",
         "title": "solana: Reload Security Detectors"
+      },
+      {
+        "command": "solana.showStatusDetails",
+        "title": "solana: Show Status Details"
+      },
+      {
+        "command": "solana.installNightly",
+        "title": "solana: Install Nightly Rust Toolchain"
       }
     ],
     "keybindings": [

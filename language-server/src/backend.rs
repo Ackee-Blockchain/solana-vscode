@@ -1,9 +1,9 @@
 use crate::core::{
-    DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, FileScanner,
+    DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, DylintDetectorManager, FileScanner,
     ImmutableAccountMutatedDetector, InstructionAttributeInvalidDetector,
     InstructionAttributeUnusedDetector, ManualLamportsZeroingDetector, MissingCheckCommentDetector,
     MissingInitspaceDetector, MissingSignerDetector, ScanCompleteNotification, ScanResult,
-    ScanSummary, SysvarAccountDetector, UnsafeMathDetector,
+    ScanSummary, SysvarAccountDetector,
 };
 use crate::dylint_runner::DylintRunner;
 use log::{info, warn};
@@ -27,6 +27,7 @@ pub struct Backend {
     detector_registry: Arc<Mutex<DetectorRegistry>>,
     file_scanner: Arc<Mutex<FileScanner>>,
     dylint_runner: Option<Arc<DylintRunner>>,
+    dylint_manager: Arc<Mutex<Option<DylintDetectorManager>>>,
     workspace_root: Arc<Mutex<Option<PathBuf>>>,
 }
 
@@ -43,6 +44,9 @@ impl LanguageServer for Backend {
         {
             // Store workspace root for dylint
             *self.workspace_root.lock().await = Some(path.clone());
+
+            // Initialize workspace dylint detectors (compile and load from source)
+            Self::initialize_workspace_dylint_detectors(self, path.clone()).await;
 
             let mut scanner = self.file_scanner.lock().await;
             scanner.set_workspace_root(path);
@@ -95,6 +99,9 @@ impl LanguageServer for Backend {
         {
             // Store workspace root for dylint
             *self.workspace_root.lock().await = Some(path.clone());
+
+            // Initialize workspace dylint detectors (compile and load from source)
+            Self::initialize_workspace_dylint_detectors(&self, path.clone()).await;
 
             let mut scanner = self.file_scanner.lock().await;
             scanner.set_workspace_root(path);
@@ -366,7 +373,7 @@ impl LanguageServer for Backend {
 
 impl Backend {
     pub fn new(client: Client) -> Backend {
-        // Try to initialize dylint runner
+        // Try to initialize dylint runner (for pre-compiled detectors)
         let dylint_runner = Self::try_init_dylint_runner();
 
         Backend {
@@ -374,7 +381,48 @@ impl Backend {
             detector_registry: Arc::new(Mutex::new(create_default_registry())),
             file_scanner: Arc::new(Mutex::new(FileScanner::default())),
             dylint_runner,
+            dylint_manager: Arc::new(Mutex::new(None)),
             workspace_root: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// Initialize workspace dylint detectors (compile and add to dylint_runner)
+    async fn initialize_workspace_dylint_detectors(&self, workspace_path: PathBuf) {
+        info!(
+            "Initializing workspace dylint detectors for: {:?}",
+            workspace_path
+        );
+        match DylintDetectorManager::new() {
+            Ok(mut manager) => {
+                manager.set_workspace_root(workspace_path.clone());
+                match manager.initialize().await {
+                    Ok(compiled_paths) => {
+                        if !compiled_paths.is_empty() {
+                            info!(
+                                "[Workspace Dylint] Successfully compiled {} detector(s)",
+                                compiled_paths.len()
+                            );
+
+                            // Add compiled detectors to dylint_runner
+                            if let Some(dylint_runner) = &self.dylint_runner {
+                                dylint_runner.add_workspace_detectors(compiled_paths);
+                                info!("[Workspace Dylint] Workspace detectors integrated with dylint runner");
+                            } else {
+                                warn!("[Workspace Dylint] Dylint runner not available, cannot add workspace detectors");
+                            }
+                        } else {
+                            info!("[Workspace Dylint] No workspace detectors found");
+                        }
+                        *self.dylint_manager.lock().await = Some(manager);
+                    }
+                    Err(e) => {
+                        warn!("Failed to initialize workspace dylint detectors: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("Failed to create dylint detector manager: {}", e);
+            }
         }
     }
 

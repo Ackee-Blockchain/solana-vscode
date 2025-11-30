@@ -1,288 +1,137 @@
-# Testing Dylint Integration
+# Testing Dylint Detector Support
 
-## ✅ Verification Results
+## Prerequisites
 
-The dylint `unchecked_math` lint has been successfully tested and is working correctly!
+1. **Nightly Rust installed**:
+   ```bash
+   rustup toolchain install nightly
+   ```
 
-### Test Results
-
-**Test File:**
-```rust
-fn main() {
-    // Should trigger: unchecked addition
-    let a: u64 = 100;
-    let b: u64 = 200;
-    let total = a + b;
-
-    // Should trigger: unchecked subtraction
-    let balance: u64 = 1000;
-    let withdrawal: u64 = 500;
-    let remaining = balance - withdrawal;
-
-    println!("Total: {}, Remaining: {}", total, remaining);
-}
-```
-
-**Dylint Output:**
-```
-✅ "message": "unchecked addition operation detected"
-✅ "message": "unchecked subtraction operation detected"
-```
-
-**Command Used:**
-```bash
-DYLINT_LIBS='["/path/to/libunchecked_math@nightly-2025-09-18-aarch64-apple-darwin.dylib"]' \
-RUSTC_WORKSPACE_WRAPPER=$HOME/.dylint_drivers/nightly-2025-09-18-aarch64-apple-darwin/dylint-driver \
-cargo +nightly-2025-09-18 check --message-format=json
-```
-
-## 🧪 Manual Testing Steps
-
-### 1. Test the Lint Standalone
-
-```bash
-# Create a test project
-cd /tmp
-cargo init --name test_unchecked_math
-
-# Create test file with unchecked math
-cat > src/main.rs << 'EOF'
-fn main() {
-    let a: u64 = 100;
-    let b: u64 = 200;
-    let total = a + b;  // Should warn
-    println!("{}", total);
-}
-EOF
-
-# Run dylint
-DYLINT_LIBS='["/Users/maxkup/Documents/Ackee/extension/solana-vscode/lints_compiled/macos-arm64/libunchecked_math@nightly-2025-09-18-aarch64-apple-darwin.dylib"]' \
-RUSTC_WORKSPACE_WRAPPER=$HOME/.dylint_drivers/nightly-2025-09-18-aarch64-apple-darwin/dylint-driver \
-cargo +nightly-2025-09-18 check
-
-# You should see:
-# warning: unchecked addition operation detected
-#  --> src/main.rs:4:17
-#   |
-# 4 |     let total = a + b;  // Should warn
-#   |                 ^^^^^
-#   |
-#   = help: consider using `checked_add()` to prevent overflow/underflow
-```
-
-### 2. Test in VSCode Extension
-
-#### Prerequisites
-
-1. **Install dylint tools:**
+2. **Dylint dependencies**:
    ```bash
    cargo install cargo-dylint dylint-link
+   cargo +nightly dylint --list  # This installs dylint-driver
    ```
 
-2. **Install dylint-driver:**
-   ```bash
-   cargo +nightly-2025-09-18 dylint --list
-   # This installs the driver automatically
-   ```
+## Creating a Test Dylint Detector
 
-3. **Verify driver installation:**
-   ```bash
-   ls ~/.dylint_drivers/nightly-2025-09-18-aarch64-apple-darwin/dylint-driver
-   # Should exist
-   ```
-
-#### Build and Package
-
-1. **Build the language server:**
-   ```bash
-   cd language-server
-   cargo build --release
-   cp target/release/language-server ../extension/bin/
-   ```
-
-2. **Build all lints:**
-   ```bash
-   cd ..
-   ./build_all_lints.sh
-   ```
-
-3. **Copy lints to extension:**
-   ```bash
-   mkdir -p extension/lints_compiled/macos-arm64
-   cp lints_compiled/macos-arm64/*.dylib extension/lints_compiled/macos-arm64/
-   ```
-
-#### Test in VSCode
-
-1. **Open extension in VSCode:**
-   ```bash
-   cd extension
-   code .
-   ```
-
-2. **Launch Extension Development Host:**
-   - Press `F5` in VSCode
-   - This opens a new VSCode window with the extension loaded
-
-3. **Open a Solana Rust project:**
-   - In the extension development host window
-   - Open any Solana Rust project (or create a new one)
-
-4. **Create a test file:**
-   ```rust
-   // src/test_unchecked.rs
-   pub fn transfer(amount1: u64, amount2: u64) -> u64 {
-       amount1 + amount2  // Should show warning
-   }
-   ```
-
-5. **Check for warnings:**
-   - Look in the "Problems" panel (View > Problems)
-   - You should see warnings from both:
-     - **syn detectors** (fast, immediate)
-     - **dylint detectors** (after a few seconds)
-
-#### Expected Behavior
-
-**Immediate (Syn Detectors):**
-- Warnings for syntax-level issues
-- Missing signer checks
-- Sysvar usage
-- etc.
-
-**After 1-5 seconds (Dylint):**
-- Warning: "unchecked addition operation detected"
-- Source: "dylint"
-- Code: "unchecked_math"
-
-## 🔍 Debugging
-
-### Check Language Server Logs
-
-**In VSCode:**
-1. View > Output
-2. Select "Solana Language Server" from dropdown
-3. Look for:
-   ```
-   Dylint runner initialized successfully
-   Loaded lints: ["libunchecked_math@nightly-2025-09-18-aarch64-apple-darwin"]
-   Running dylint lints on workspace: /path/to/project
-   Dylint found N issues
-   ```
-
-### Common Issues
-
-#### "dylint-driver not found"
-
-**Solution:**
-```bash
-cargo +nightly-2025-09-18 dylint --list
-```
-
-#### "No lints found"
-
-**Check:**
-```bash
-ls extension/lints_compiled/macos-arm64/
-# Should show: libunchecked_math@*.dylib
-```
-
-**Fix:**
-```bash
-./build_all_lints.sh
-cp lints_compiled/macos-arm64/*.dylib extension/lints_compiled/macos-arm64/
-```
-
-#### Toolchain mismatch
-
-The lint library filename contains the toolchain version:
-```
-libunchecked_math@nightly-2025-09-18-aarch64-apple-darwin.dylib
-                  ^^^^^^^^^^^^^^^^^^^
-```
-
-Make sure:
-1. `lints/unchecked_math/rust-toolchain` matches this version
-2. dylint-driver is installed for this version
-3. The runner uses the correct toolchain
-
-**Check:**
-```bash
-cat lints/unchecked_math/rust-toolchain
-# Should show: channel = "nightly-2025-09-18" (or similar)
-
-ls ~/.dylint_drivers/
-# Should show: nightly-2025-09-18-aarch64-apple-darwin/
-```
-
-## 📊 Performance Testing
-
-### Measure Lint Execution Time
+1. **Create a test detector crate** in your workspace:
 
 ```bash
-cd /tmp/test_unchecked_math
-
-time (DYLINT_LIBS='["/Users/maxkup/Documents/Ackee/extension/solana-vscode/lints_compiled/macos-arm64/libunchecked_math@nightly-2025-09-18-aarch64-apple-darwin.dylib"]' \
-RUSTC_WORKSPACE_WRAPPER=$HOME/.dylint_drivers/nightly-2025-09-18-aarch64-apple-darwin/dylint-driver \
-cargo +nightly-2025-09-18 check --message-format=json > /dev/null 2>&1)
+cd /path/to/your/workspace
+cargo new --lib my_detector
+cd my_detector
 ```
 
-**Expected:**
-- Small project: 1-2 seconds
-- Medium project: 2-5 seconds
-- Large project: 5-10 seconds
+2. **Update `Cargo.toml`**:
 
-### Compare with Syn Detectors
+```toml
+[package]
+name = "my_detector"
+version = "0.1.0"
+edition = "2021"
 
-**Syn (per-file):**
-- Typical: < 100ms
-- Large file: < 500ms
+[lib]
+crate-type = ["dylib"]
 
-**Dylint (per-workspace):**
-- Typical: 1-5 seconds
-- Large workspace: 5-10 seconds
+[dependencies]
+dylint = "2.1.0"
+```
 
-## ✅ Test Checklist
+3. **Create `src/lib.rs`**:
 
-- [x] Lint compiles successfully
-- [x] Lint detects unchecked addition
-- [x] Lint detects unchecked subtraction
-- [x] Lint detects unchecked multiplication
-- [x] Lint detects unchecked division
-- [x] Lint detects compound assignments (+=, -=, etc.)
-- [x] Lint skips small literals (reduces false positives)
-- [x] Lint provides helpful suggestions
-- [x] Language server compiles with dylint integration
-- [x] DylintRunner initializes correctly
-- [x] DylintRunner loads lint libraries
-- [x] DylintRunner detects platform correctly
-- [x] DylintRunner finds dylint-driver
-- [x] DylintRunner parses JSON output
-- [x] DylintRunner filters by whitelist
-- [x] Backend integrates with DylintRunner
-- [x] Diagnostics are converted to LSP format
-- [x] Build script works correctly
+```rust
+use dylint_linting::Lint;
 
-## 🎉 Conclusion
+#[dylint_lib::export_lint]
+pub fn my_detector(_cx: &dylint_linting::EarlyContext<'_>) {
+    // Your detector logic here
+}
+```
 
-The dylint integration is **fully functional** and ready for production use!
+## Testing Steps
 
-**Key Achievements:**
-1. ✅ Custom dylint lint (`unchecked_math`) working
-2. ✅ LSP integration complete
-3. ✅ Platform detection working
-4. ✅ Lint loading working
-5. ✅ Diagnostic parsing working
-6. ✅ Background execution working
-7. ✅ Graceful degradation working
+### 1. Build the Language Server
 
-**Next Steps:**
-1. Test in VSCode extension development host
-2. Add more security-focused lints
-3. Package extension with pre-compiled lints
-4. Document for end users
+```bash
+cd language-server
+cargo build
+```
 
----
+### 2. Run the Language Server
 
-**Test Date:** November 3, 2025
-**Status:** ✅ ALL TESTS PASSED
+The language server will automatically:
+- Scan for dylint detectors in the workspace
+- Compile them with nightly Rust (first time)
+- Cache the compiled libraries
+- Load them dynamically
+
+### 3. Check Logs
+
+Look for these log messages:
+- `"Scanning for dylint detector crates in: ..."`
+- `"Found dylint detector: ..."`
+- `"Compiling dylint detector ... with nightly ..."`
+- `"Cached compiled detector for future reuse"`
+- `"Successfully loaded detector from ..."`
+
+### 4. Verify Cache
+
+Check the cache directory:
+```bash
+ls ~/.cache/solana-vscode/dylint-detectors/
+```
+
+You should see cached `.dylib` (macOS) or `.so` (Linux) files.
+
+### 5. Test Cache Reuse
+
+1. Restart the language server
+2. Check logs - you should see:
+   - `"Reusing cached detector: ... (nightly ...)"`
+   - No compilation messages
+
+### 6. Test Nightly Version Change
+
+1. Install a different nightly version
+2. Restart the language server
+3. It should detect the version change and recompile
+
+## Manual Testing Commands
+
+You can also test the components separately:
+
+### Test Scanner
+```rust
+// In a test or example
+let mut scanner = DylintDetectorScanner::new();
+scanner.set_workspace_root(PathBuf::from("/path/to/workspace"));
+let detectors = scanner.scan_detectors();
+println!("Found detectors: {:?}", detectors);
+```
+
+### Test Compiler
+```rust
+let compiler = DylintDetectorCompiler::new();
+let nightly = DylintDetectorCompiler::get_nightly_version()?;
+let compiled = compiler.compile_detector(&detector, &nightly).await?;
+```
+
+### Test Cache
+```rust
+let cache = DylintDetectorCache::new()?;
+let cached = cache.get_cached_library(&detector, &nightly);
+```
+
+## Expected Behavior
+
+✅ **First run**: Compiles detectors, caches them, loads them
+✅ **Subsequent runs**: Reuses cached builds (fast)
+✅ **Nightly change**: Automatically recompiles with new nightly
+✅ **Workspace change**: Rescans and loads new detectors
+
+## Troubleshooting
+
+- **"Failed to get nightly Rust version"**: Install nightly with `rustup toolchain install nightly`
+- **"Failed to compile detector"**: Check that the detector crate has proper `Cargo.toml` with `crate-type = ["dylib"]`
+- **"No dylint detectors found"**: Make sure detector crates have `dylint` dependency and proper lib configuration

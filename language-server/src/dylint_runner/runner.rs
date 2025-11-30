@@ -12,14 +12,22 @@ pub struct DylintRunner {
     /// Path to pre-compiled lint libraries (e.g., lints_compiled/macos-arm64/)
     lint_libs_dir: PathBuf,
 
-    /// List of lint library files to load
-    lint_libs: Vec<PathBuf>,
+    /// List of lint library files to load (pre-compiled + workspace detectors)
+    lint_libs: Arc<std::sync::Mutex<Vec<PathBuf>>>,
 
     /// Cache of last run results per workspace
     cache: Arc<Mutex<std::collections::HashMap<PathBuf, Vec<DylintDiagnostic>>>>,
 }
 
 impl DylintRunner {
+    /// Add workspace detector libraries to the runner
+    pub fn add_workspace_detectors(&self, detector_libs: Vec<PathBuf>) {
+        let mut libs = self.lint_libs.lock().unwrap();
+        info!("Adding {} workspace detector(s) to dylint runner", detector_libs.len());
+        libs.extend(detector_libs);
+        info!("Dylint runner now has {} total lint(s)", libs.len());
+    }
+
     /// Initialize the runner with pre-compiled lints
     pub fn new(extension_path: &Path) -> Result<Self> {
         // 1. Detect platform
@@ -55,14 +63,15 @@ impl DylintRunner {
 
         Ok(Self {
             lint_libs_dir,
-            lint_libs,
+            lint_libs: Arc::new(std::sync::Mutex::new(lint_libs)),
             cache: Arc::new(Mutex::new(std::collections::HashMap::new())),
         })
     }
 
     /// Run lints on a workspace
     pub async fn run_lints(&self, workspace_path: &Path) -> Result<Vec<DylintDiagnostic>> {
-        if self.lint_libs.is_empty() {
+        let lint_libs = self.lint_libs.lock().unwrap();
+        if lint_libs.is_empty() {
             return Ok(Vec::new());
         }
 
@@ -98,13 +107,13 @@ impl DylintRunner {
         debug!("Using dylint-driver: {}", dylint_driver.display());
 
         // Build DYLINT_LIBS JSON array with absolute paths
-        let dylint_libs_json = serde_json::to_string(
-            &self
-                .lint_libs
-                .iter()
-                .map(|p| p.to_string_lossy().to_string())
-                .collect::<Vec<_>>(),
-        )?;
+        let lint_libs_clone: Vec<String> = lint_libs
+            .iter()
+            .map(|p| p.to_string_lossy().to_string())
+            .collect();
+        drop(lint_libs); // Release lock before async operation
+        
+        let dylint_libs_json = serde_json::to_string(&lint_libs_clone)?;
 
         debug!("DYLINT_LIBS: {}", dylint_libs_json);
 
@@ -124,8 +133,8 @@ impl DylintRunner {
 
         // Extract lint names from loaded libraries
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let lint_codes: Vec<String> = self
-            .lint_libs
+        let lint_libs = self.lint_libs.lock().unwrap();
+        let lint_codes: Vec<String> = lint_libs
             .iter()
             .filter_map(|path| {
                 path.file_stem()
@@ -172,11 +181,11 @@ impl DylintRunner {
             for entry in entries.filter_map(|e| e.ok()) {
                 let file_name = entry.file_name();
                 let file_name_str = file_name.to_string_lossy();
-                
+
                 // Look for @ in filename
                 if let Some(at_pos) = file_name_str.find('@') {
                     let after_at = &file_name_str[at_pos + 1..];
-                    
+
                     // Extract toolchain: "nightly-2025-09-18-aarch64..." -> "nightly-2025-09-18"
                     // Date format is YYYY-MM-DD, so we need 4 parts: nightly-YYYY-MM-DD
                     let parts: Vec<&str> = after_at.split('-').collect();
@@ -275,7 +284,8 @@ impl DylintRunner {
 
     /// Get list of loaded lint names
     pub fn loaded_lints(&self) -> Vec<String> {
-        self.lint_libs
+        let lint_libs = self.lint_libs.lock().unwrap();
+        lint_libs
             .iter()
             .filter_map(|p| {
                 p.file_stem()
@@ -287,6 +297,7 @@ impl DylintRunner {
 
     /// Check if dylint is available
     pub fn is_available(&self) -> bool {
-        !self.lint_libs.is_empty()
+        let lint_libs = self.lint_libs.lock().unwrap();
+        !lint_libs.is_empty()
     }
 }

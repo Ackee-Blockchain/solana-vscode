@@ -1,10 +1,11 @@
 import { OutputChannel, window, workspace } from 'vscode';
-import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, StateChangeEvent, TransportKind } from 'vscode-languageclient/node';
+import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, StateChangeEvent, TransportKind, State } from 'vscode-languageclient/node';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as vscode from 'vscode';
 import { SOLANA_OUTPUT_CHANNEL } from '../output';
+import { StatusBarState } from '../statusBar/statusBarManager';
 
 // Interface for scan summary data from language server
 interface ScanSummary {
@@ -28,6 +29,7 @@ interface FileIssueInfo {
 export class DetectorsManager {
     private client?: LanguageClient;
     private outputChannel: OutputChannel;
+    private statusBarUpdateCallback?: (state: StatusBarState, message?: string) => void;
 
     constructor() {
         console.log('Security Server initialized');
@@ -38,6 +40,7 @@ export class DetectorsManager {
 
         if (!serverPath) {
             this.handleServerNotFound();
+            this.updateStatusBar(StatusBarState.Error, 'Language server binary not found');
             return;
         }
 
@@ -186,6 +189,7 @@ export class DetectorsManager {
 
         this.client.onDidChangeState((e: StateChangeEvent) => {
 		    this.outputChannel.appendLine(`Server state changed: ${e.newState}`);
+            this.updateStatusBarFromServerState(e.newState);
 	    });
 
 	    this.client.onNotification('window/logMessage', (params) => {
@@ -195,6 +199,10 @@ export class DetectorsManager {
         // Listen for scan complete notifications
         this.client.onNotification('solana/scanComplete', (scanSummary: ScanSummary) => {
             this.handleScanComplete(scanSummary);
+            // Update status bar after scan completes (unless it was an error)
+            if (this.statusBarUpdateCallback && this.client?.state === State.Running) {
+                this.statusBarUpdateCallback(StatusBarState.Chill, 'Scan completed');
+            }
         });
     }
 
@@ -252,10 +260,12 @@ export class DetectorsManager {
     async scanWorkspace(): Promise<void> {
         if (!this.client) {
             window.showErrorMessage('Language server not running');
+            this.updateStatusBar(StatusBarState.Error, 'Language server not running');
             return;
         }
 
         this.outputChannel.appendLine('Manually triggering workspace scan...');
+        this.updateStatusBar(StatusBarState.Running, 'Scanning workspace...');
 
         try {
             const result = await this.client.sendRequest('workspace/executeCommand', {
@@ -264,9 +274,11 @@ export class DetectorsManager {
             });
 
             this.outputChannel.appendLine(`Scan request result: ${JSON.stringify(result)}`);
+            this.updateStatusBar(StatusBarState.Chill, 'Workspace scan completed');
         } catch (error) {
             this.outputChannel.appendLine(`Error triggering scan: ${error}`);
             window.showErrorMessage(`Failed to scan workspace: ${error}`);
+            this.updateStatusBar(StatusBarState.Error, `Failed to scan workspace: ${error}`);
         }
     }
 
@@ -274,10 +286,12 @@ export class DetectorsManager {
     async reloadDetectors(): Promise<void> {
         if (!this.client) {
             window.showErrorMessage('Language server not running');
+            this.updateStatusBar(StatusBarState.Error, 'Language server not running');
             return;
         }
 
         this.outputChannel.appendLine('Reloading security detectors...');
+        this.updateStatusBar(StatusBarState.Running, 'Reloading security detectors...');
 
         try {
             const result = await this.client.sendRequest('workspace/executeCommand', {
@@ -286,9 +300,48 @@ export class DetectorsManager {
             });
 
             this.outputChannel.appendLine(`Reload detectors result: ${JSON.stringify(result)}`);
+            this.updateStatusBar(StatusBarState.Chill, 'Detectors reloaded successfully');
         } catch (error) {
             this.outputChannel.appendLine(`Error reloading detectors: ${error}`);
             window.showErrorMessage(`Failed to reload detectors: ${error}`);
+            this.updateStatusBar(StatusBarState.Error, `Failed to reload detectors: ${error}`);
+        }
+    }
+
+    /**
+     * Set callback for status bar updates
+     */
+    setStatusBarUpdateCallback(callback: (state: StatusBarState, message?: string) => void): void {
+        this.statusBarUpdateCallback = callback;
+    }
+
+    /**
+     * Update status bar based on server state
+     */
+    private updateStatusBarFromServerState(state: State): void {
+        if (!this.statusBarUpdateCallback) {
+            return;
+        }
+
+        switch (state) {
+            case State.Starting:
+                this.statusBarUpdateCallback(StatusBarState.Running, 'Starting language server...');
+                break;
+            case State.Running:
+                this.statusBarUpdateCallback(StatusBarState.Chill, 'Language server is ready');
+                break;
+            case State.Stopped:
+                this.statusBarUpdateCallback(StatusBarState.Error, 'Language server stopped');
+                break;
+        }
+    }
+
+    /**
+     * Update status bar
+     */
+    private updateStatusBar(state: StatusBarState, message?: string): void {
+        if (this.statusBarUpdateCallback) {
+            this.statusBarUpdateCallback(state, message);
         }
     }
 }

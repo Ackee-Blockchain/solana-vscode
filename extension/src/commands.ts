@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { ExtensionFeatureManagers } from "./extensionFeatureManagers";
 import { CLOSE_COVERAGE, SHOW_COVERAGE } from "./coverage/commands";
 import { RELOAD_DETECTORS, SCAN_WORKSPACE, SHOW_SCAN_OUTPUT } from "./detectors/commands";
-import { INSTALL_NIGHTLY, SHOW_STATUS_DETAILS } from "./statusBar/commands";
+import { INSTALL_NIGHTLY, SHOW_STATUS_DETAILS, SHOW_STATUS_MENU } from "./statusBar/commands";
 import { StatusBarState } from "./statusBar/statusBarManager";
 
 function registerCommands(
@@ -39,6 +39,31 @@ function registerCommands(
     vscode.commands.registerCommand(RELOAD_DETECTORS, async () => {
       vscode.window.showInformationMessage("Reloading security detectors...");
       await extensionFeatureManagers.detectorsManager.reloadDetectors();
+    })
+  );
+
+  // Add command to show status menu (quick pick overlay) - rust-analyzer style
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SHOW_STATUS_MENU, async () => {
+      const items: vscode.QuickPickItem[] = [
+        {
+          label: '$(sync) Reload Detectors',
+          description: 'Reload all security detectors',
+          detail: 'Restart the detector system and rescan the workspace'
+        }
+      ];
+
+      const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select an action...',
+        matchOnDescription: true,
+        matchOnDetail: true
+      });
+
+      if (selected) {
+        if (selected.label.includes('Reload Detectors')) {
+          await vscode.commands.executeCommand(RELOAD_DETECTORS);
+        }
+      }
     })
   );
 

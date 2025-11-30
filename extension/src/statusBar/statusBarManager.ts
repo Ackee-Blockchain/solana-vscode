@@ -18,8 +18,14 @@ export class StatusBarManager implements vscode.Disposable {
     private currentState: StatusBarState = StatusBarState.Chill;
     private rustToolchainChecked: boolean = false;
     private isNightlyAvailable: boolean = false;
+    private extensionVersion: string = 'unknown';
 
     constructor() {
+        // Get extension version
+        const extension = vscode.extensions.getExtension('AckeeBlockchain.solana');
+        if (extension) {
+            this.extensionVersion = extension.packageJSON.version || 'unknown';
+        }
         // Create status bar item with priority 100 (default)
         this.statusBarItem = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Left,
@@ -45,6 +51,52 @@ export class StatusBarManager implements vscode.Disposable {
     }
 
     /**
+     * Create a rich tooltip with clickable actions (rust-analyzer style)
+     * Actions are directly clickable in the tooltip using command links
+     */
+    private createRichTooltip(state: StatusBarState, message?: string): vscode.MarkdownString {
+        const tooltip = new vscode.MarkdownString();
+        tooltip.isTrusted = true;
+
+        // Header with version info (rust-analyzer style)
+        tooltip.appendMarkdown('### Solana Language Server\n\n');
+        tooltip.appendMarkdown(`**Extension:** v${this.extensionVersion}\n`);
+        tooltip.appendMarkdown('\n---\n\n');
+
+        switch (state) {
+            case StatusBarState.Chill:
+                tooltip.appendMarkdown(message || 'Ready');
+                if (this.isNightlyAvailable) {
+                    tooltip.appendMarkdown('\n\n✅ Nightly Rust toolchain available');
+                }
+                tooltip.appendMarkdown('\n\n---\n\n');
+                tooltip.appendMarkdown('**Actions:**\n\n');
+                tooltip.appendMarkdown(`🔄 [Reload Detectors](command:solana.reloadDetectors "Reload all security detectors")\n`);
+                break;
+
+            case StatusBarState.Running:
+                tooltip.appendMarkdown(message || 'Running...');
+                break;
+
+            case StatusBarState.Warn:
+                tooltip.appendMarkdown('⚠️ ' + (message || 'Nightly Rust version not used'));
+                tooltip.appendMarkdown('\n\n---\n\n');
+                tooltip.appendMarkdown('**Actions:**\n\n');
+                tooltip.appendMarkdown(`⬇️ [Install Nightly Rust](command:solana.installNightly "Install nightly Rust toolchain")\n`);
+                break;
+
+            case StatusBarState.Error:
+                tooltip.appendMarkdown('❌ ' + (message || 'Error occurred'));
+                tooltip.appendMarkdown('\n\n---\n\n');
+                tooltip.appendMarkdown('**Actions:**\n\n');
+                tooltip.appendMarkdown(`ℹ️ [Show Details](command:solana.showStatusDetails "View error details")\n`);
+                break;
+        }
+
+        return tooltip;
+    }
+
+    /**
      * Update the status bar badge based on the current state
      */
     updateStatus(state: StatusBarState, message?: string): void {
@@ -56,36 +108,36 @@ export class StatusBarManager implements vscode.Disposable {
                 // If nightly is not available, show warning instead
                 if (!this.isNightlyAvailable && this.rustToolchainChecked) {
                     this.statusBarItem.text = '$(warning) Solana';
-                    this.statusBarItem.tooltip = message || 'Nightly Rust version not used. Click to install nightly.';
+                    this.statusBarItem.tooltip = this.createRichTooltip(StatusBarState.Warn, message);
                     this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.warningForeground');
                     this.statusBarItem.command = 'solana.installNightly';
                 } else {
-                    this.statusBarItem.text = '$(check) Solana';
-                    this.statusBarItem.tooltip = message || 'Solana extension is ready';
+                    this.statusBarItem.text = 'Solana';
+                    this.statusBarItem.tooltip = this.createRichTooltip(StatusBarState.Chill, message);
                     this.statusBarItem.color = undefined; // Use default color
-                    this.statusBarItem.command = 'solana.reloadDetectors';
+                    this.statusBarItem.command = undefined; // Actions are in tooltip, no click needed
                 }
                 break;
 
             case StatusBarState.Running:
                 this.statusBarItem.text = '$(sync~spin) Solana';
-                this.statusBarItem.tooltip = message || 'Solana extension is running...';
+                this.statusBarItem.tooltip = this.createRichTooltip(StatusBarState.Running, message);
                 this.statusBarItem.color = undefined;
                 this.statusBarItem.command = undefined; // Disable click during running
                 break;
 
             case StatusBarState.Warn:
                 this.statusBarItem.text = '$(warning) Solana';
-                this.statusBarItem.tooltip = message || 'Nightly Rust version not used. Click to install nightly.';
+                this.statusBarItem.tooltip = this.createRichTooltip(StatusBarState.Warn, message);
                 this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.warningForeground');
-                this.statusBarItem.command = 'solana.installNightly';
+                this.statusBarItem.command = undefined; // Actions are in tooltip
                 break;
 
             case StatusBarState.Error:
                 this.statusBarItem.text = '$(error) Solana';
-                this.statusBarItem.tooltip = message || 'Solana extension error';
+                this.statusBarItem.tooltip = this.createRichTooltip(StatusBarState.Error, message);
                 this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground');
-                this.statusBarItem.command = 'solana.showStatusDetails';
+                this.statusBarItem.command = undefined; // Actions are in tooltip
                 break;
         }
 

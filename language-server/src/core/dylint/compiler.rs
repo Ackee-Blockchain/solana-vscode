@@ -104,6 +104,16 @@ impl DylintDetectorCompiler {
         )
     }
 
+    /// Check if nightly Rust is available (non-fatal)
+    pub fn is_nightly_available() -> bool {
+        Command::new("rustc")
+            .arg("+nightly")
+            .arg("--version")
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false)
+    }
+
     /// Get the current nightly Rust version
     pub fn get_nightly_version() -> Result<String> {
         let output = Command::new("rustc")

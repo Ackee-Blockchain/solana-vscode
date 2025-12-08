@@ -27,6 +27,12 @@ impl DylintDetectorScanner {
         self.workspace_root = Some(root);
     }
 
+    /// Set the extension path (where bundled detectors are located)
+    pub fn set_extension_path(&mut self, extension_path: PathBuf) {
+        // Look for detectors in extension/detectors/
+        self.workspace_root = Some(extension_path.join("detectors"));
+    }
+
     /// Scan for dylint detector crates in the workspace
     pub fn scan_detectors(&self) -> Vec<DylintDetectorInfo> {
         let Some(root) = &self.workspace_root else {

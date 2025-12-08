@@ -45,8 +45,8 @@ impl LanguageServer for Backend {
             // Store workspace root for dylint
             *self.workspace_root.lock().await = Some(path.clone());
 
-            // Initialize workspace dylint detectors (compile and load from source)
-            Self::initialize_workspace_dylint_detectors(self, path.clone()).await;
+            // Note: Dylint detectors are initialized lazily on first save
+            // This allows checking nightly availability and compiling only when needed
 
             let mut scanner = self.file_scanner.lock().await;
             scanner.set_workspace_root(path);
@@ -100,8 +100,8 @@ impl LanguageServer for Backend {
             // Store workspace root for dylint
             *self.workspace_root.lock().await = Some(path.clone());
 
-            // Initialize workspace dylint detectors (compile and load from source)
-            Self::initialize_workspace_dylint_detectors(&self, path.clone()).await;
+            // Note: Dylint detectors are initialized lazily on first save
+            // This allows checking nightly availability and compiling only when needed
 
             let mut scanner = self.file_scanner.lock().await;
             scanner.set_workspace_root(path);
@@ -192,6 +192,7 @@ impl LanguageServer for Backend {
 
     async fn did_save(&self, _params: DidSaveTextDocumentParams) {
         info!("File saved, reloading detectors and performing full workspace scan...");
+        info!("[DEBUG] About to initialize dylint detectors...");
 
         // Create a new detector registry with fresh detector instances
         let new_registry = create_default_registry();
@@ -223,6 +224,10 @@ impl LanguageServer for Backend {
         self.client
             .send_notification::<ScanCompleteNotification>(scan_summary)
             .await;
+
+        // Initialize dylint detectors on first save (lazy initialization)
+        // This checks if nightly is available and compiles/caches detectors
+        Self::ensure_dylint_detectors_initialized(self).await;
 
         // Run dylint in background and merge with syn diagnostics
         if let Some(dylint_runner) = &self.dylint_runner {
@@ -386,48 +391,108 @@ impl Backend {
         }
     }
 
-    /// Initialize workspace dylint detectors (compile and add to dylint_runner)
-    async fn initialize_workspace_dylint_detectors(&self, workspace_path: PathBuf) {
-        info!(
-            "Initializing workspace dylint detectors for: {:?}",
-            workspace_path
-        );
-        match DylintDetectorManager::new() {
-            Ok(mut manager) => {
-                manager.set_workspace_root(workspace_path.clone());
-                match manager.initialize().await {
-                    Ok(compiled_paths) => {
-                        if !compiled_paths.is_empty() {
-                            info!(
-                                "[Workspace Dylint] Successfully compiled {} detector(s)",
-                                compiled_paths.len()
-                            );
+    /// Ensure dylint detectors are initialized (lazy initialization on first save)
+    /// This checks if detectors have been initialized, and if not:
+    /// 1. Checks if nightly Rust is available
+    /// 2. Scans for detector source code in extension/detectors/
+    /// 3. Checks cache for compiled versions matching current nightly
+    /// 4. Compiles and caches if not present
+    /// 5. Adds compiled detectors to dylint runner
+    async fn ensure_dylint_detectors_initialized(&self) {
+        info!("[DEBUG] ensure_dylint_detectors_initialized called");
 
-                            // Add compiled detectors to dylint_runner
-                            if let Some(dylint_runner) = &self.dylint_runner {
-                                dylint_runner.add_workspace_detectors(compiled_paths);
-                                info!(
-                                    "[Workspace Dylint] Workspace detectors integrated with dylint runner"
-                                );
-                            } else {
-                                warn!(
-                                    "[Workspace Dylint] Dylint runner not available, cannot add workspace detectors"
-                                );
-                            }
-                        } else {
-                            info!("[Workspace Dylint] No workspace detectors found");
-                        }
-                        *self.dylint_manager.lock().await = Some(manager);
+        // Check if already initialized
+        {
+            let manager_lock = self.dylint_manager.lock().await;
+            info!("[DEBUG] Got manager lock, checking initialization status...");
+            if let Some(manager) = manager_lock.as_ref() {
+                info!("[DEBUG] Manager exists, checking if initialized");
+                if manager.is_initialized() {
+                    // Already initialized, nothing to do
+                    info!("[DEBUG] Manager already initialized, skipping");
+                    return;
+                }
+                info!("[DEBUG] Manager not initialized yet");
+            } else {
+                info!("[DEBUG] Manager is None, will create new one");
+            }
+        }
+
+        info!("[Extension Dylint] Initializing detectors on first save...");
+
+        // Check if nightly is available
+        if !DylintDetectorManager::check_nightly_available() {
+            warn!(
+                "[Extension Dylint] Nightly Rust not available, skipping detector initialization"
+            );
+            warn!("[Extension Dylint] Install nightly with: rustup toolchain install nightly");
+            return;
+        }
+
+        // Get extension path (where detectors are bundled)
+        let extension_path = match std::env::current_exe() {
+            Ok(exe_path) => exe_path
+                .parent()
+                .and_then(|p| p.parent()) // bin/ -> extension/
+                .map(|p| p.to_path_buf()),
+            Err(_) => None,
+        };
+
+        let Some(extension_path) = extension_path else {
+            warn!(
+                "[Extension Dylint] Could not determine extension path, skipping detector initialization"
+            );
+            return;
+        };
+
+        info!(
+            "[Extension Dylint] Initializing detectors from: {:?}",
+            extension_path
+        );
+
+        // Create or get the manager
+        let mut manager = match self.dylint_manager.lock().await.take() {
+            Some(m) => m,
+            None => match DylintDetectorManager::new() {
+                Ok(m) => m,
+                Err(e) => {
+                    warn!("[Extension Dylint] Failed to create manager: {}", e);
+                    return;
+                }
+            },
+        };
+
+        manager.set_extension_path(extension_path);
+
+        // Initialize (will check cache and compile if needed)
+        match manager.initialize().await {
+            Ok(compiled_paths) => {
+                if !compiled_paths.is_empty() {
+                    info!(
+                        "[Extension Dylint] Successfully initialized {} detector(s)",
+                        compiled_paths.len()
+                    );
+
+                    // Add compiled detectors to dylint_runner
+                    if let Some(dylint_runner) = &self.dylint_runner {
+                        dylint_runner.add_workspace_detectors(compiled_paths);
+                        info!("[Extension Dylint] Detectors added to dylint runner");
+                    } else {
+                        warn!(
+                            "[Extension Dylint] Dylint runner not available, cannot add detectors"
+                        );
                     }
-                    Err(e) => {
-                        warn!("Failed to initialize workspace dylint detectors: {}", e);
-                    }
+                } else {
+                    info!("[Extension Dylint] No detectors found in extension");
                 }
             }
             Err(e) => {
-                warn!("Failed to create dylint detector manager: {}", e);
+                warn!("[Extension Dylint] Failed to initialize detectors: {}", e);
             }
         }
+
+        // Store manager back
+        *self.dylint_manager.lock().await = Some(manager);
     }
 
     fn try_init_dylint_runner() -> Option<Arc<DylintRunner>> {

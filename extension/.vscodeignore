@@ -51,3 +51,7 @@ Thumbs.db
 desktop.ini
 *.zip
 *.vsix
+
+# Dylint detectors - exclude build artifacts but include source
+detectors/**/target/**
+detectors/**/Cargo.lock

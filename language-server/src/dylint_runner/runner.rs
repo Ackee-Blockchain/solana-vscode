@@ -144,6 +144,15 @@ impl DylintRunner {
 
         // Extract lint names from loaded libraries
         let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        // Debug: log cargo output
+        debug!("[Dylint] Cargo stdout length: {} bytes", stdout.len());
+        debug!("[Dylint] Cargo stderr length: {} bytes", stderr.len());
+        if !stderr.is_empty() {
+            debug!("[Dylint] Cargo stderr: {}", stderr.lines().take(10).collect::<Vec<_>>().join("\n"));
+        }
+
         let lint_codes: Vec<String> = lint_libs
             .iter()
             .filter_map(|path| {
@@ -155,7 +164,9 @@ impl DylintRunner {
             .collect();
 
         // Parse JSON output
+        debug!("[Dylint] Parsing output for lint codes: {:?}", lint_codes);
         let diagnostics = parse_json_output(&stdout, &lint_codes)?;
+        debug!("[Dylint] Parsed {} diagnostic(s)", diagnostics.len());
 
         // Update cache
         {

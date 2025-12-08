@@ -41,7 +41,7 @@ impl DylintDiagnostic {
             code: Some(tower_lsp::lsp_types::NumberOrString::String(
                 self.code.clone(),
             )),
-            source: Some("dylint".to_string()),
+            source: Some("solana".to_string()),
             message: self.message.clone(),
             ..Default::default()
         }

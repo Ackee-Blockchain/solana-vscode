@@ -1,3 +1,4 @@
+use crate::core::dylint::constants::REQUIRED_NIGHTLY_VERSION;
 use crate::core::dylint::scanner::DylintDetectorInfo;
 use anyhow::{Context, Result};
 use log::{debug, info};
@@ -56,42 +57,85 @@ impl DylintDetectorCache {
         detector: &DylintDetectorInfo,
         nightly_version: &str,
     ) -> Option<PathBuf> {
+        // Try new format first (with nightly version in filename)
+        let extension = if cfg!(target_os = "macos") {
+            "dylib"
+        } else if cfg!(target_os = "windows") {
+            "dll"
+        } else {
+            "so"
+        };
+        
+        // Always use the extension's required nightly version
+        let platform = std::env::consts::ARCH;
+        let os = match std::env::consts::OS {
+            "macos" => "apple-darwin",
+            "linux" => "unknown-linux-gnu",
+            "windows" => "pc-windows-msvc",
+            _ => "unknown",
+        };
+        
+        let filename = format!(
+            "lib{}@{}-{}-{}.{}",
+            detector.crate_name.replace("-", "_"),
+            REQUIRED_NIGHTLY_VERSION,
+            platform,
+            os,
+            extension
+        );
+
+        let lib_path = self.cache_dir.join(&filename);
+        if lib_path.exists() {
+            debug!("Found cached library (new format): {:?}", lib_path);
+            return Some(lib_path);
+        }
+
+        // Fallback: try old hash-based format
         let cache_key = Self::get_cache_key(detector, nightly_version);
         let cached_path = self.cache_dir.join(&cache_key);
-
-        // Try different library extensions
-        let extensions = if cfg!(target_os = "macos") {
-            vec!["dylib"]
-        } else if cfg!(target_os = "windows") {
-            vec!["dll"]
-        } else {
-            vec!["so"]
-        };
-
-        for ext in extensions {
-            let lib_path = cached_path.with_extension(ext);
-            if lib_path.exists() {
-                debug!("Found cached library: {:?}", lib_path);
-                return Some(lib_path);
-            }
+        let lib_path = cached_path.with_extension(extension);
+        if lib_path.exists() {
+            debug!("Found cached library (old format): {:?}", lib_path);
+            return Some(lib_path);
         }
 
         None
     }
 
     /// Store a compiled library in the cache
+    /// The filename includes the detector name and nightly version for easy identification
     pub fn cache_library(
         &self,
         detector: &DylintDetectorInfo,
         nightly_version: &str,
         compiled_lib: &Path,
     ) -> Result<PathBuf> {
-        let cache_key = Self::get_cache_key(detector, nightly_version);
         let extension = compiled_lib
             .extension()
             .and_then(|e| e.to_str())
             .unwrap_or("so");
-        let cached_path = self.cache_dir.join(cache_key).with_extension(extension);
+        
+        // Always use the extension's required nightly version
+        // Create filename: lib<detector_name>@<nightly_version>-<platform>.<ext>
+        // This format matches the pre-compiled lints and allows dylint runner to detect toolchain
+        let platform = std::env::consts::ARCH;
+        let os = match std::env::consts::OS {
+            "macos" => "apple-darwin",
+            "linux" => "unknown-linux-gnu",
+            "windows" => "pc-windows-msvc",
+            _ => "unknown",
+        };
+        
+        let filename = format!(
+            "lib{}@{}-{}-{}.{}",
+            detector.crate_name.replace("-", "_"),
+            REQUIRED_NIGHTLY_VERSION,
+            platform,
+            os,
+            extension
+        );
+
+        let cached_path = self.cache_dir.join(filename);
 
         // Copy the compiled library to cache
         fs::copy(compiled_lib, &cached_path).context("Failed to copy library to cache")?;

@@ -1,3 +1,4 @@
+use crate::core::dylint::constants::REQUIRED_NIGHTLY_VERSION;
 use crate::core::{
     DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, DylintDetectorManager, FileScanner,
     ImmutableAccountMutatedDetector, InstructionAttributeInvalidDetector,
@@ -420,12 +421,20 @@ impl Backend {
 
         info!("[Extension Dylint] Initializing detectors on first save...");
 
-        // Check if nightly is available
+        // Check if the required nightly version is available
         if !DylintDetectorManager::check_nightly_available() {
             warn!(
-                "[Extension Dylint] Nightly Rust not available, skipping detector initialization"
+                "[Extension Dylint] Required nightly Rust version not available: {}",
+                REQUIRED_NIGHTLY_VERSION
             );
-            warn!("[Extension Dylint] Install nightly with: rustup toolchain install nightly");
+            warn!(
+                "[Extension Dylint] Install with: rustup toolchain install {}",
+                REQUIRED_NIGHTLY_VERSION
+            );
+            warn!(
+                "[Extension Dylint] Then install dylint-driver: cargo +{} dylint --list",
+                REQUIRED_NIGHTLY_VERSION
+            );
             return;
         }
 
@@ -502,14 +511,14 @@ impl Backend {
 
         match DylintRunner::new(extension_path) {
             Ok(runner) => {
+                // Runner can start empty and have detectors added later
+                info!("Dylint runner initialized successfully");
                 if runner.is_available() {
-                    info!("Dylint runner initialized successfully");
-                    info!("Loaded lints: {:?}", runner.loaded_lints());
-                    Some(Arc::new(runner))
+                    info!("Pre-compiled lints loaded: {:?}", runner.loaded_lints());
                 } else {
-                    warn!("Dylint runner initialized but no lints found");
-                    None
+                    info!("No pre-compiled lints found, but runner ready for extension detectors");
                 }
+                Some(Arc::new(runner))
             }
             Err(e) => {
                 warn!(

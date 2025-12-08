@@ -28,7 +28,8 @@ impl DylintRunner {
         info!("Dylint runner now has {} total lint(s)", libs.len());
     }
 
-    /// Initialize the runner with pre-compiled lints
+    /// Initialize the runner with pre-compiled lints (if available)
+    /// Can start empty and have detectors added later via add_workspace_detectors
     pub fn new(extension_path: &Path) -> Result<Self> {
         // 1. Detect platform
         let platform = Self::detect_platform()?;
@@ -36,30 +37,37 @@ impl DylintRunner {
         // 2. Find pre-compiled lints directory
         let lint_libs_dir = extension_path.join("lints_compiled").join(platform);
 
-        if !lint_libs_dir.exists() {
-            anyhow::bail!(
-                "Lint libraries directory not found: {}. \
-                Platform '{}' may not be supported.",
-                lint_libs_dir.display(),
-                platform
-            );
-        }
-
-        // 3. Discover all .dylib/.so files in the directory
-        let lint_libs = Self::discover_lint_libs(&lint_libs_dir)?;
-
-        if lint_libs.is_empty() {
-            warn!(
-                "No lint libraries found in {}. Dylint integration will be disabled.",
-                lint_libs_dir.display()
-            );
+        // 3. Discover all .dylib/.so files in the directory (if it exists)
+        let lint_libs = if lint_libs_dir.exists() {
+            match Self::discover_lint_libs(&lint_libs_dir) {
+                Ok(libs) => {
+                    if libs.is_empty() {
+                        info!(
+                            "No pre-compiled lints found in {}. Runner will start empty.",
+                            lint_libs_dir.display()
+                        );
+                        Vec::new()
+                    } else {
+                        info!(
+                            "Dylint runner initialized with {} pre-compiled lints from {}",
+                            libs.len(),
+                            lint_libs_dir.display()
+                        );
+                        libs
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to discover pre-compiled lints: {}. Starting with empty runner.", e);
+                    Vec::new()
+                }
+            }
         } else {
             info!(
-                "Dylint runner initialized with {} lints from {}",
-                lint_libs.len(),
+                "Pre-compiled lints directory not found: {}. Runner will start empty and can have detectors added later.",
                 lint_libs_dir.display()
             );
-        }
+            Vec::new()
+        };
 
         Ok(Self {
             lint_libs_dir,
@@ -177,6 +185,14 @@ impl DylintRunner {
 
     /// Detect the Rust toolchain from the lint library filename
     fn detect_lint_toolchain(lints_dir: &Path) -> Result<String> {
+        use crate::core::dylint::constants::REQUIRED_NIGHTLY_VERSION;
+
+        // Simply return the required nightly version - all detectors use this version
+        info!("Using extension's required nightly version: {}", REQUIRED_NIGHTLY_VERSION);
+        return Ok(REQUIRED_NIGHTLY_VERSION.to_string());
+
+        // Old detection code kept as fallback (commented out)
+        /*
         // Extract toolchain from lint library filename
         // Format: libunchecked_math@nightly-2025-09-18-aarch64-apple-darwin.dylib
         if let Ok(entries) = std::fs::read_dir(lints_dir) {
@@ -200,6 +216,7 @@ impl DylintRunner {
                 }
             }
         }
+        */
 
         // Fallback: Look for rust-toolchain file
         let lints_parent = lints_dir
@@ -226,9 +243,10 @@ impl DylintRunner {
             }
         }
 
-        // Last resort fallback
-        warn!("Could not detect toolchain, falling back to 'nightly'. Install dylint-driver with: cargo +nightly-2025-09-18 dylint --list");
-        Ok("nightly".to_string())
+        // This code is now unreachable since we return early above
+        // But kept for safety
+        warn!("Could not detect toolchain, falling back to required nightly");
+        Ok(REQUIRED_NIGHTLY_VERSION.to_string())
     }
 
     /// Find dylint-driver executable

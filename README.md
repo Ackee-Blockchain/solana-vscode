@@ -102,7 +102,10 @@ The extension will automatically find coverage reports in `trident-tests` and vi
 ## Requirements
 
 - Visual Studio Code 1.96.0 or newer
-- Rust and Cargo (latest stable) for Solana program security scanning
+- Rust nightly toolchain (`nightly-2025-09-18`) for Solana program security scanning
+  - Install with: `rustup toolchain install nightly-2025-09-18`
+- dylint-driver for running security detectors
+  - Install with: `cargo install cargo-dylint dylint-link`
 - Trident tests in your workspace for code coverage features
 
 ## Getting Started

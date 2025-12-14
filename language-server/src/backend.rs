@@ -431,8 +431,15 @@ impl Backend {
                 "[Extension Dylint] Install with: rustup toolchain install {}",
                 REQUIRED_NIGHTLY_VERSION
             );
+            return;
+        }
+
+        // Check if dylint-driver is available
+        if !DylintDetectorManager::check_dylint_driver_available() {
+            warn!("[Extension Dylint] dylint-driver not found");
+            warn!("[Extension Dylint] Install with: cargo install cargo-dylint dylint-link");
             warn!(
-                "[Extension Dylint] Then install dylint-driver: cargo +{} dylint --list",
+                "[Extension Dylint] Then initialize: cargo +{} dylint --list",
                 REQUIRED_NIGHTLY_VERSION
             );
             return;

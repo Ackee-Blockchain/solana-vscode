@@ -40,6 +40,11 @@ impl DylintDetectorManager {
         DylintDetectorCompiler::is_nightly_available()
     }
 
+    /// Check if dylint-driver is available
+    pub fn check_dylint_driver_available() -> bool {
+        DylintDetectorCompiler::is_dylint_driver_available()
+    }
+
     /// Check if detectors have been initialized
     pub fn is_initialized(&self) -> bool {
         self.initialized

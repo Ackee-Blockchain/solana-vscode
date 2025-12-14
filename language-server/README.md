@@ -24,8 +24,13 @@ This language server provides automated security analysis for Solana smart contr
 
 ### Prerequisites
 
-- Rust toolchain (latest stable)
+- Rust nightly toolchain (`nightly-2025-09-18`)
+  - Install with: `rustup toolchain install nightly-2025-09-18`
+  - Required components: `llvm-tools-preview`, `rustc-dev`
 - Cargo package manager
+- dylint-driver for running security detectors
+  - Install with: `cargo install cargo-dylint dylint-link`
+  - Initialize with: `cargo +nightly-2025-09-18 dylint --list`
 
 ### Building
 

@@ -8,8 +8,20 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "🔨 Building all Dylint lints..."
+# Required nightly toolchain version
+REQUIRED_NIGHTLY="nightly-2025-09-18"
+
+echo "🔨 Building all Dylint lints with $REQUIRED_NIGHTLY..."
 echo ""
+
+# Check if required nightly is installed
+if ! rustup toolchain list | grep -q "$REQUIRED_NIGHTLY"; then
+    echo "⚠️  Required Rust toolchain not found: $REQUIRED_NIGHTLY"
+    echo "📦 Installing $REQUIRED_NIGHTLY..."
+    rustup toolchain install "$REQUIRED_NIGHTLY"
+    echo "✅ Toolchain installed"
+    echo ""
+fi
 
 # Detect platform
 OS=$(uname -s)
@@ -46,25 +58,31 @@ echo ""
 OUTPUT_DIR="$SCRIPT_DIR/lints_compiled/$PLATFORM"
 mkdir -p "$OUTPUT_DIR"
 
-# Find all lint directories
-LINT_DIRS=$(find "$SCRIPT_DIR/lints" -mindepth 1 -maxdepth 1 -type d)
+# Find all detector directories
+DETECTOR_DIRS=$(find "$SCRIPT_DIR/extension/detectors" -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true)
 
-# Build each lint
-for LINT_DIR in $LINT_DIRS; do
-    LINT_NAME=$(basename "$LINT_DIR")
-    echo "🔧 Building lint: $LINT_NAME"
+if [ -z "$DETECTOR_DIRS" ]; then
+    echo "⚠️  No detector directories found in extension/detectors"
+    exit 1
+fi
 
-    cd "$LINT_DIR"
+# Build each detector
+for DETECTOR_DIR in $DETECTOR_DIRS; do
+    DETECTOR_NAME=$(basename "$DETECTOR_DIR")
+    echo "🔧 Building detector: $DETECTOR_NAME"
+
+    cd "$DETECTOR_DIR"
 
     # Build in debug mode (faster for development)
     # Use --release for production builds
+    # The rust-toolchain file in each detector directory will be used automatically
     cargo build
 
     # Find the built library
-    LIB_FILE=$(find target/debug -name "lib${LINT_NAME}@*.$LIB_EXT" -o -name "lib${LINT_NAME}.$LIB_EXT" | head -n 1)
+    LIB_FILE=$(find target/debug -name "lib${DETECTOR_NAME}@*.$LIB_EXT" -o -name "lib${DETECTOR_NAME}.$LIB_EXT" | head -n 1)
 
     if [ -z "$LIB_FILE" ]; then
-        echo "⚠️  Warning: Could not find library for $LINT_NAME"
+        echo "⚠️  Warning: Could not find library for $DETECTOR_NAME"
         continue
     fi
 
@@ -77,9 +95,9 @@ done
 cd "$SCRIPT_DIR"
 
 echo ""
-echo "🎉 All lints built successfully!"
+echo "🎉 All detectors built successfully!"
 echo ""
-echo "📁 Compiled lints are in: $OUTPUT_DIR"
+echo "📁 Compiled detectors are in: $OUTPUT_DIR"
 ls -lh "$OUTPUT_DIR"
 echo ""
-echo "💡 To use these lints, make sure they are included in the extension package."
+echo "💡 To use these detectors, make sure they are included in the extension package."

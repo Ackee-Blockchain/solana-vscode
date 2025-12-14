@@ -215,6 +215,49 @@ impl DylintDetectorCompiler {
         let version = version.trim();
         Ok(version.to_string())
     }
+
+    /// Check if dylint-driver is installed for the required nightly version
+    pub fn is_dylint_driver_available() -> bool {
+        use log::{debug, warn};
+
+        debug!("[Dylint Driver Check] Checking for dylint-driver...");
+
+        let home = match dirs::home_dir() {
+            Some(h) => h,
+            None => {
+                warn!("[Dylint Driver Check] Could not determine home directory");
+                return false;
+            }
+        };
+
+        let arch = std::env::consts::ARCH;
+        let os = match std::env::consts::OS {
+            "macos" => "apple-darwin",
+            "linux" => "unknown-linux-gnu",
+            _ => "unknown",
+        };
+
+        let toolchain_target = format!("{}-{}-{}", REQUIRED_NIGHTLY_VERSION, arch, os);
+        let dylint_driver = home
+            .join(".dylint_drivers")
+            .join(&toolchain_target)
+            .join("dylint-driver");
+
+        let exists = dylint_driver.exists();
+        if exists {
+            debug!(
+                "[Dylint Driver Check] Found dylint-driver at: {}",
+                dylint_driver.display()
+            );
+        } else {
+            debug!(
+                "[Dylint Driver Check] dylint-driver not found at: {}",
+                dylint_driver.display()
+            );
+        }
+
+        exists
+    }
 }
 
 impl Default for DylintDetectorCompiler {

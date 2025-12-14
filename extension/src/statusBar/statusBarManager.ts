@@ -18,6 +18,7 @@ export class StatusBarManager implements vscode.Disposable {
     private currentState: StatusBarState = StatusBarState.Chill;
     private rustToolchainChecked: boolean = false;
     private isNightlyAvailable: boolean = false;
+    private isDylintDriverAvailable: boolean = false;
     private extensionVersion: string = 'unknown';
 
     constructor() {
@@ -37,12 +38,14 @@ export class StatusBarManager implements vscode.Disposable {
         this.updateStatus(StatusBarState.Running, 'Initializing...');
         this.statusBarItem.show();
 
-        // Check Rust toolchain on initialization (async, will update status when done)
+        // Check Rust toolchain and dylint-driver on initialization (async, will update status when done)
         this.checkRustToolchain().then(() => {
             // After toolchain check, if still in initial state, update to chill or warn
             if (this.currentState === StatusBarState.Running) {
                 if (!this.isNightlyAvailable) {
-                    this.updateStatus(StatusBarState.Warn, 'Nightly Rust version not used. Click to install nightly.');
+                    this.updateStatus(StatusBarState.Warn, 'Rust nightly-2025-09-18 not installed.');
+                } else if (!this.isDylintDriverAvailable) {
+                    this.updateStatus(StatusBarState.Warn, 'dylint-driver not installed.');
                 } else {
                     this.updateStatus(StatusBarState.Chill, 'Solana extension is ready');
                 }
@@ -67,7 +70,10 @@ export class StatusBarManager implements vscode.Disposable {
             case StatusBarState.Chill:
                 tooltip.appendMarkdown(message || 'Ready');
                 if (this.isNightlyAvailable) {
-                    tooltip.appendMarkdown('\n\n✅ Nightly Rust toolchain available');
+                    tooltip.appendMarkdown('\n\n✅ Rust nightly-2025-09-18 available');
+                }
+                if (this.isDylintDriverAvailable) {
+                    tooltip.appendMarkdown('\n\n✅ dylint-driver available');
                 }
                 tooltip.appendMarkdown('\n\n---\n\n');
                 tooltip.appendMarkdown('**Actions:**\n\n');
@@ -79,10 +85,26 @@ export class StatusBarManager implements vscode.Disposable {
                 break;
 
             case StatusBarState.Warn:
-                tooltip.appendMarkdown('⚠️ ' + (message || 'Nightly Rust version not used'));
+                tooltip.appendMarkdown('⚠️ ' + (message || 'Setup required'));
                 tooltip.appendMarkdown('\n\n---\n\n');
+                if (!this.isNightlyAvailable) {
+                    tooltip.appendMarkdown('❌ Rust nightly-2025-09-18 not installed\n\n');
+                } else {
+                    tooltip.appendMarkdown('✅ Rust nightly-2025-09-18 installed\n\n');
+                }
+                if (!this.isDylintDriverAvailable) {
+                    tooltip.appendMarkdown('❌ dylint-driver not installed\n\n');
+                } else {
+                    tooltip.appendMarkdown('✅ dylint-driver installed\n\n');
+                }
+                tooltip.appendMarkdown('---\n\n');
                 tooltip.appendMarkdown('**Actions:**\n\n');
-                tooltip.appendMarkdown(`⬇️ [Install Nightly Rust](command:solana.installNightly "Install nightly Rust toolchain")\n`);
+                if (!this.isNightlyAvailable) {
+                    tooltip.appendMarkdown(`⬇️ [Install nightly-2025-09-18](command:solana.installNightly "Install Rust nightly-2025-09-18 toolchain")\n`);
+                }
+                if (!this.isDylintDriverAvailable) {
+                    tooltip.appendMarkdown(`⬇️ [Install dylint-driver](command:solana.installDylintDriver "Install dylint-driver")\n`);
+                }
                 break;
 
             case StatusBarState.Error:
@@ -105,12 +127,12 @@ export class StatusBarManager implements vscode.Disposable {
         switch (state) {
             case StatusBarState.Chill:
                 // Check nightly status when transitioning to chill
-                // If nightly is not available, show warning instead
-                if (!this.isNightlyAvailable && this.rustToolchainChecked) {
+                // If required toolchain or dylint-driver is not available, show warning instead
+                if ((!this.isNightlyAvailable || !this.isDylintDriverAvailable) && this.rustToolchainChecked) {
                     this.statusBarItem.text = '$(warning) Solana';
                     this.statusBarItem.tooltip = this.createRichTooltip(StatusBarState.Warn, message);
                     this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.warningForeground');
-                    this.statusBarItem.command = 'solana.installNightly';
+                    this.statusBarItem.command = undefined; // Actions are in tooltip
                 } else {
                     this.statusBarItem.text = 'Solana';
                     this.statusBarItem.tooltip = this.createRichTooltip(StatusBarState.Chill, message);
@@ -145,68 +167,74 @@ export class StatusBarManager implements vscode.Disposable {
     }
 
     /**
-     * Check if nightly Rust toolchain is available/configured
+     * Check if nightly Rust toolchain and dylint-driver are available/configured
      */
     private async checkRustToolchain(): Promise<void> {
         if (this.rustToolchainChecked) {
             return;
         }
 
+        const REQUIRED_TOOLCHAIN = 'nightly-2025-09-18';
+
         try {
-            // First, check workspace toolchain files
-            const workspaceFolders = vscode.workspace.workspaceFolders;
-            if (workspaceFolders && workspaceFolders.length > 0) {
-                const workspaceRoot = workspaceFolders[0].uri.fsPath;
-
-                // Check for rust-toolchain.toml
-                const rustToolchainToml = path.join(workspaceRoot, 'rust-toolchain.toml');
-                if (fs.existsSync(rustToolchainToml)) {
-                    const content = fs.readFileSync(rustToolchainToml, 'utf-8');
-                    if (content.includes('channel = "nightly"') || content.includes('channel="nightly"')) {
-                        this.isNightlyAvailable = true;
-                        this.rustToolchainChecked = true;
-                        return;
-                    }
-                }
-
-                // Check for rust-toolchain file (without .toml extension)
-                const rustToolchain = path.join(workspaceRoot, 'rust-toolchain');
-                if (fs.existsSync(rustToolchain)) {
-                    const content = fs.readFileSync(rustToolchain, 'utf-8');
-                    if (content.includes('nightly')) {
-                        this.isNightlyAvailable = true;
-                        this.rustToolchainChecked = true;
-                        return;
-                    }
-                }
-            }
-
-            // Fallback: check if nightly is installed (regardless of whether it's active)
+            // Check if the specific required toolchain is installed
             try {
                 const { stdout } = await execAsync('rustup toolchain list');
-                // Check if any nightly toolchain is installed
-                // Format: "nightly-YYYY-MM-DD-x86_64-apple-darwin (default)" or "nightly-YYYY-MM-DD-x86_64-apple-darwin"
-                if (stdout.includes('nightly')) {
+                // Check if the specific nightly toolchain is installed
+                // Format: "nightly-2025-09-18-x86_64-apple-darwin (default)" or "nightly-2025-09-18-x86_64-apple-darwin"
+                if (stdout.includes(REQUIRED_TOOLCHAIN)) {
                     this.isNightlyAvailable = true;
-                    this.rustToolchainChecked = true;
-                    return;
                 }
             } catch {
                 // rustup might not be available
             }
 
-            // No nightly found
-            this.isNightlyAvailable = false;
+            // Check if dylint-driver is installed
+            await this.checkDylintDriver();
+
             this.rustToolchainChecked = true;
 
-            // Update status if we're in chill state and nightly is not available
+            // Update status if we're in chill state and something is not available
             // Only update to warn if we're currently in chill state (not running or error)
             if (this.currentState === StatusBarState.Chill) {
-                this.updateStatus(StatusBarState.Warn, 'Nightly Rust version not used. Click to install nightly.');
+                if (!this.isNightlyAvailable) {
+                    this.updateStatus(StatusBarState.Warn, `Rust ${REQUIRED_TOOLCHAIN} not installed.`);
+                } else if (!this.isDylintDriverAvailable) {
+                    this.updateStatus(StatusBarState.Warn, 'dylint-driver not installed.');
+                }
             }
         } catch (error) {
             console.error('Error checking Rust toolchain:', error);
             this.rustToolchainChecked = true;
+        }
+    }
+
+    /**
+     * Check if dylint-driver is installed
+     */
+    private async checkDylintDriver(): Promise<void> {
+        const REQUIRED_TOOLCHAIN = 'nightly-2025-09-18';
+        try {
+            // Get home directory
+            const homeDir = process.env.HOME || process.env.USERPROFILE;
+            if (!homeDir) {
+                this.isDylintDriverAvailable = false;
+                return;
+            }
+
+            // Determine platform-specific path
+            const arch = process.arch === 'x64' ? 'x86_64' : process.arch === 'arm64' ? 'aarch64' : process.arch;
+            const os = process.platform === 'darwin' ? 'apple-darwin' : 
+                      process.platform === 'linux' ? 'unknown-linux-gnu' : 'unknown';
+            
+            const toolchainTarget = `${REQUIRED_TOOLCHAIN}-${arch}-${os}`;
+            const dylintDriverPath = path.join(homeDir, '.dylint_drivers', toolchainTarget, 'dylint-driver');
+
+            // Check if dylint-driver exists
+            this.isDylintDriverAvailable = fs.existsSync(dylintDriverPath);
+        } catch (error) {
+            console.error('Error checking dylint-driver:', error);
+            this.isDylintDriverAvailable = false;
         }
     }
 
@@ -225,6 +253,13 @@ export class StatusBarManager implements vscode.Disposable {
     }
 
     /**
+     * Check if dylint-driver is available
+     */
+    isDylintDriverInstalled(): boolean {
+        return this.isDylintDriverAvailable;
+    }
+
+    /**
      * Re-check Rust toolchain (useful after installing nightly)
      */
     async recheckRustToolchain(): Promise<void> {
@@ -232,10 +267,14 @@ export class StatusBarManager implements vscode.Disposable {
         await this.checkRustToolchain();
 
         // Update status based on new toolchain check
-        if (this.currentState === StatusBarState.Warn && this.isNightlyAvailable) {
-            this.updateStatus(StatusBarState.Chill, 'Nightly Rust is now available');
-        } else if (this.currentState === StatusBarState.Chill && !this.isNightlyAvailable) {
-            this.updateStatus(StatusBarState.Warn, 'Nightly Rust version not used. Click to install nightly.');
+        if (this.currentState === StatusBarState.Warn && this.isNightlyAvailable && this.isDylintDriverAvailable) {
+            this.updateStatus(StatusBarState.Chill, 'All requirements installed');
+        } else if (this.currentState === StatusBarState.Chill && (!this.isNightlyAvailable || !this.isDylintDriverAvailable)) {
+            if (!this.isNightlyAvailable) {
+                this.updateStatus(StatusBarState.Warn, 'Rust nightly-2025-09-18 not installed.');
+            } else if (!this.isDylintDriverAvailable) {
+                this.updateStatus(StatusBarState.Warn, 'dylint-driver not installed.');
+            }
         }
     }
 

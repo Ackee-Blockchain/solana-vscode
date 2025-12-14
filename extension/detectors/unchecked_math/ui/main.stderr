@@ -1,0 +1,15 @@
+warning: unchecked subtraction operation detected
+  --> $DIR/main.rs:2:13
+   |
+LL |     let x = 1 + 2; // Should trigger warning
+   |             ^^^^^
+   |
+   = note: `#[warn(addition_detector)]` on by default
+
+warning: unchecked subtraction operation detected
+  --> $DIR/main.rs:3:13
+   |
+LL |     let y = x + 3; // Should NOT trigger warning
+   |             ^^^^^
+
+warning: 2 warnings emitted

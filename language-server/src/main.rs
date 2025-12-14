@@ -1,5 +1,6 @@
 mod backend;
 mod core;
+mod dylint_runner;
 mod server;
 
 use log::debug;

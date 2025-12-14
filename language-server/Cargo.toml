@@ -17,6 +17,9 @@ syn = { version = "2.0.101", features = [
     "parsing",
 ] }
 proc-macro2 = { version = "1.0.95", features = ["span-locations"] }
+anyhow = "1.0"
+dirs = "5.0"
+libloading = "0.8"
 
 [dev-dependencies]
 tokio-test = "0.4"

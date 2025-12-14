@@ -26,6 +26,11 @@ interface FileIssueInfo {
     is_test_file: boolean;
 }
 
+interface DetectorStatus {
+    status: string; // "initializing", "building", "running", "complete", "idle"
+    message: string;
+}
+
 export class DetectorsManager {
     private client?: LanguageClient;
     private outputChannel: OutputChannel;
@@ -160,7 +165,7 @@ export class DetectorsManager {
         // Otherwise the run options are used
 
         const serverOptions: ServerOptions = {
-            run: { command: serverPath, transport: TransportKind.stdio },
+            run: { command: serverPath, transport: TransportKind.stdio, options: { env: { RUST_LOG: 'info' } } },
             debug: { command: serverPath, transport: TransportKind.stdio, options: { env: { RUST_LOG: 'debug' } } }
         };
 
@@ -199,10 +204,11 @@ export class DetectorsManager {
         // Listen for scan complete notifications
         this.client.onNotification('solana/scanComplete', (scanSummary: ScanSummary) => {
             this.handleScanComplete(scanSummary);
-            // Update status bar after scan completes (unless it was an error)
-            if (this.statusBarUpdateCallback && this.client?.state === State.Running) {
-                this.statusBarUpdateCallback(StatusBarState.Chill, 'Scan completed');
-            }
+        });
+
+        // Listen for detector status notifications
+        this.client.onNotification('solana/detectorStatus', (detectorStatus: DetectorStatus) => {
+            this.handleDetectorStatus(detectorStatus);
         });
     }
 
@@ -244,6 +250,30 @@ export class DetectorsManager {
                 );
             }
         }
+    }
+
+    private handleDetectorStatus(detectorStatus: DetectorStatus) {
+        console.log('Received detector status notification:', detectorStatus);
+
+        // Update status bar based on detector status
+        if (this.statusBarUpdateCallback) {
+            switch (detectorStatus.status) {
+                case 'initializing':
+                case 'building':
+                case 'running':
+                    this.statusBarUpdateCallback(StatusBarState.Running, detectorStatus.message);
+                    break;
+                case 'complete':
+                case 'idle':
+                    this.statusBarUpdateCallback(StatusBarState.Chill, detectorStatus.message);
+                    break;
+                default:
+                    this.outputChannel.appendLine(`Unknown detector status: ${detectorStatus.status}`);
+            }
+        }
+
+        // Log to output channel
+        this.outputChannel.appendLine(`Detector Status: ${detectorStatus.message}`);
     }
 
     dispose() {

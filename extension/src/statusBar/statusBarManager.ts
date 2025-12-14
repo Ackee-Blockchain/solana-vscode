@@ -224,9 +224,9 @@ export class StatusBarManager implements vscode.Disposable {
 
             // Determine platform-specific path
             const arch = process.arch === 'x64' ? 'x86_64' : process.arch === 'arm64' ? 'aarch64' : process.arch;
-            const os = process.platform === 'darwin' ? 'apple-darwin' : 
+            const os = process.platform === 'darwin' ? 'apple-darwin' :
                       process.platform === 'linux' ? 'unknown-linux-gnu' : 'unknown';
-            
+
             const toolchainTarget = `${REQUIRED_TOOLCHAIN}-${arch}-${os}`;
             const dylintDriverPath = path.join(homeDir, '.dylint_drivers', toolchainTarget, 'dylint-driver');
 

@@ -1,6 +1,7 @@
 use crate::core::dylint::constants::REQUIRED_NIGHTLY_VERSION;
 use crate::core::{
-    DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, DylintDetectorManager, FileScanner,
+    DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, DetectorStatus,
+    DetectorStatusNotification, DylintDetectorManager, FileScanner,
     ImmutableAccountMutatedDetector, InstructionAttributeInvalidDetector,
     InstructionAttributeUnusedDetector, ManualLamportsZeroingDetector, MissingCheckCommentDetector,
     MissingInitspaceDetector, MissingSignerDetector, ScanCompleteNotification, ScanResult,
@@ -46,16 +47,15 @@ impl LanguageServer for Backend {
             // Store workspace root for dylint
             *self.workspace_root.lock().await = Some(path.clone());
 
-            // Note: Dylint detectors are initialized lazily on first save
-            // This allows checking nightly availability and compiling only when needed
-
             let mut scanner = self.file_scanner.lock().await;
-            scanner.set_workspace_root(path);
+            scanner.set_workspace_root(path.clone());
 
             // Perform initial workspace scan
             info!("Performing initial workspace scan...");
             let mut registry = self.detector_registry.lock().await;
             let scan_result = scanner.scan_workspace(&mut registry).await;
+            drop(registry); // Release registry lock before initializing dylint
+            drop(scanner); // Release scanner lock
 
             // Log scan results
             info!("Initial scan completed:");
@@ -95,22 +95,124 @@ impl LanguageServer for Backend {
             self.client
                 .send_notification::<ScanCompleteNotification>(scan_summary)
                 .await;
+
+            // Initialize dylint detectors on project open
+            info!("[Extension Dylint] Initializing detectors on project open...");
+
+            // Notify extension that detectors are initializing
+            self.client
+                .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                    status: "initializing".to_string(),
+                    message: "Initializing security detectors...".to_string(),
+                })
+                .await;
+
+            Self::ensure_dylint_detectors_initialized(self).await;
+
+            // Run dylint in background and merge with syn diagnostics
+            if let Some(dylint_runner) = &self.dylint_runner {
+                let runner = Arc::clone(dylint_runner);
+                let workspace = path.clone();
+                let client = self.client.clone();
+                let file_list: Vec<(std::path::PathBuf, Vec<tower_lsp::lsp_types::Diagnostic>)> =
+                    scan_result
+                        .rust_files
+                        .iter()
+                        .map(|f| (f.path.clone(), f.diagnostics.clone()))
+                        .collect();
+
+                tokio::spawn(async move {
+                    info!("Running dylint on project open...");
+
+                    // Notify that detectors are running
+                    client
+                        .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                            status: "running".to_string(),
+                            message: "Running security detectors...".to_string(),
+                        })
+                        .await;
+
+                    match runner.run_lints(&workspace).await {
+                        Ok(dylint_diagnostics) => {
+                            info!(
+                                "Dylint found {} total issues on project open",
+                                dylint_diagnostics.len()
+                            );
+
+                            // Merge dylint diagnostics with syn diagnostics for each file
+                            for (file_path, syn_diagnostics) in file_list {
+                                if let Ok(uri) =
+                                    tower_lsp::lsp_types::Url::from_file_path(&file_path)
+                                {
+                                    // Filter dylint diagnostics for this file
+                                    let dylint_file_diagnostics: Vec<_> = dylint_diagnostics
+                                        .iter()
+                                        .filter(|d| {
+                                            let path_str = file_path.to_string_lossy();
+                                            path_str.ends_with(&d.file_name)
+                                                || path_str.contains(&d.file_name)
+                                        })
+                                        .map(|d| d.to_lsp_diagnostic())
+                                        .collect();
+
+                                    if !dylint_file_diagnostics.is_empty() {
+                                        // Merge syn and dylint diagnostics
+                                        let mut merged_diagnostics = syn_diagnostics.clone();
+                                        merged_diagnostics.extend(dylint_file_diagnostics.clone());
+
+                                        info!(
+                                            "Publishing {} total diagnostics ({} syn + {} dylint) for {}",
+                                            merged_diagnostics.len(),
+                                            syn_diagnostics.len(),
+                                            dylint_file_diagnostics.len(),
+                                            file_path.display()
+                                        );
+
+                                        // Publish merged diagnostics
+                                        client
+                                            .publish_diagnostics(uri, merged_diagnostics, None)
+                                            .await;
+                                    }
+                                }
+                            }
+
+                            // Notify complete
+                            client
+                                .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                                    status: "complete".to_string(),
+                                    message: "Security scan complete".to_string(),
+                                })
+                                .await;
+                        }
+                        Err(e) => {
+                            info!("Dylint failed on project open: {}", e);
+
+                            // Notify complete even on error
+                            client
+                                .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                                    status: "complete".to_string(),
+                                    message: "Security scan complete".to_string(),
+                                })
+                                .await;
+                        }
+                    }
+                });
+            }
         } else if let Some(root_uri) = params.root_uri
             && let Ok(path) = root_uri.to_file_path()
         {
             // Store workspace root for dylint
             *self.workspace_root.lock().await = Some(path.clone());
 
-            // Note: Dylint detectors are initialized lazily on first save
-            // This allows checking nightly availability and compiling only when needed
-
             let mut scanner = self.file_scanner.lock().await;
-            scanner.set_workspace_root(path);
+            scanner.set_workspace_root(path.clone());
 
             // Perform initial workspace scan
             info!("Performing initial workspace scan...");
             let mut registry = self.detector_registry.lock().await;
             let scan_result = scanner.scan_workspace(&mut registry).await;
+            drop(registry); // Release registry lock before initializing dylint
+            drop(scanner); // Release scanner lock
 
             // Log scan results
             info!("Initial scan completed:");
@@ -150,6 +252,109 @@ impl LanguageServer for Backend {
             self.client
                 .send_notification::<ScanCompleteNotification>(scan_summary)
                 .await;
+
+            // Initialize dylint detectors on project open
+            info!("[Extension Dylint] Initializing detectors on project open...");
+
+            // Notify extension that detectors are initializing
+            self.client
+                .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                    status: "initializing".to_string(),
+                    message: "Initializing security detectors...".to_string(),
+                })
+                .await;
+
+            Self::ensure_dylint_detectors_initialized(self).await;
+
+            // Run dylint in background and merge with syn diagnostics
+            if let Some(dylint_runner) = &self.dylint_runner {
+                let runner = Arc::clone(dylint_runner);
+                let workspace = path.clone();
+                let client = self.client.clone();
+                let file_list: Vec<(std::path::PathBuf, Vec<tower_lsp::lsp_types::Diagnostic>)> =
+                    scan_result
+                        .rust_files
+                        .iter()
+                        .map(|f| (f.path.clone(), f.diagnostics.clone()))
+                        .collect();
+
+                tokio::spawn(async move {
+                    info!("Running dylint on project open...");
+
+                    // Notify that detectors are running
+                    client
+                        .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                            status: "running".to_string(),
+                            message: "Running security detectors...".to_string(),
+                        })
+                        .await;
+
+                    match runner.run_lints(&workspace).await {
+                        Ok(dylint_diagnostics) => {
+                            info!(
+                                "Dylint found {} total issues on project open",
+                                dylint_diagnostics.len()
+                            );
+
+                            // Merge dylint diagnostics with syn diagnostics for each file
+                            for (file_path, syn_diagnostics) in file_list {
+                                if let Ok(uri) =
+                                    tower_lsp::lsp_types::Url::from_file_path(&file_path)
+                                {
+                                    // Filter dylint diagnostics for this file
+                                    let dylint_file_diagnostics: Vec<_> = dylint_diagnostics
+                                        .iter()
+                                        .filter(|d| {
+                                            let path_str = file_path.to_string_lossy();
+                                            path_str.ends_with(&d.file_name)
+                                                || path_str.contains(&d.file_name)
+                                        })
+                                        .map(|d| d.to_lsp_diagnostic())
+                                        .collect();
+
+                                    if !dylint_file_diagnostics.is_empty() {
+                                        // Merge syn and dylint diagnostics
+                                        let mut merged_diagnostics = syn_diagnostics.clone();
+                                        merged_diagnostics.extend(dylint_file_diagnostics.clone());
+
+                                        info!(
+                                            "Publishing {} total diagnostics ({} syn + {} dylint) for {}",
+                                            merged_diagnostics.len(),
+                                            syn_diagnostics.len(),
+                                            dylint_file_diagnostics.len(),
+                                            file_path.display()
+                                        );
+
+                                        // Publish merged diagnostics
+                                        client
+                                            .publish_diagnostics(uri, merged_diagnostics, None)
+                                            .await;
+                                    }
+                                }
+                            }
+
+                            // Notify complete
+                            client
+                                .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                                    status: "complete".to_string(),
+                                    message: "Security scan complete".to_string(),
+                                })
+                                .await;
+                        }
+                        Err(e) => {
+                            info!("Dylint failed on project open: {}", e);
+
+                            // Notify complete even on error
+                            client
+                                .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                                    status: "complete".to_string(),
+                                    message: "Security scan complete".to_string(),
+                                })
+                                .await;
+                        }
+                    }
+                });
+            }
         }
 
         let result = InitializeResult {
@@ -228,6 +433,15 @@ impl LanguageServer for Backend {
 
         // Initialize dylint detectors on first save (lazy initialization)
         // This checks if nightly is available and compiles/caches detectors
+
+        // Notify extension that detectors are running
+        self.client
+            .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                status: "running".to_string(),
+                message: "Running security detectors...".to_string(),
+            })
+            .await;
+
         Self::ensure_dylint_detectors_initialized(self).await;
 
         // Run dylint in background and merge with syn diagnostics
@@ -289,9 +503,25 @@ impl LanguageServer for Backend {
                                     }
                                 }
                             }
+
+                            // Notify complete
+                            client
+                                .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                                    status: "complete".to_string(),
+                                    message: "Security scan complete".to_string(),
+                                })
+                                .await;
                         }
                         Err(e) => {
                             info!("Dylint failed after save: {}", e);
+
+                            // Notify complete even on error
+                            client
+                                .send_notification::<DetectorStatusNotification>(DetectorStatus {
+                                    status: "complete".to_string(),
+                                    message: "Security scan complete".to_string(),
+                                })
+                                .await;
                         }
                     }
                 });

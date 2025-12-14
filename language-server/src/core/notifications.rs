@@ -30,6 +30,15 @@ impl tower_lsp::lsp_types::notification::Notification for FileAnalysisNotificati
     const METHOD: &'static str = "solana/fileAnalysis";
 }
 
+/// Custom notification for detector status updates
+#[derive(Debug)]
+pub enum DetectorStatusNotification {}
+
+impl tower_lsp::lsp_types::notification::Notification for DetectorStatusNotification {
+    type Params = DetectorStatus;
+    const METHOD: &'static str = "solana/detectorStatus";
+}
+
 /// Summary of scan results to send to the extension
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanSummary {
@@ -95,4 +104,11 @@ pub struct FileAnalysisResult {
     pub is_anchor_program: bool,
     pub is_test_file: bool,
     pub analysis_time_ms: u64,
+}
+
+/// Status of detector operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DetectorStatus {
+    pub status: String, // "initializing", "building", "running", "complete", "idle"
+    pub message: String,
 }

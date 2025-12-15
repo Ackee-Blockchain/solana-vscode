@@ -112,7 +112,7 @@ fn parse_diagnostic(message: &Value) -> Result<DylintDiagnostic> {
         .and_then(|c| c.get("code"))
         .and_then(|c| c.as_str())
         .context("No code")?
-        .to_string();
+        .to_uppercase(); // Display detector names in uppercase
 
     let level = message
         .get("level")

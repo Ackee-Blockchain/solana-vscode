@@ -59,9 +59,9 @@ impl LanguageServer for Backend {
 
             // Log scan results
             info!("Initial scan completed:");
-            info!("  - {} Rust files found", scan_result.rust_files.len());
+            info!("  - {} Rust files scanned", scan_result.rust_files.len());
             info!(
-                "  - {} Anchor programs found",
+                "  - {} Anchor programs detected",
                 scan_result.anchor_program_files().len()
             );
             info!(
@@ -71,14 +71,6 @@ impl LanguageServer for Backend {
             info!(
                 "  - {} total security issues found",
                 scan_result.total_issues()
-            );
-            info!(
-                "  - {} Anchor.toml files found",
-                scan_result.anchor_configs.len()
-            );
-            info!(
-                "  - {} Cargo.toml files found",
-                scan_result.cargo_files.len()
             );
 
             // Publish diagnostics for ALL scanned files (including empty diagnostics for fixed files)
@@ -216,9 +208,9 @@ impl LanguageServer for Backend {
 
             // Log scan results
             info!("Initial scan completed:");
-            info!("  - {} Rust files found", scan_result.rust_files.len());
+            info!("  - {} Rust files scanned", scan_result.rust_files.len());
             info!(
-                "  - {} Anchor programs found",
+                "  - {} Anchor programs detected",
                 scan_result.anchor_program_files().len()
             );
             info!(
@@ -228,14 +220,6 @@ impl LanguageServer for Backend {
             info!(
                 "  - {} total security issues found",
                 scan_result.total_issues()
-            );
-            info!(
-                "  - {} Anchor.toml files found",
-                scan_result.anchor_configs.len()
-            );
-            info!(
-                "  - {} Cargo.toml files found",
-                scan_result.cargo_files.len()
             );
 
             // Publish diagnostics for ALL scanned files (including empty diagnostics for fixed files)

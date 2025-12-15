@@ -8,13 +8,12 @@ import { SOLANA_OUTPUT_CHANNEL } from '../output';
 import { StatusBarState } from '../statusBar/statusBarManager';
 
 // Interface for scan summary data from language server
+// Only Rust files are scanned for security issues
 interface ScanSummary {
     total_rust_files: number;
     anchor_program_files: number;
     files_with_issues: number;
     total_issues: number;
-    anchor_configs: number;
-    cargo_files: number;
     issues_by_file: FileIssueInfo[];
     is_manual_scan: boolean;
 }
@@ -23,7 +22,6 @@ interface FileIssueInfo {
     path: string;
     issue_count: number;
     is_anchor_program: boolean;
-    is_test_file: boolean;
 }
 
 interface DetectorStatus {
@@ -217,19 +215,16 @@ export class DetectorsManager {
 
         // Log scan results to output channel
         this.outputChannel.appendLine('=== Workspace Scan Complete ===');
-        this.outputChannel.appendLine(`Total Rust files: ${scanSummary.total_rust_files}`);
-        this.outputChannel.appendLine(`Anchor programs: ${scanSummary.anchor_program_files}`);
-        this.outputChannel.appendLine(`Files with issues: ${scanSummary.files_with_issues}`);
-        this.outputChannel.appendLine(`Total security issues: ${scanSummary.total_issues}`);
-        this.outputChannel.appendLine(`Anchor.toml files: ${scanSummary.anchor_configs}`);
-        this.outputChannel.appendLine(`Cargo.toml files: ${scanSummary.cargo_files}`);
+        this.outputChannel.appendLine(`Rust files scanned: ${scanSummary.total_rust_files}`);
+        this.outputChannel.appendLine(`Anchor programs detected: ${scanSummary.anchor_program_files}`);
+        this.outputChannel.appendLine(`Files with security issues: ${scanSummary.files_with_issues}`);
+        this.outputChannel.appendLine(`Total security issues found: ${scanSummary.total_issues}`);
 
         if (scanSummary.issues_by_file.length > 0) {
             this.outputChannel.appendLine('\n=== Files with Security Issues ===');
             scanSummary.issues_by_file.forEach(file => {
                 const fileType = file.is_anchor_program ? '[Anchor]' : '[Rust]';
-                const testFlag = file.is_test_file ? '[Test]' : '';
-                this.outputChannel.appendLine(`${fileType}${testFlag} ${file.path}: ${file.issue_count} issues`);
+                this.outputChannel.appendLine(`${fileType} ${file.path}: ${file.issue_count} issues`);
             });
         }
 

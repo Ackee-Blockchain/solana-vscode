@@ -2,11 +2,10 @@ use std::path::PathBuf;
 use tower_lsp::lsp_types::Diagnostic;
 
 /// Result of workspace scanning
+/// Only Rust (.rs) files are scanned for security issues
 #[derive(Debug, Default)]
 pub struct ScanResult {
     pub rust_files: Vec<RustFileInfo>,
-    pub anchor_configs: Vec<AnchorConfigInfo>,
-    pub cargo_files: Vec<CargoFileInfo>,
 }
 
 impl ScanResult {
@@ -33,27 +32,10 @@ impl ScanResult {
 }
 
 /// Information about a scanned Rust file
+/// Test files are excluded from scanning
 #[derive(Debug)]
 pub struct RustFileInfo {
     pub path: PathBuf,
     pub diagnostics: Vec<Diagnostic>,
     pub is_anchor_program: bool,
-    pub is_test_file: bool,
-}
-
-/// Information about an Anchor configuration file
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct AnchorConfigInfo {
-    pub path: PathBuf,
-    pub content: String,
-}
-
-/// Information about a Cargo.toml file
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct CargoFileInfo {
-    pub path: PathBuf,
-    pub content: String,
-    pub is_workspace: bool,
 }

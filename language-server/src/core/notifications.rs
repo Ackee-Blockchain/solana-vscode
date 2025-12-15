@@ -40,14 +40,13 @@ impl tower_lsp::lsp_types::notification::Notification for DetectorStatusNotifica
 }
 
 /// Summary of scan results to send to the extension
+/// Only Rust files are scanned for security issues
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanSummary {
     pub total_rust_files: usize,
     pub anchor_program_files: usize,
     pub files_with_issues: usize,
     pub total_issues: usize,
-    pub anchor_configs: usize,
-    pub cargo_files: usize,
     pub issues_by_file: Vec<FileIssueInfo>,
     pub is_manual_scan: bool,
 }
@@ -61,7 +60,6 @@ impl ScanSummary {
                 path: file_info.path.to_string_lossy().to_string(),
                 issue_count: file_info.diagnostics.len(),
                 is_anchor_program: file_info.is_anchor_program,
-                is_test_file: file_info.is_test_file,
             })
             .collect();
 
@@ -70,8 +68,6 @@ impl ScanSummary {
             anchor_program_files: scan_result.anchor_program_files().len(),
             files_with_issues: scan_result.files_with_issues().len(),
             total_issues: scan_result.total_issues(),
-            anchor_configs: scan_result.anchor_configs.len(),
-            cargo_files: scan_result.cargo_files.len(),
             issues_by_file,
             is_manual_scan,
         }
@@ -79,12 +75,12 @@ impl ScanSummary {
 }
 
 /// Information about a file with security issues
+/// Test files are excluded from scanning
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileIssueInfo {
     pub path: String,
     pub issue_count: usize,
     pub is_anchor_program: bool,
-    pub is_test_file: bool,
 }
 
 /// Progress information for ongoing scans

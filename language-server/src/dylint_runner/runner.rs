@@ -129,6 +129,7 @@ impl DylintRunner {
         debug!("DYLINT_LIBS: {}", dylint_libs_json);
 
         // Run cargo check with dylint
+        // --workspace flag ensures we only check workspace members, not external dependencies
         let output = tokio::process::Command::new("cargo")
             .arg(format!("+{}", toolchain))
             .args(&["check", "--workspace", "--message-format=json"])

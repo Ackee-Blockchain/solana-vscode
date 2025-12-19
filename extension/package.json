@@ -2,7 +2,7 @@
   "name": "solana",
   "displayName": "Solana",
   "description": "VS Code extension for Solana",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "AckeeBlockchain",
   "repository": "https://github.com/Ackee-Blockchain/solana-vscode",
   "readme": "../README.md",

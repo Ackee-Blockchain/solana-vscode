@@ -2,10 +2,9 @@ use crate::core::dylint::constants::REQUIRED_NIGHTLY_VERSION;
 use crate::core::{
     DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, DetectorStatus,
     DetectorStatusNotification, DylintDetectorManager, FileScanner,
-    ImmutableAccountMutatedDetector, InstructionAttributeInvalidDetector,
-    InstructionAttributeUnusedDetector, ManualLamportsZeroingDetector, MissingCheckCommentDetector,
-    MissingInitspaceDetector, ScanCompleteNotification, ScanResult, ScanSummary,
-    SysvarAccountDetector,
+    InstructionAttributeInvalidDetector, InstructionAttributeUnusedDetector,
+    ManualLamportsZeroingDetector, MissingCheckCommentDetector, MissingInitspaceDetector,
+    ScanCompleteNotification, ScanResult, ScanSummary, SysvarAccountDetector,
 };
 use crate::dylint_runner::DylintRunner;
 use log::{info, warn};
@@ -896,7 +895,6 @@ fn create_default_registry() -> DetectorRegistry {
     let registry = DetectorRegistryBuilder::new()
         .with_detector(ManualLamportsZeroingDetector::default())
         .with_detector(SysvarAccountDetector::default())
-        .with_detector(ImmutableAccountMutatedDetector::default())
         .with_detector(MissingInitspaceDetector::default())
         .with_detector(InstructionAttributeUnusedDetector::default())
         .with_detector(InstructionAttributeInvalidDetector::default())

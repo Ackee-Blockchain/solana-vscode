@@ -4,8 +4,8 @@ use crate::core::{
     DetectorStatusNotification, DylintDetectorManager, FileScanner,
     ImmutableAccountMutatedDetector, InstructionAttributeInvalidDetector,
     InstructionAttributeUnusedDetector, ManualLamportsZeroingDetector, MissingCheckCommentDetector,
-    MissingInitspaceDetector, MissingSignerDetector, ScanCompleteNotification, ScanResult,
-    ScanSummary, SysvarAccountDetector,
+    MissingInitspaceDetector, ScanCompleteNotification, ScanResult, ScanSummary,
+    SysvarAccountDetector,
 };
 use crate::dylint_runner::DylintRunner;
 use log::{info, warn};
@@ -894,8 +894,6 @@ pub struct DetectorStats {
 fn create_default_registry() -> DetectorRegistry {
     info!("Creating new detector registry with all detectors");
     let registry = DetectorRegistryBuilder::new()
-        // .with_detector(UnsafeMathDetector::default())
-        .with_detector(MissingSignerDetector::default()) // Ensure MissingSignerDetector is included
         .with_detector(ManualLamportsZeroingDetector::default())
         .with_detector(SysvarAccountDetector::default())
         .with_detector(ImmutableAccountMutatedDetector::default())

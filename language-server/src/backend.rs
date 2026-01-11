@@ -894,7 +894,6 @@ pub struct DetectorStats {
 fn create_default_registry() -> DetectorRegistry {
     info!("Creating new detector registry with all detectors");
     let registry = DetectorRegistryBuilder::new()
-        // .with_detector(UnsafeMathDetector::default())
         .with_detector(MissingSignerDetector::default()) // Ensure MissingSignerDetector is included
         .with_detector(ManualLamportsZeroingDetector::default())
         .with_detector(SysvarAccountDetector::default())

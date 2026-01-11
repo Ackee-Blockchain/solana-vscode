@@ -191,7 +191,7 @@ impl FileScanner {
             // Rust build artifacts and dependencies
             "target" | "debug" | "release" | "deps" | "build" | "incremental" |
             // Test directories (skip all test code)
-            "tests" | "test" |
+            "tests" | "test" | "trident-tests" |
             // JavaScript/TypeScript dependencies and build outputs
             "node_modules" | "dist" | "out" | "coverage" | ".nyc_output" |
             // Version control

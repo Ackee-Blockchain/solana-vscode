@@ -34,11 +34,60 @@ impl DylintDetectorCache {
         Ok(Self { cache_dir })
     }
 
-    /// Get the cache directory path
+    /// Get the cache directory path with version
     fn get_cache_directory() -> Result<PathBuf> {
         let cache_base = dirs::cache_dir().context("Failed to get cache directory")?;
 
-        Ok(cache_base.join("solana-vscode").join("dylint-detectors"))
+        // Include extension version in cache path so each version gets its own cache
+        // This automatically invalidates cache on version updates
+        let version = Self::get_extension_version().unwrap_or_else(|_| "unknown".to_string());
+
+        Ok(cache_base
+            .join("solana-vscode")
+            .join(format!("dylint-detectors-v{}", version)))
+    }
+
+    /// Read extension version from package.json
+    fn get_extension_version() -> Result<String> {
+        // Try to find package.json relative to the language server
+        // The structure is: extension/package.json and language-server/
+        let current_exe = std::env::current_exe()?;
+        let mut search_path = current_exe.parent();
+
+        // Search up the directory tree for package.json
+        while let Some(path) = search_path {
+            // Check ../extension/package.json (language-server sibling)
+            let package_json = path
+                .parent()
+                .and_then(|p| Some(p.join("extension").join("package.json")));
+
+            if let Some(pkg_path) = package_json {
+                if pkg_path.exists() {
+                    let content =
+                        fs::read_to_string(&pkg_path).context("Failed to read package.json")?;
+
+                    // Simple version extraction (avoiding serde_json dependency)
+                    if let Some(version_line) = content
+                        .lines()
+                        .find(|line| line.trim().starts_with("\"version\""))
+                    {
+                        if let Some(version) = version_line.split(':').nth(1).and_then(|v| {
+                            v.trim()
+                                .trim_matches(',')
+                                .trim_matches('"')
+                                .strip_prefix("")
+                        }) {
+                            return Ok(version.trim_matches('"').to_string());
+                        }
+                    }
+                }
+            }
+
+            search_path = path.parent();
+        }
+
+        // Fallback to language server version if package.json not found
+        Ok(env!("CARGO_PKG_VERSION").to_string())
     }
 
     /// Get the cache key for a detector and nightly version
@@ -65,7 +114,7 @@ impl DylintDetectorCache {
         } else {
             "so"
         };
-        
+
         // Always use the extension's required nightly version
         let platform = std::env::consts::ARCH;
         let os = match std::env::consts::OS {
@@ -74,7 +123,7 @@ impl DylintDetectorCache {
             "windows" => "pc-windows-msvc",
             _ => "unknown",
         };
-        
+
         let filename = format!(
             "lib{}@{}-{}-{}.{}",
             detector.crate_name.replace("-", "_"),
@@ -114,7 +163,7 @@ impl DylintDetectorCache {
             .extension()
             .and_then(|e| e.to_str())
             .unwrap_or("so");
-        
+
         // Always use the extension's required nightly version
         // Create filename: lib<detector_name>@<nightly_version>-<platform>.<ext>
         // This format matches the pre-compiled lints and allows dylint runner to detect toolchain
@@ -125,7 +174,7 @@ impl DylintDetectorCache {
             "windows" => "pc-windows-msvc",
             _ => "unknown",
         };
-        
+
         let filename = format!(
             "lib{}@{}-{}-{}.{}",
             detector.crate_name.replace("-", "_"),
@@ -159,12 +208,23 @@ impl DylintDetectorCache {
     }
 
     /// Clear all cached detectors
-    pub fn clear_all_cache(&self) -> Result<()> {
+    pub fn clear_all(&self) -> Result<()> {
         if self.cache_dir.exists() {
-            fs::remove_dir_all(&self.cache_dir).context("Failed to clear cache directory")?;
-            fs::create_dir_all(&self.cache_dir).context("Failed to recreate cache directory")?;
+            for entry in fs::read_dir(&self.cache_dir)? {
+                let entry = entry?;
+                let path = entry.path();
+                if path.is_file() {
+                    fs::remove_file(&path).context("Failed to remove cached file")?;
+                    info!("Removed cached detector: {:?}", path);
+                }
+            }
             info!("Cleared all cached detectors");
         }
         Ok(())
+    }
+
+    /// Get the cache directory path (for external access)
+    pub fn cache_dir(&self) -> &PathBuf {
+        &self.cache_dir
     }
 }

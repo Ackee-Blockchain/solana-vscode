@@ -3,6 +3,7 @@ use language_server::core::detectors::{
 };
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
+
 #[test]
 fn test_detector_metadata() {
     let detector = ImmutableAccountMutatedDetector::default();
@@ -385,4 +386,243 @@ fn test_detects_mutation_through_reference() {
     assert_eq!(field_diagnostic.severity, Some(DiagnosticSeverity::ERROR));
     assert!(field_diagnostic.message.contains("mutating_account"));
     assert!(field_diagnostic.related_information.is_some());
+}
+
+/// Two-level dereference with a chained call to try_borrow_mut_lamports()
+/// Expected: should be flagged (account not marked #[account(mut)] is attempting to modify lamports)
+#[test]
+fn test_detects_lamports_zeroing_through_chain() {
+    let mut detector = ImmutableAccountMutatedDetector::default();
+
+    let code = r#"
+        use anchor_lang::prelude::*;
+
+        #[derive(Accounts)]
+        pub struct Case1<'info> {
+            pub vault: AccountInfo<'info>,
+            #[account(mut)]
+            pub payer: Signer<'info>,
+        }
+
+        #[program]
+        pub mod p1 {
+            use super::*;
+            pub fn f(ctx: Context<Case1>) -> Result<()> {
+                **ctx.accounts.vault.try_borrow_mut_lamports()? = 0;
+                Ok(())
+            }
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code, None);
+    assert_eq!(diagnostics.len(), 2); // mutation-site + field-definition
+    let mutation = diagnostics.iter().find(|d| d.message.contains("Attempting to mutate")).expect("missing mutation diag");
+    assert_eq!(mutation.severity, Some(DiagnosticSeverity::ERROR));
+    assert!(mutation.message.contains("vault"));
+    let defined = diagnostics.iter().find(|d| d.message.contains("defined here")).expect("missing field-definition diag");
+    assert_eq!(defined.severity, Some(DiagnosticSeverity::ERROR));
+    assert!(defined.message.contains("vault"));
+}
+
+/// Same as above but with extra parentheses and to_account_info() variant
+/// Expected: should be flagged
+#[test]
+fn test_detects_lamports_zeroing_with_parentheses_and_to_account_info() {
+    let mut detector = ImmutableAccountMutatedDetector::default();
+
+    let code = r#"
+        use anchor_lang::prelude::*;
+
+        #[derive(Accounts)]
+        pub struct Case1b<'info> {
+            pub vault: Account<'info, Vault>,
+            #[account(mut)]
+            pub payer: Signer<'info>,
+        }
+
+        #[account]
+        pub struct Vault { pub balance: u64 }
+
+        #[program]
+        pub mod p1b {
+            use super::*;
+            pub fn f(ctx: Context<Case1b>) -> Result<()> {
+                **(ctx.accounts.vault.to_account_info()).try_borrow_mut_lamports()? = 0;
+                Ok(())
+            }
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code, None);
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().any(|d| d.message.contains("Attempting to mutate") && d.message.contains("vault")));
+    assert!(diagnostics.iter().any(|d| d.message.contains("defined here") && d.message.contains("vault")));
+}
+
+/// Directly replacing the entire account data structure (not just assigning to a field)
+/// Expected: should be flagged (overwriting an account not marked #[account(mut)])
+#[test]
+fn test_detects_whole_struct_assignment() {
+    let mut detector = ImmutableAccountMutatedDetector::default();
+
+    let code = r#"
+        use anchor_lang::prelude::*;
+
+        #[derive(Accounts)]
+        pub struct Case4<'info> {
+            pub vault: Account<'info, Vault>,
+            #[account(mut)]
+            pub payer: Signer<'info>,
+        }
+
+        #[account]
+        pub struct Vault { pub balance: u64 }
+
+        #[program]
+        pub mod p4 {
+            use super::*;
+            pub fn f(ctx: Context<Case4>) -> Result<()> {
+                ctx.accounts.vault = Vault { balance: 999 };
+                Ok(())
+            }
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code, None);
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().any(|d| d.message.contains("Attempting to mutate") && d.message.contains("vault")));
+    assert!(diagnostics.iter().any(|d| d.message.contains("defined here") && d.message.contains("vault")));
+}
+
+/// Lamports modification on an UncheckedAccount variant
+/// Expected: should be flagged
+#[test]
+fn test_detects_unchecked_account_lamports_mutation() {
+    let mut detector = ImmutableAccountMutatedDetector::default();
+
+    let code = r#"
+        use anchor_lang::prelude::*;
+
+        #[derive(Accounts)]
+        pub struct Case8<'info> {
+            pub victim: UncheckedAccount<'info>,
+            #[account(mut)]
+            pub payer: Signer<'info>,
+        }
+
+        #[program]
+        pub mod p8 {
+            use super::*;
+            pub fn f(ctx: Context<Case8>) -> Result<()> {
+                **ctx.accounts.victim.try_borrow_mut_lamports()? = 0;
+                Ok(())
+            }
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code, None);
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().any(|d| d.message.contains("Attempting to mutate") && d.message.contains("victim")));
+    assert!(diagnostics.iter().any(|d| d.message.contains("defined here") && d.message.contains("victim")));
+}
+
+/// Internal mutation caused by calling a method that takes &mut self (not direct field assignment)
+/// Expected: should be flagged (calling a method that mutates an account not marked #[account(mut)])
+#[test]
+fn test_detects_mutation_via_method_with_mut_self() {
+    let mut detector = ImmutableAccountMutatedDetector::default();
+
+    let code = r#"
+        use anchor_lang::prelude::*;
+
+        #[account]
+        pub struct Vault { pub balance: u64 }
+        impl Vault {
+            pub fn inc(&mut self) { self.balance += 1; }
+        }
+
+        #[derive(Accounts)]
+        pub struct Case9<'info> {
+            pub vault: Account<'info, Vault>,
+            #[account(mut)]
+            pub payer: Signer<'info>,
+        }
+
+        #[program]
+        pub mod p9 {
+            use super::*;
+            pub fn f(ctx: Context<Case9>) -> Result<()> {
+                ctx.accounts.vault.inc();
+                Ok(())
+            }
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code, None);
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().any(|d| d.message.contains("Attempting to mutate") && d.message.contains("vault")));
+    assert!(diagnostics.iter().any(|d| d.message.contains("defined here") && d.message.contains("vault")));
+}
+
+/// Negative test: Local shadow variable that is a normal struct, not an account
+/// Expected: should not be flagged
+#[test]
+fn test_negative_local_shadow_struct_is_not_account() {
+    let mut detector = ImmutableAccountMutatedDetector::default();
+
+    let code = r#"
+        use anchor_lang::prelude::*;
+        #[account]
+        pub struct Vault { pub balance: u64 }
+
+        #[derive(Accounts)]
+        pub struct Case10<'info> {
+            pub dummy: AccountInfo<'info>,
+        }
+
+        #[program]
+        pub mod p10 {
+            use super::*;
+            pub fn f(_ctx: Context<Case10>) -> Result<()> {
+                let mut vault = Vault { balance: 0 };
+                vault.balance = 1;
+                Ok(())
+            }
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code, None);
+    assert_eq!(diagnostics.len(), 0);
+}
+
+/// Negative test: Sysvar, Program, and Signer accounts
+/// Expected: should not be flagged
+#[test]
+fn test_negative_sysvar_program_signer_not_flagged() {
+    let mut detector = ImmutableAccountMutatedDetector::default();
+
+    let code = r#"
+        use anchor_lang::prelude::*;
+
+        #[derive(Accounts)]
+        pub struct Case11<'info> {
+            pub rent: Sysvar<'info, Rent>,
+            pub system_program: Program<'info, System>,
+            pub authority: Signer<'info>,
+        }
+
+        #[program]
+        pub mod p11 {
+            use super::*;
+            pub fn f(ctx: Context<Case11>) -> Result<()> {
+                let _ = &ctx.accounts.rent;
+                let _ = &ctx.accounts.system_program;
+                let _ = &ctx.accounts.authority;
+                Ok(())
+            }
+        }
+    "#;
+
+    let diagnostics = detector.analyze(code, None);
+    assert_eq!(diagnostics.len(), 0);
 }

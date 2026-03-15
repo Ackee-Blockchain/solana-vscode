@@ -5,34 +5,40 @@ extern crate rustc_hir;
 extern crate rustc_middle;
 extern crate rustc_span;
 
-use rustc_hir as hir;
+use rustc_hir::def::Res;
 use rustc_hir::def_id::DefId;
-use rustc_hir::{Expr, ExprKind, FnDecl};
+use rustc_hir::intravisit::{self, Visitor};
+use rustc_hir::{
+    BorrowKind, Expr, ExprKind, FnDecl, GenericArg, Item, ItemKind, Mutability, QPath, TyKind,
+};
 use rustc_lint::{LateContext, LateLintPass};
-use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use rustc_middle::hir::nested_filter;
+use rustc_span::{Span, Symbol};
+use std::collections::HashMap;
 
 dylint_linting::declare_late_lint! {
     /// ### What it does
-    /// Detects attempts to mutate Anchor accounts that are not marked as mutable with `#[account(mut)]`.
+    /// Detects attempts to mutate Anchor accounts that are not marked as mutable
+    /// with `#[account(mut)]`.
     ///
     /// ### Why is this bad?
-    /// In Solana/Anchor programs, attempting to mutate an immutable account will cause a runtime error:
-    /// - The transaction will fail with "Account is not writable"
-    /// - Wastes compute units and transaction fees
-    /// - Can cause unexpected program failures
+    /// In Solana programs, attempting to mutate an account that is not declared as mutable
+    /// will cause a runtime error:
+    /// - The Solana runtime rejects transactions that modify accounts not marked as writable
+    /// - Missing `#[account(mut)]` means changes will be silently discarded or cause failure
+    /// - This is a common source of bugs in Anchor programs
     ///
     /// ### Example
     ///
     /// Bad:
     /// ```rust
     /// #[derive(Accounts)]
-    /// pub struct UpdateData<'info> {
-    ///     pub data_account: Account<'info, DataAccount>,  // Missing #[account(mut)]
+    /// pub struct UpdateVault<'info> {
+    ///     pub vault: Account<'info, Vault>,
     /// }
     ///
-    /// pub fn update(ctx: Context<UpdateData>) -> Result<()> {
-    ///     ctx.accounts.data_account.value = 42;  // Error!
+    /// pub fn update_vault(ctx: Context<UpdateVault>, amount: u64) -> Result<()> {
+    ///     ctx.accounts.vault.amount = amount; // Mutation of immutable account!
     ///     Ok(())
     /// }
     /// ```
@@ -40,223 +46,322 @@ dylint_linting::declare_late_lint! {
     /// Good:
     /// ```rust
     /// #[derive(Accounts)]
-    /// pub struct UpdateData<'info> {
+    /// pub struct UpdateVault<'info> {
     ///     #[account(mut)]
-    ///     pub data_account: Account<'info, DataAccount>,
+    ///     pub vault: Account<'info, Vault>,
+    /// }
+    ///
+    /// pub fn update_vault(ctx: Context<UpdateVault>, amount: u64) -> Result<()> {
+    ///     ctx.accounts.vault.amount = amount;
+    ///     Ok(())
     /// }
     /// ```
     pub IMMUTABLE_ACCOUNT_MUTATED,
-    Deny,
-    "detects attempts to mutate immutable Anchor accounts"
+    Warn,
+    "detects attempts to mutate accounts not marked as mutable with #[account(mut)]"
 }
 
-// Thread-local storage for tracking immutable accounts across the lint
-thread_local! {
-    static IMMUTABLE_ACCOUNTS: RefCell<HashMap<DefId, HashSet<String>>> = RefCell::new(HashMap::new());
-    static FIELD_SPANS: RefCell<HashMap<DefId, HashMap<String, rustc_span::Span>>> = RefCell::new(HashMap::new());
-    static CURRENT_CONTEXT: RefCell<Option<DefId>> = RefCell::new(None);
-}
+/// Names of mutating methods on Solana accounts
+const MUTATING_METHODS: &[&str] = &[
+    "set_lamports",
+    "set_data",
+    "set_owner",
+    "set_executable",
+    "close",
+    "realloc",
+    "assign",
+    "push",
+    "insert",
+    "remove",
+    "clear",
+    "set",
+    "replace",
+    "extend",
+    "append",
+    "truncate",
+    "resize",
+    "retain",
+    "swap",
+    "sort",
+    "rotate",
+    "fill",
+];
+
+/// Names of account types in Anchor that represent on-chain accounts
+const ACCOUNT_TYPES: &[&str] = &["Account", "AccountInfo", "AccountLoader"];
 
 impl<'tcx> LateLintPass<'tcx> for ImmutableAccountMutated {
-    fn check_crate(&mut self, _cx: &LateContext<'tcx>) {
-        // Clear thread-local storage for this crate
-        IMMUTABLE_ACCOUNTS.with(|map| map.borrow_mut().clear());
-        FIELD_SPANS.with(|map| map.borrow_mut().clear());
-        CURRENT_CONTEXT.with(|ctx| *ctx.borrow_mut() = None);
-    }
-
-    fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item<'tcx>) {
-        // Collect immutable account info from structs
-        if let hir::ItemKind::Struct(_, _, ref variant_data) = item.kind {
-            let struct_def_id = item.owner_id.to_def_id();
-            Self::collect_immutable_fields(cx, struct_def_id, variant_data);
-        }
-    }
-
-    fn check_fn(
-        &mut self,
-        cx: &LateContext<'tcx>,
-        _: hir::intravisit::FnKind<'tcx>,
-        _: &'tcx FnDecl<'tcx>,
-        body: &'tcx hir::Body<'tcx>,
-        _: rustc_span::Span,
-        _: rustc_span::def_id::LocalDefId,
-    ) {
-        // Extract Context<T> and set it as current context
-        if let Some(context_def_id) = Self::extract_context_from_body(cx, body) {
-            CURRENT_CONTEXT.with(|ctx| *ctx.borrow_mut() = Some(context_def_id));
-        }
-    }
-
-    fn check_expr(&mut self, cx: &LateContext<'tcx>, expr: &'tcx Expr<'tcx>) {
-        // Only check if we're inside a function with Context parameter
-        let context_def_id = CURRENT_CONTEXT.with(|ctx| *ctx.borrow());
-
-        if let Some(ctx_id) = context_def_id {
-            // Check for assignment mutations
-            if let ExprKind::Assign(lhs, _, _) = expr.kind {
-                if let Some(account_name) = Self::extract_account_name(lhs) {
-                    Self::report_if_immutable(cx, &account_name, lhs.span, ctx_id);
-                }
+    fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx Item<'tcx>) {
+        if let ItemKind::Fn { sig, body: body_id, .. } = item.kind {
+            let def_id = item.owner_id.to_def_id();
+            let visibility = cx.tcx.visibility(def_id);
+            if !visibility.is_public() {
+                return;
             }
+
+            // Extract the Accounts struct type T from Context<T>
+            let Some(context_def_id) = extract_context_type(cx, sig.decl) else {
+                return;
+            };
+
+            // Find immutable account fields in the struct
+            let immutable_fields = find_immutable_account_fields(cx, context_def_id);
+            if immutable_fields.is_empty() {
+                return;
+            }
+
+            // Walk the function body looking for mutations of immutable accounts
+            let body = cx.tcx.hir_body(body_id);
+            let mut visitor = MutationVisitor {
+                cx,
+                immutable_fields: &immutable_fields,
+            };
+            visitor.visit_expr(body.value);
         }
     }
 }
 
-impl ImmutableAccountMutated {
-    /// Collect immutable account fields from a struct
-    fn collect_immutable_fields(
-        cx: &LateContext<'_>,
-        struct_def_id: DefId,
-        variant_data: &hir::VariantData<'_>,
-    ) {
-        let mut immutable_fields = HashSet::new();
-        let mut field_spans = HashMap::new();
-
-        for field in variant_data.fields() {
-            let field_def_id = field.def_id.to_def_id();
-            let field_name = cx.tcx.item_name(field_def_id).to_string();
-            let field_ty = cx.typeck_results().node_type(field.hir_id);
-
-            // Only check Account types
-            if !Self::is_account_type(cx, field_ty) {
-                continue;
-            }
-
-            // Store field span
-            field_spans.insert(field_name.clone(), field.span);
-
-            // Check if mutable by parsing source
-            let is_mut = Self::check_field_is_mutable(cx, field);
-
-            if !is_mut {
-                immutable_fields.insert(field_name);
-            }
-        }
-
-        if !immutable_fields.is_empty() {
-            IMMUTABLE_ACCOUNTS.with(|map| {
-                map.borrow_mut().insert(struct_def_id, immutable_fields);
-            });
-            FIELD_SPANS.with(|map| {
-                map.borrow_mut().insert(struct_def_id, field_spans);
-            });
-        }
-    }
-
-    /// Check if a field is mutable by parsing its source
-    fn check_field_is_mutable(cx: &LateContext<'_>, field: &hir::FieldDef<'_>) -> bool {
-        if let Some(src) = clippy_utils::source::snippet_opt(cx, field.span) {
-            // Look for #[account(mut)] or #[account(init, ...)]
-            src.contains("#[account(mut)") || src.contains("#[account(init")
-        } else {
-            false
-        }
-    }
-
-    /// Check if a type is Account, AccountInfo, or AccountLoader
-    fn is_account_type(cx: &LateContext<'_>, ty: rustc_middle::ty::Ty<'_>) -> bool {
-        if let rustc_middle::ty::TyKind::Adt(adt_def, _) = ty.kind() {
-            let type_name = cx.tcx.item_name(adt_def.did());
-            matches!(
-                type_name.as_str(),
-                "Account" | "AccountInfo" | "AccountLoader"
-            )
-        } else {
-            false
-        }
-    }
-
-    /// Extract Context<T> from function body parameters
-    fn extract_context_from_body(cx: &LateContext<'_>, body: &hir::Body<'_>) -> Option<DefId> {
-        for param in body.params {
-            let param_ty = cx.typeck_results().node_type(param.hir_id);
-
-            if let rustc_middle::ty::TyKind::Adt(adt_def, substs) = param_ty.kind() {
-                let type_name = cx.tcx.item_name(adt_def.did());
-
-                if type_name.as_str() == "Context" {
-                    // Get the last generic (the Accounts struct, after lifetimes)
-                    if let Some(last_generic) = substs.last() {
-                        if let Some(generic_ty) = last_generic.as_type() {
-                            if let rustc_middle::ty::TyKind::Adt(inner_adt, _) = generic_ty.kind() {
-                                return Some(inner_adt.did());
+/// Extract the DefId of type T from a `Context<T>` parameter
+fn extract_context_type<'tcx>(cx: &LateContext<'tcx>, decl: &FnDecl<'tcx>) -> Option<DefId> {
+    for param in decl.inputs {
+        if let TyKind::Path(QPath::Resolved(None, path)) = &param.kind {
+            if let Res::Def(_, def_id) = path.res {
+                let type_name = cx.tcx.item_name(def_id);
+                if type_name.as_str() != "Context" {
+                    continue;
+                }
+                if let Some(segment) = path.segments.last() {
+                    if let Some(args) = segment.args {
+                        for arg in args.args {
+                            if let GenericArg::Type(inner_ty) = arg {
+                                if let TyKind::Path(QPath::Resolved(None, inner_path)) =
+                                    &inner_ty.kind
+                                {
+                                    if let Res::Def(_, inner_def_id) = inner_path.res {
+                                        return Some(inner_def_id);
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        None
+    }
+    None
+}
+
+/// Find fields in an Accounts struct that are account types without `#[account(mut)]` or `#[account(init)]`.
+/// Returns a map of field name to field declaration span.
+fn find_immutable_account_fields(cx: &LateContext<'_>, def_id: DefId) -> HashMap<Symbol, Span> {
+    let mut immutable = HashMap::new();
+    let tcx = cx.tcx;
+    let adt_def = tcx.adt_def(def_id);
+
+    for variant in adt_def.variants() {
+        for field in &variant.fields {
+            let field_ty = tcx.type_of(field.did).instantiate_identity();
+
+            // Check if this is an account type (Account, AccountInfo, AccountLoader)
+            if !is_account_type(cx, field_ty) {
+                continue;
+            }
+
+            // Check if the field has #[account(mut)] or #[account(init)]
+            if has_mut_or_init_attr(cx, field.did) {
+                continue;
+            }
+
+            let field_span = tcx.def_span(field.did);
+            immutable.insert(field.name, field_span);
+        }
     }
 
-    /// Extract account name from ctx.accounts.account_name.field pattern
-    fn extract_account_name(expr: &Expr<'_>) -> Option<String> {
-        let mut field_chain = Vec::new();
-        let mut current = expr;
+    immutable
+}
 
-        loop {
-            match current.kind {
-                ExprKind::Field(base, field) => {
-                    field_chain.push(field.as_str().to_string());
-                    current = base;
+/// Check if a type is one of the Anchor account types
+fn is_account_type(cx: &LateContext<'_>, ty: rustc_middle::ty::Ty<'_>) -> bool {
+    if let rustc_middle::ty::TyKind::Adt(adt_def, _) = ty.kind() {
+        let type_name = cx.tcx.item_name(adt_def.did());
+        return ACCOUNT_TYPES.contains(&type_name.as_str());
+    }
+    false
+}
+
+/// Check if a field has `#[account(mut)]` or `#[account(init)]` attribute
+fn has_mut_or_init_attr(cx: &LateContext<'_>, field_def_id: DefId) -> bool {
+    let account_sym = Symbol::intern("account");
+    let attrs = cx.tcx.get_attrs(field_def_id, account_sym);
+    for attr in attrs {
+        // Parse the attribute token stream for `mut` or `init` tokens
+        let attr_str = format!("{:?}", attr);
+        if attr_str.contains("mut") || attr_str.contains("init") {
+            return true;
+        }
+    }
+    false
+}
+
+/// Visitor that walks a function body looking for mutation attempts on immutable accounts
+struct MutationVisitor<'a, 'tcx> {
+    cx: &'a LateContext<'tcx>,
+    immutable_fields: &'a HashMap<Symbol, Span>,
+}
+
+impl<'a, 'tcx> Visitor<'tcx> for MutationVisitor<'a, 'tcx> {
+    type NestedFilter = nested_filter::OnlyBodies;
+
+    fn maybe_tcx(&mut self) -> Self::MaybeTyCtxt {
+        self.cx.tcx
+    }
+
+    fn visit_expr(&mut self, expr: &'tcx Expr<'tcx>) {
+        match &expr.kind {
+            // Direct assignment: ctx.accounts.vault.field = value
+            ExprKind::Assign(lhs, _rhs, _span) => {
+                if let Some(account_name) = self.expr_references_immutable_account(lhs) {
+                    self.report(expr, account_name);
                 }
-                _ => break,
             }
-        }
 
-        field_chain.reverse();
-
-        // Find "accounts" and return the next field
-        for i in 0..field_chain.len() {
-            if field_chain[i] == "accounts" && i + 1 < field_chain.len() {
-                return Some(field_chain[i + 1].clone());
+            // Compound assignment: ctx.accounts.vault.field += value
+            ExprKind::AssignOp(_op, lhs, _rhs) => {
+                if let Some(account_name) = self.expr_references_immutable_account(lhs) {
+                    self.report(expr, account_name);
+                }
             }
-        }
 
-        None
-    }
+            // Mutable borrow: &mut ctx.accounts.vault
+            ExprKind::AddrOf(BorrowKind::Ref, Mutability::Mut, inner) => {
+                if let Some(account_name) = self.expr_references_immutable_account(inner) {
+                    self.report(expr, account_name);
+                }
+            }
 
-    /// Report if account is immutable
-    fn report_if_immutable(
-        cx: &LateContext<'_>,
-        account_name: &str,
-        span: rustc_span::Span,
-        context_def_id: DefId,
-    ) {
-        let is_immutable = IMMUTABLE_ACCOUNTS.with(|map| {
-            map.borrow()
-                .get(&context_def_id)
-                .map(|set| set.contains(account_name))
-                .unwrap_or(false)
-        });
+            // Method call: ctx.accounts.vault.set_lamports(...), etc.
+            ExprKind::MethodCall(method, receiver, _args, _span) => {
+                let method_name = method.ident.as_str();
+                let is_mutating = MUTATING_METHODS
+                    .iter()
+                    .any(|m| method_name == *m || method_name.starts_with(m));
 
-        if is_immutable {
-            // Report at mutation site
-            clippy_utils::diagnostics::span_lint_and_help(
-                cx,
-                IMMUTABLE_ACCOUNT_MUTATED,
-                span,
-                format!("attempting to mutate immutable account '{}'", account_name),
-                None,
-                "add #[account(mut)] attribute to the account field",
-            );
-
-            // Report at field definition
-            FIELD_SPANS.with(|map| {
-                if let Some(fields) = map.borrow().get(&context_def_id) {
-                    if let Some(&field_span) = fields.get(account_name) {
-                        clippy_utils::diagnostics::span_lint_and_help(
-                            cx,
-                            IMMUTABLE_ACCOUNT_MUTATED,
-                            field_span,
-                            format!("account field '{}' is not marked as mutable", account_name),
-                            None,
-                            "add #[account(mut)] attribute here",
-                        );
+                if is_mutating {
+                    if let Some(account_name) = self.expr_references_immutable_account(receiver) {
+                        self.report(expr, account_name);
                     }
                 }
-            });
+            }
+
+            _ => {}
+        }
+
+        intravisit::walk_expr(self, expr);
+    }
+}
+
+impl<'a, 'tcx> MutationVisitor<'a, 'tcx> {
+    /// Check if an expression references an immutable account field through `ctx.accounts.<field>`.
+    /// Returns the field name if it does.
+    fn expr_references_immutable_account(&self, expr: &Expr<'_>) -> Option<Symbol> {
+        // Walk down field access chains to find `<something>.accounts.<field_name>.<...>`
+        self.find_account_field_access(expr)
+    }
+
+    /// Recursively walk field access expressions to find an immutable account reference.
+    /// Matches patterns like:
+    ///   ctx.accounts.<field>
+    ///   ctx.accounts.<field>.something
+    ///   ctx.accounts.<field>.something.something_else
+    fn find_account_field_access(&self, expr: &Expr<'_>) -> Option<Symbol> {
+        match &expr.kind {
+            ExprKind::Field(base, field_ident) => {
+                // Check if this is `<base>.accounts.<field_name>` where field_name is immutable
+                if self.immutable_fields.contains_key(&field_ident.name) {
+                    if self.is_accounts_access(base) {
+                        return Some(field_ident.name);
+                    }
+                }
+                // Otherwise recurse into the base (handles chained field access)
+                self.find_account_field_access(base)
+            }
+            // Handle method calls on account fields: ctx.accounts.vault.to_account_info()
+            ExprKind::MethodCall(_method, receiver, _args, _span) => {
+                self.find_account_field_access(receiver)
+            }
+            // Handle index expressions: ctx.accounts.vault.data[i]
+            ExprKind::Index(base, _idx, _span) => self.find_account_field_access(base),
+            // Handle unary deref: *ctx.accounts.vault
+            ExprKind::Unary(rustc_hir::UnOp::Deref, inner) => {
+                self.find_account_field_access(inner)
+            }
+            _ => None,
         }
     }
+
+    /// Check if an expression is accessing the `accounts` field (e.g., `ctx.accounts`)
+    /// Handles auto-deref chains that the compiler inserts (e.g., `Deref(Field(ctx, "accounts"))`)
+    fn is_accounts_access(&self, expr: &Expr<'_>) -> bool {
+        match &expr.kind {
+            ExprKind::Field(_base, field_ident) => field_ident.name.as_str() == "accounts",
+            // Auto-deref: the compiler inserts explicit Deref nodes for &T field access
+            ExprKind::Unary(rustc_hir::UnOp::Deref, inner) => self.is_accounts_access(inner),
+            _ => false,
+        }
+    }
+
+    /// Report lint warnings: one on the mutation site, one on the field declaration
+    fn report(&self, expr: &'tcx Expr<'tcx>, account_name: Symbol) {
+        // Warning on the mutation site with link to field declaration
+        let field_span = self.immutable_fields.get(&account_name).copied();
+        clippy_utils::diagnostics::span_lint_and_then(
+            self.cx,
+            IMMUTABLE_ACCOUNT_MUTATED,
+            expr.span,
+            format!(
+                "Attempting to mutate immutable account '{}'. Add #[account(mut)] to allow mutation.",
+                account_name
+            ),
+            |diag| {
+                if let Some(decl_span) = field_span {
+                    diag.span_note(
+                        decl_span,
+                        format!("'{}' is declared here without #[account(mut)]", account_name),
+                    );
+                }
+                diag.help(format!(
+                    "add #[account(mut)] to the '{}' field in the Accounts struct",
+                    account_name
+                ));
+            },
+        );
+
+        // Warning on the field declaration with a note navigating to the mutation site
+        if let Some(&field_span) = self.immutable_fields.get(&account_name) {
+            clippy_utils::diagnostics::span_lint_and_then(
+                self.cx,
+                IMMUTABLE_ACCOUNT_MUTATED,
+                field_span,
+                format!(
+                    "Account '{}' is missing #[account(mut)] attribute",
+                    account_name
+                ),
+                |diag| {
+                    diag.span_note(
+                        expr.span,
+                        format!("'{}' is mutated here but not marked as mutable", account_name),
+                    );
+                    diag.help(format!(
+                        "add #[account(mut)] above this field: #[account(mut)]\n    pub {}: ...",
+                        account_name
+                    ));
+                },
+            );
+        }
+    }
+}
+
+#[test]
+fn ui() {
+    dylint_testing::ui_test(env!("CARGO_PKG_NAME"), "ui");
 }

@@ -1,5 +1,6 @@
-use super::diagnostics::DylintDiagnostic;
+use super::diagnostics::{DylintDiagnostic, DylintRelatedInfo};
 use anyhow::{Context, Result};
+use log::debug;
 use serde_json::Value;
 
 /// Parse cargo check JSON output and extract lint diagnostics
@@ -120,6 +121,15 @@ fn parse_diagnostic(message: &Value) -> Result<DylintDiagnostic> {
         .context("No level")?
         .to_string();
 
+    // Parse children (notes/help) that have spans for related information
+    let related_information = parse_related_information(message);
+    debug!(
+        "[Dylint Parser] Diagnostic '{}' has {} related info(s), children: {}",
+        msg,
+        related_information.len(),
+        message.get("children").map_or("none".to_string(), |c| format!("{}", c))
+    );
+
     Ok(DylintDiagnostic {
         file_name,
         line_start,
@@ -129,5 +139,65 @@ fn parse_diagnostic(message: &Value) -> Result<DylintDiagnostic> {
         message: msg,
         code,
         level,
+        related_information,
     })
+}
+
+/// Parse children of a diagnostic message to extract related information with spans
+fn parse_related_information(message: &Value) -> Vec<DylintRelatedInfo> {
+    let mut related = Vec::new();
+
+    let children = match message.get("children").and_then(|c| c.as_array()) {
+        Some(c) => c,
+        None => return related,
+    };
+
+    for child in children {
+        // Only include children that have spans (notes with locations)
+        let child_spans = match child.get("spans").and_then(|s| s.as_array()) {
+            Some(s) if !s.is_empty() => s,
+            _ => continue,
+        };
+
+        let child_msg = match child.get("message").and_then(|m| m.as_str()) {
+            Some(m) => m.to_string(),
+            None => continue,
+        };
+
+        // Use the first span from the child
+        if let Some(span) = child_spans.first() {
+            let file_name = match span.get("file_name").and_then(|f| f.as_str()) {
+                Some(f) => f.to_string(),
+                None => continue,
+            };
+
+            let line_start = span
+                .get("line_start")
+                .and_then(|l| l.as_u64())
+                .unwrap_or(1) as usize;
+            let line_end = span
+                .get("line_end")
+                .and_then(|l| l.as_u64())
+                .unwrap_or(1) as usize;
+            let column_start = span
+                .get("column_start")
+                .and_then(|c| c.as_u64())
+                .unwrap_or(1) as usize;
+            let column_end = span
+                .get("column_end")
+                .and_then(|c| c.as_u64())
+                .unwrap_or(1) as usize;
+
+            related.push(DylintRelatedInfo {
+                file_name,
+                line_start,
+                line_end,
+                column_start,
+                column_end,
+                message: child_msg,
+            });
+        }
+    }
+
+    related
 }

@@ -6,24 +6,23 @@ Detects attempts to mutate Anchor accounts that are not marked as mutable with `
 
 ### Why is this bad?
 
-In Solana/Anchor programs, attempting to mutate an immutable account will cause a runtime error:
+In Solana programs, attempting to mutate an account that is not declared as mutable will cause a runtime error. This detector catches these issues at development time:
 
-- The transaction will fail with "Account is not writable"
-- Wastes compute units and transaction fees
-- Can cause unexpected program failures
-- Violates the Anchor framework's safety guarantees
+- The Solana runtime will reject transactions that modify accounts not marked as writable
+- Missing `#[account(mut)]` means changes to the account will be silently discarded or cause a transaction failure
+- This is a common source of bugs when working with Anchor programs
 
 ### Example
 
 ```rust
-// Bad - Account not marked as mutable
+// Bad - Account is not marked as mutable but is being mutated
 #[derive(Accounts)]
-pub struct UpdateData<'info> {
-    pub data_account: Account<'info, DataAccount>,  // Missing #[account(mut)]
+pub struct UpdateVault<'info> {
+    pub vault: Account<'info, Vault>,
 }
 
-pub fn update(ctx: Context<UpdateData>) -> Result<()> {
-    ctx.accounts.data_account.value = 42;  // Error: trying to mutate!
+pub fn update_vault(ctx: Context<UpdateVault>, amount: u64) -> Result<()> {
+    ctx.accounts.vault.amount = amount; // Mutation of immutable account!
     Ok(())
 }
 ```
@@ -31,15 +30,15 @@ pub fn update(ctx: Context<UpdateData>) -> Result<()> {
 Use instead:
 
 ```rust
-// Good - Account marked as mutable
+// Good - Account is marked as mutable
 #[derive(Accounts)]
-pub struct UpdateData<'info> {
-    #[account(mut)]  // Now marked as mutable
-    pub data_account: Account<'info, DataAccount>,
+pub struct UpdateVault<'info> {
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
 }
 
-pub fn update(ctx: Context<UpdateData>) -> Result<()> {
-    ctx.accounts.data_account.value = 42;  // OK!
+pub fn update_vault(ctx: Context<UpdateVault>, amount: u64) -> Result<()> {
+    ctx.accounts.vault.amount = amount; // OK - account is mutable
     Ok(())
 }
 ```

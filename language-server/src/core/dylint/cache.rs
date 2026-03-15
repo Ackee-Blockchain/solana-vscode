@@ -156,7 +156,7 @@ impl DylintDetectorCache {
     pub fn cache_library(
         &self,
         detector: &DylintDetectorInfo,
-        nightly_version: &str,
+        _nightly_version: &str,
         compiled_lib: &Path,
     ) -> Result<PathBuf> {
         let extension = compiled_lib
@@ -191,36 +191,6 @@ impl DylintDetectorCache {
 
         info!("Cached library to: {:?}", cached_path);
         Ok(cached_path)
-    }
-
-    /// Check if a cached library exists and is valid
-    pub fn is_cached(&self, detector: &DylintDetectorInfo, nightly_version: &str) -> bool {
-        self.get_cached_library(detector, nightly_version).is_some()
-    }
-
-    /// Clear the cache for a specific detector
-    pub fn clear_cache(&self, detector: &DylintDetectorInfo, nightly_version: &str) -> Result<()> {
-        if let Some(cached_path) = self.get_cached_library(detector, nightly_version) {
-            fs::remove_file(&cached_path).context("Failed to remove cached library")?;
-            info!("Cleared cache for detector: {}", detector.crate_name);
-        }
-        Ok(())
-    }
-
-    /// Clear all cached detectors
-    pub fn clear_all(&self) -> Result<()> {
-        if self.cache_dir.exists() {
-            for entry in fs::read_dir(&self.cache_dir)? {
-                let entry = entry?;
-                let path = entry.path();
-                if path.is_file() {
-                    fs::remove_file(&path).context("Failed to remove cached file")?;
-                    info!("Removed cached detector: {:?}", path);
-                }
-            }
-            info!("Cleared all cached detectors");
-        }
-        Ok(())
     }
 
     /// Get the cache directory path (for external access)

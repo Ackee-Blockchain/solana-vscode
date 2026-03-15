@@ -4,7 +4,7 @@ use crate::core::utilities::DiagnosticBuilder;
 use std::path::PathBuf;
 use syn::spanned::Spanned;
 use syn::{
-    parse_str, visit::Visit, Expr, ExprAssign, ExprField, ExprLit, ExprMethodCall, Lit, UnOp,
+    Expr, ExprAssign, ExprField, ExprLit, ExprMethodCall, Lit, UnOp, parse_str, visit::Visit,
 };
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity};
 
@@ -34,7 +34,7 @@ impl ManualLamportsZeroingDetector {
                 Expr::Paren(p) => &p.expr,
                 Expr::Reference(r) => &r.expr,
                 Expr::Unary(u) if matches!(u.op, UnOp::Deref(_)) => &u.expr, // *
-                Expr::Try(t) => &t.expr, // ?
+                Expr::Try(t) => &t.expr,                                     // ?
                 _ => break expr,
             };
         }
@@ -60,9 +60,7 @@ impl ManualLamportsZeroingDetector {
 
             // 3) foo.lamports.borrow_mut() — the receiver of borrow_mut() must be a lamports access
             Expr::MethodCall(ExprMethodCall {
-                method,
-                receiver,
-                ..
+                method, receiver, ..
             }) if method == "borrow_mut" => self.is_lamports_access(receiver),
 
             // 4) foo.try_borrow_mut_lamports()

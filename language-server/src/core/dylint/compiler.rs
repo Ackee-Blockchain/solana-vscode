@@ -183,39 +183,6 @@ impl DylintDetectorCompiler {
         Ok(REQUIRED_NIGHTLY_VERSION.to_string())
     }
 
-    /// Get the actual installed nightly version info (for logging)
-    pub fn get_installed_nightly_info() -> Result<String> {
-        // Build PATH with cargo bin directories (same as nightly check)
-        let current_path = std::env::var("PATH").unwrap_or_default();
-        let home = dirs::home_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?;
-
-        let cargo_bin = home.join(".cargo").join("bin");
-        let rustup_bin = home.join(".rustup").join("toolchains");
-        let new_path = format!(
-            "{}:{}:/usr/local/bin:/usr/bin:{}",
-            cargo_bin.display(),
-            rustup_bin.display(),
-            current_path
-        );
-
-        let output = Command::new("rustc")
-            .arg(format!("+{}", REQUIRED_NIGHTLY_VERSION))
-            .arg("--version")
-            .env("PATH", new_path)
-            .output()
-            .context("Failed to execute rustc")?;
-
-        if !output.status.success() {
-            anyhow::bail!("Failed to get installed nightly info");
-        }
-
-        let version = String::from_utf8_lossy(&output.stdout);
-        // Extract version string (e.g., "rustc 1.75.0-nightly (abc123 2024-01-01)")
-        let version = version.trim();
-        Ok(version.to_string())
-    }
-
     /// Check if dylint-driver is installed for the required nightly version
     pub fn is_dylint_driver_available() -> bool {
         use log::{debug, warn};

@@ -2,10 +2,9 @@ use crate::core::dylint::constants::REQUIRED_NIGHTLY_VERSION;
 use crate::core::{
     DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, DetectorStatus,
     DetectorStatusNotification, DylintDetectorManager, FileScanner,
-    ImmutableAccountMutatedDetector, InstructionAttributeInvalidDetector,
-    InstructionAttributeUnusedDetector, ManualLamportsZeroingDetector, MissingCheckCommentDetector,
-    MissingInitspaceDetector, ScanCompleteNotification, ScanResult, ScanSummary,
-    SysvarAccountDetector,
+    InstructionAttributeInvalidDetector, InstructionAttributeUnusedDetector,
+    ManualLamportsZeroingDetector, MissingCheckCommentDetector, MissingInitspaceDetector,
+    ScanCompleteNotification, ScanResult, ScanSummary, SysvarAccountDetector,
 };
 use crate::dylint_runner::DylintRunner;
 use log::{info, warn};
@@ -144,7 +143,7 @@ impl LanguageServer for Backend {
                                             path_str.ends_with(&d.file_name)
                                                 || path_str.contains(&d.file_name)
                                         })
-                                        .map(|d| d.to_lsp_diagnostic())
+                                        .map(|d| d.to_lsp_diagnostic(Some(&workspace)))
                                         .collect();
 
                                     if !dylint_file_diagnostics.is_empty() {
@@ -293,7 +292,7 @@ impl LanguageServer for Backend {
                                             path_str.ends_with(&d.file_name)
                                                 || path_str.contains(&d.file_name)
                                         })
-                                        .map(|d| d.to_lsp_diagnostic())
+                                        .map(|d| d.to_lsp_diagnostic(Some(&workspace)))
                                         .collect();
 
                                     if !dylint_file_diagnostics.is_empty() {
@@ -464,7 +463,7 @@ impl LanguageServer for Backend {
                                             path_str.ends_with(&d.file_name)
                                                 || path_str.contains(&d.file_name)
                                         })
-                                        .map(|d| d.to_lsp_diagnostic())
+                                        .map(|d| d.to_lsp_diagnostic(Some(&workspace)))
                                         .collect();
 
                                     if !dylint_file_diagnostics.is_empty() {
@@ -808,7 +807,7 @@ impl Backend {
                                     .unwrap_or(false);
                                 matches
                             })
-                            .map(|d| d.to_lsp_diagnostic())
+                            .map(|d| d.to_lsp_diagnostic(Some(&workspace)))
                             .collect();
 
                         info!(
@@ -896,7 +895,6 @@ fn create_default_registry() -> DetectorRegistry {
     let registry = DetectorRegistryBuilder::new()
         .with_detector(ManualLamportsZeroingDetector::default())
         .with_detector(SysvarAccountDetector::default())
-        .with_detector(ImmutableAccountMutatedDetector::default())
         .with_detector(MissingInitspaceDetector::default())
         .with_detector(InstructionAttributeUnusedDetector::default())
         .with_detector(InstructionAttributeInvalidDetector::default())

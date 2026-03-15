@@ -127,7 +127,9 @@ fn parse_diagnostic(message: &Value) -> Result<DylintDiagnostic> {
         "[Dylint Parser] Diagnostic '{}' has {} related info(s), children: {}",
         msg,
         related_information.len(),
-        message.get("children").map_or("none".to_string(), |c| format!("{}", c))
+        message
+            .get("children")
+            .map_or("none".to_string(), |c| format!("{}", c))
     );
 
     Ok(DylintDiagnostic {
@@ -171,22 +173,13 @@ fn parse_related_information(message: &Value) -> Vec<DylintRelatedInfo> {
                 None => continue,
             };
 
-            let line_start = span
-                .get("line_start")
-                .and_then(|l| l.as_u64())
-                .unwrap_or(1) as usize;
-            let line_end = span
-                .get("line_end")
-                .and_then(|l| l.as_u64())
-                .unwrap_or(1) as usize;
+            let line_start = span.get("line_start").and_then(|l| l.as_u64()).unwrap_or(1) as usize;
+            let line_end = span.get("line_end").and_then(|l| l.as_u64()).unwrap_or(1) as usize;
             let column_start = span
                 .get("column_start")
                 .and_then(|c| c.as_u64())
                 .unwrap_or(1) as usize;
-            let column_end = span
-                .get("column_end")
-                .and_then(|c| c.as_u64())
-                .unwrap_or(1) as usize;
+            let column_end = span.get("column_end").and_then(|c| c.as_u64()).unwrap_or(1) as usize;
 
             related.push(DylintRelatedInfo {
                 file_name,

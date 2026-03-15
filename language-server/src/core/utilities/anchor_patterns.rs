@@ -180,5 +180,4 @@ impl AnchorPatterns {
         }
         None
     }
-
 }

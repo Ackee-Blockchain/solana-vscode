@@ -171,31 +171,30 @@ impl DylintDetectorManager {
         if let Some(parent_dir) = current_cache_dir.parent().filter(|p| p.exists()) {
             // Iterate through all directories in solana-vscode/
             if let Ok(entries) = std::fs::read_dir(parent_dir) {
-                    for entry in entries.filter_map(|e| e.ok()) {
-                        let path = entry.path();
+                for entry in entries.filter_map(|e| e.ok()) {
+                    let path = entry.path();
 
-                        // Check if it's a dylint-detectors directory but not the current one
-                        if path.is_dir()
-                            && path
-                                .file_name()
-                                .and_then(|n| n.to_str())
-                                .map(|n| n.starts_with("dylint-detectors"))
-                                .unwrap_or(false)
-                            && path != *current_cache_dir
-                        {
-                            // Delete old cache directory
-                            if let Err(e) = std::fs::remove_dir_all(&path) {
-                                warn!("Failed to remove old cache directory {:?}: {}", path, e);
-                            } else {
-                                info!("Removed old cache directory: {:?}", path);
-                            }
+                    // Check if it's a dylint-detectors directory but not the current one
+                    if path.is_dir()
+                        && path
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .map(|n| n.starts_with("dylint-detectors"))
+                            .unwrap_or(false)
+                        && path != *current_cache_dir
+                    {
+                        // Delete old cache directory
+                        if let Err(e) = std::fs::remove_dir_all(&path) {
+                            warn!("Failed to remove old cache directory {:?}: {}", path, e);
+                        } else {
+                            info!("Removed old cache directory: {:?}", path);
                         }
+                    }
                 }
             }
         }
         Ok(())
     }
-
 }
 
 impl Default for DylintDetectorManager {

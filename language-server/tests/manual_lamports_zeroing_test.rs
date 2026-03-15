@@ -374,7 +374,11 @@ fn test_detects_borrow_mut_chain_zero() {
 
     let diagnostics = detector.analyze(code, None);
     assert_eq!(diagnostics.len(), 1);
-    assert!(diagnostics[0].message.contains("Manual lamports zeroing detected"));
+    assert!(
+        diagnostics[0]
+            .message
+            .contains("Manual lamports zeroing detected")
+    );
 }
 
 #[test]
@@ -399,7 +403,11 @@ fn test_detects_try_borrow_mut_lamports_zero() {
 
     let diagnostics = detector.analyze(code, None);
     assert_eq!(diagnostics.len(), 1);
-    assert!(diagnostics[0].message.contains("Manual lamports zeroing detected"));
+    assert!(
+        diagnostics[0]
+            .message
+            .contains("Manual lamports zeroing detected")
+    );
 }
 
 #[test]

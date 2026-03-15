@@ -2,10 +2,9 @@ use crate::core::dylint::constants::REQUIRED_NIGHTLY_VERSION;
 use crate::core::{
     DetectorInfo, DetectorRegistry, DetectorRegistryBuilder, DetectorStatus,
     DetectorStatusNotification, DylintDetectorManager, FileScanner,
-    InstructionAttributeInvalidDetector,
-    InstructionAttributeUnusedDetector, ManualLamportsZeroingDetector, MissingCheckCommentDetector,
-    MissingInitspaceDetector, ScanCompleteNotification, ScanResult, ScanSummary,
-    SysvarAccountDetector,
+    InstructionAttributeInvalidDetector, InstructionAttributeUnusedDetector,
+    ManualLamportsZeroingDetector, MissingCheckCommentDetector, MissingInitspaceDetector,
+    ScanCompleteNotification, ScanResult, ScanSummary, SysvarAccountDetector,
 };
 use crate::dylint_runner::DylintRunner;
 use log::{info, warn};
@@ -56,7 +55,7 @@ impl LanguageServer for Backend {
             let scan_result = scanner.scan_workspace(&mut registry).await;
             drop(registry); // Release registry lock before initializing dylint
             drop(scanner); // Release scanner lock
- 
+
             // Log scan results
             info!("Initial scan completed:");
             info!("  - {} Rust files scanned", scan_result.rust_files.len());

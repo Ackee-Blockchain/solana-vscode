@@ -29,7 +29,10 @@ pub struct DylintDiagnostic {
 impl DylintDiagnostic {
     /// Convert to LSP Diagnostic.
     /// `workspace_root` is used to resolve relative file paths in related information.
-    pub fn to_lsp_diagnostic(&self, workspace_root: Option<&Path>) -> tower_lsp::lsp_types::Diagnostic {
+    pub fn to_lsp_diagnostic(
+        &self,
+        workspace_root: Option<&Path>,
+    ) -> tower_lsp::lsp_types::Diagnostic {
         use tower_lsp::lsp_types::{
             Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, Position,
             Range, Url,
@@ -86,11 +89,7 @@ impl DylintDiagnostic {
                     })
                 })
                 .collect();
-            if infos.is_empty() {
-                None
-            } else {
-                Some(infos)
-            }
+            if infos.is_empty() { None } else { Some(infos) }
         };
 
         Diagnostic {

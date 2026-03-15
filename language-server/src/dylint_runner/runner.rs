@@ -23,7 +23,10 @@ impl DylintRunner {
     /// Add workspace detector libraries to the runner
     pub fn add_workspace_detectors(&self, detector_libs: Vec<PathBuf>) {
         let mut libs = self.lint_libs.lock().unwrap();
-        info!("Adding {} workspace detector(s) to dylint runner", detector_libs.len());
+        info!(
+            "Adding {} workspace detector(s) to dylint runner",
+            detector_libs.len()
+        );
         libs.extend(detector_libs);
         info!("Dylint runner now has {} total lint(s)", libs.len());
     }
@@ -57,7 +60,10 @@ impl DylintRunner {
                     }
                 }
                 Err(e) => {
-                    warn!("Failed to discover pre-compiled lints: {}. Starting with empty runner.", e);
+                    warn!(
+                        "Failed to discover pre-compiled lints: {}. Starting with empty runner.",
+                        e
+                    );
                     Vec::new()
                 }
             }
@@ -151,7 +157,10 @@ impl DylintRunner {
         debug!("[Dylint] Cargo stdout length: {} bytes", stdout.len());
         debug!("[Dylint] Cargo stderr length: {} bytes", stderr.len());
         if !stderr.is_empty() {
-            debug!("[Dylint] Cargo stderr: {}", stderr.lines().take(10).collect::<Vec<_>>().join("\n"));
+            debug!(
+                "[Dylint] Cargo stderr: {}",
+                stderr.lines().take(10).collect::<Vec<_>>().join("\n")
+            );
         }
 
         let lint_codes: Vec<String> = lint_libs
@@ -200,7 +209,10 @@ impl DylintRunner {
         use crate::core::dylint::constants::REQUIRED_NIGHTLY_VERSION;
 
         // Simply return the required nightly version - all detectors use this version
-        info!("Using extension's required nightly version: {}", REQUIRED_NIGHTLY_VERSION);
+        info!(
+            "Using extension's required nightly version: {}",
+            REQUIRED_NIGHTLY_VERSION
+        );
         Ok(REQUIRED_NIGHTLY_VERSION.to_string())
     }
 

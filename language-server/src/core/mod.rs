@@ -7,10 +7,7 @@ pub mod registry;
 pub mod utilities;
 
 pub use detectors::*;
-pub use dylint::{
-    DylintDetectorCache, DylintDetectorCompiler, DylintDetectorLoader, DylintDetectorManager,
-    DylintDetectorScanner,
-};
+pub use dylint::DylintDetectorManager;
 pub use file_scanner::*;
 pub use notifications::*;
 pub use registry::*;

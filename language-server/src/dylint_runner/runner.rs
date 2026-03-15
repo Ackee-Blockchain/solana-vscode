@@ -196,68 +196,11 @@ impl DylintRunner {
     }
 
     /// Detect the Rust toolchain from the lint library filename
-    fn detect_lint_toolchain(lints_dir: &Path) -> Result<String> {
+    fn detect_lint_toolchain(_lints_dir: &Path) -> Result<String> {
         use crate::core::dylint::constants::REQUIRED_NIGHTLY_VERSION;
 
         // Simply return the required nightly version - all detectors use this version
         info!("Using extension's required nightly version: {}", REQUIRED_NIGHTLY_VERSION);
-        return Ok(REQUIRED_NIGHTLY_VERSION.to_string());
-
-        // Old detection code kept as fallback (commented out)
-        /*
-        // Extract toolchain from lint library filename
-        // Format: libunchecked_math@nightly-2025-09-18-aarch64-apple-darwin.dylib
-        if let Ok(entries) = std::fs::read_dir(lints_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let file_name = entry.file_name();
-                let file_name_str = file_name.to_string_lossy();
-
-                // Look for @ in filename
-                if let Some(at_pos) = file_name_str.find('@') {
-                    let after_at = &file_name_str[at_pos + 1..];
-
-                    // Extract toolchain: "nightly-2025-09-18-aarch64..." -> "nightly-2025-09-18"
-                    // Date format is YYYY-MM-DD, so we need 4 parts: nightly-YYYY-MM-DD
-                    let parts: Vec<&str> = after_at.split('-').collect();
-                    if parts.len() >= 5 && parts[0] == "nightly" {
-                        // parts[0] = "nightly", parts[1] = "2025", parts[2] = "09", parts[3] = "18", parts[4] = "aarch64"
-                        let toolchain = format!("{}-{}-{}-{}", parts[0], parts[1], parts[2], parts[3]);
-                        info!("Detected toolchain from lint filename: {}", toolchain);
-                        return Ok(toolchain);
-                    }
-                }
-            }
-        }
-        */
-
-        // Fallback: Look for rust-toolchain file
-        let lints_parent = lints_dir
-            .parent()
-            .and_then(|p| p.parent())
-            .ok_or_else(|| anyhow::anyhow!("Could not find lints directory"))?
-            .join("lints");
-
-        if let Ok(entries) = std::fs::read_dir(&lints_parent) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let rust_toolchain = entry.path().join("rust-toolchain");
-                if rust_toolchain.exists()
-                    && let Ok(content) = std::fs::read_to_string(&rust_toolchain)
-                {
-                    for line in content.lines() {
-                        if line.trim().starts_with("channel")
-                            && let Some(channel) = line.split('"').nth(1)
-                        {
-                            info!("Detected toolchain from rust-toolchain file: {}", channel);
-                            return Ok(channel.to_string());
-                        }
-                    }
-                }
-            }
-        }
-
-        // This code is now unreachable since we return early above
-        // But kept for safety
-        warn!("Could not detect toolchain, falling back to required nightly");
         Ok(REQUIRED_NIGHTLY_VERSION.to_string())
     }
 

@@ -55,45 +55,6 @@ impl DylintDetectorManager {
         self.scanner.set_extension_path(extension_path);
     }
 
-    /// Pre-build all detectors (compile and cache them for future reuse)
-    /// This can be called separately to build detectors before they're needed
-    pub async fn prebuild_detectors(&mut self) -> Result<()> {
-        // Get nightly version
-        let nightly_version = DylintDetectorCompiler::get_nightly_version()
-            .context("Failed to get nightly Rust version. Make sure nightly is installed.")?;
-
-        self.nightly_version = Some(nightly_version.clone());
-        info!(
-            "Pre-building dylint detectors with nightly: {}",
-            nightly_version
-        );
-
-        // Scan for detectors
-        let detectors = self.scanner.scan_detectors();
-
-        if detectors.is_empty() {
-            info!("No dylint detectors found in workspace");
-            return Ok(());
-        }
-
-        info!("Pre-building {} dylint detector(s)...", detectors.len());
-
-        // Build and cache each detector (but don't load yet)
-        for detector in detectors {
-            if let Err(e) = self
-                .build_and_cache_detector(&detector, &nightly_version)
-                .await
-            {
-                warn!(
-                    "Failed to pre-build detector {}: {}",
-                    detector.crate_name, e
-                );
-            }
-        }
-
-        Ok(())
-    }
-
     /// Initialize and compile all dylint detectors (reuse cached builds if available)
     /// Returns the paths to compiled detector libraries
     /// This is the main initialization method called on first save
@@ -235,16 +196,6 @@ impl DylintDetectorManager {
         Ok(())
     }
 
-    /// Reload all detectors (useful after workspace changes)
-    pub async fn reload(&mut self) -> Result<Vec<PathBuf>> {
-        // Reinitialize (will reuse cache)
-        self.initialize().await
-    }
-
-    /// Get the current nightly version
-    pub fn nightly_version(&self) -> Option<&str> {
-        self.nightly_version.as_deref()
-    }
 }
 
 impl Default for DylintDetectorManager {

@@ -23,10 +23,6 @@ impl DylintDetectorScanner {
         }
     }
 
-    pub fn set_workspace_root(&mut self, root: PathBuf) {
-        self.workspace_root = Some(root);
-    }
-
     /// Set the extension path (where bundled detectors are located)
     pub fn set_extension_path(&mut self, extension_path: PathBuf) {
         // Look for detectors in extension/detectors/
